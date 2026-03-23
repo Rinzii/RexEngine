@@ -1,0 +1,71 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.sln.iml
+*.user
+*.rsuser
+*.suo
+
+# .NET outputs anywhere
+**/bin/
+**/obj/
+TestResults/
+
+# Main repo build outputs
+/out/
+/artifacts/
+
+# CMake and native build files anywhere
+**/CMakeFiles/
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/CTestTestfile.cmake
+**/Testing/
+**/install_manifest.txt
+**/build.ninja
+**/.ninja_deps
+**/.ninja_log
+**/compile_commands.json
+**/Makefile
+
+# FetchContent / downloaded deps
+**/_deps/
+
+# Generated bindings
+/src/Shared/Rex.Native/Generated/
+
+# Native binaries and debug artifacts
+*.dll
+*.dylib
+*.so
+*.a
+*.lib
+*.exp
+*.pdb
+*.ilk
+*.dSYM/
+
+# Coverage and logs
+*.log
+*.coverage
+*.coveragexml
+coverage/
+
+# Temp files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Local environment files
+.env
+.env.*
+
+# Local app config overrides
+appsettings.Development.json
+appsettings.Local.json

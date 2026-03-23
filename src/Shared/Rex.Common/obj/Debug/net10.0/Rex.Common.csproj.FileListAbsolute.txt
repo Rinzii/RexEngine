@@ -1,0 +1,11 @@
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/bin/Debug/net10.0/Rex.Common.deps.json
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/bin/Debug/net10.0/Rex.Common.dll
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/bin/Debug/net10.0/Rex.Common.pdb
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.GeneratedMSBuildEditorConfig.editorconfig
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.AssemblyInfoInputs.cache
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.AssemblyInfo.cs
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.csproj.CoreCompileInputs.cache
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.dll
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/refint/Rex.Common.dll
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/Rex.Common.pdb
+/Users/ianpike/oss/Rex/src/Shared/Rex.Common/obj/Debug/net10.0/ref/Rex.Common.dll

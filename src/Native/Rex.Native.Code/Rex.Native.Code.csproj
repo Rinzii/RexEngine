@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <AssemblyName>Rex.Native.Code</AssemblyName>
+        <NoBuild>true</NoBuild>
+        <IsPackable>false</IsPackable>
+        <EnableDefaultItems>false</EnableDefaultItems>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../../../native/Rex.Native/CMakeLists.txt" Link="CMakeLists.txt" />
+        <None Include="../../../native/Rex.Native/include/**/*.h" Link="include/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/include/**/*.hpp" Link="include/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/include/**/*.hh" Link="include/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/include/**/*.inl" Link="include/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/src/**/*.c" Link="src/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/src/**/*.cc" Link="src/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/src/**/*.cpp" Link="src/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/src/**/*.cxx" Link="src/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/tests/**/*.cc" Link="tests/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/tests/**/*.cpp" Link="tests/%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="../../../native/Rex.Native/tests/**/*.cxx" Link="tests/%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+</Project>

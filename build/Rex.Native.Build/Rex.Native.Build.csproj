@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
+    </PropertyGroup>
+
+    <Target Name="BuildNative" BeforeTargets="Build">
+        <PropertyGroup>
+            <_Root>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), 'Rex.sln'))</_Root>
+            <_SourceDir>$(_Root)/native/Rex.Native</_SourceDir>
+            <_BuildDir>$(_Root)/out/native/$(Configuration)</_BuildDir>
+            <_ArtifactDir>$(_Root)/artifacts/native/$(Configuration)</_ArtifactDir>
+            <_BuildType Condition="'$(Configuration)' == 'Debug'">Debug</_BuildType>
+            <_BuildType Condition="'$(Configuration)' != 'Debug'">Release</_BuildType>
+        </PropertyGroup>
+
+        <MakeDir Directories="$(_BuildDir)" />
+        <MakeDir Directories="$(_ArtifactDir)" />
+
+        <Exec Command="cmake -S &quot;$(_SourceDir)&quot; -B &quot;$(_BuildDir)&quot; -DCMAKE_BUILD_TYPE=$(_BuildType) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DREX_OUTPUT_DIR=&quot;$(_ArtifactDir)&quot;" />
+        <Exec Command="cmake --build &quot;$(_BuildDir)&quot; --config $(_BuildType)" />
+    </Target>
+
+    <Target Name="TestNative" AfterTargets="BuildNative">
+        <PropertyGroup>
+            <_Root>$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), 'Rex.sln'))</_Root>
+            <_BuildDir>$(_Root)/out/native/$(Configuration)</_BuildDir>
+            <_BuildType Condition="'$(Configuration)' == 'Debug'">Debug</_BuildType>
+            <_BuildType Condition="'$(Configuration)' != 'Debug'">Release</_BuildType>
+        </PropertyGroup>
+
+        <Exec Command="ctest --test-dir &quot;$(_BuildDir)&quot; -C $(_BuildType) --output-on-failure" />
+    </Target>
+</Project>

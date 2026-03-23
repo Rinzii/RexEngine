@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <OutputType>Exe</OutputType>
+        <AssemblyName>Rex.Tools</AssemblyName>
+        <RootNamespace>Rex.Tools</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <ProjectReference Include="../../Shared/Rex.Common/Rex.Common.csproj" />
+        <ProjectReference Include="../../Shared/Rex.Native/Rex.Native.csproj" />
+    </ItemGroup>
+</Project>
