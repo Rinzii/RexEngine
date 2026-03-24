@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Rex.Shared.Net;
 using Rex.Shared.Utility;
 using C = System.Console;
 
@@ -11,7 +12,10 @@ internal sealed class CommandLineArgs
     public IReadOnlyCollection<(string key, string value)> CVars { get; }
     public IReadOnlyCollection<(string key, string value)> LogLevels { get; }
     public IReadOnlyList<string> ExecCommands { get; set; }
-    
+    public int Port { get; }
+    public int MaxPlayers { get; }
+    public int TickRate { get; }
+
     public static bool TryParse(IReadOnlyList<string> args, [NotNullWhen(true)] out CommandLineArgs? parsed)
     {
         parsed = null;
@@ -20,6 +24,9 @@ internal sealed class CommandLineArgs
         var cvars = new List<(string, string)>();
         var loglevels = new List<(string, string)>();
         var execCommands = new List<string>();
+        int port = ProtocolConstants.DefaultPort;
+        int maxPlayers = ProtocolConstants.DefaultMaxPlayers;
+        int tickRate = ProtocolConstants.DefaultTickRate;
 
         using var enumerator = args.GetEnumerator();
 
@@ -46,6 +53,30 @@ internal sealed class CommandLineArgs
 
                 dataDir = enumerator.Current;
             }
+            else if (arg == "--port")
+            {
+                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
+                {
+                    C.WriteLine("Missing or invalid port!");
+                    return false;
+                }
+            }
+            else if (arg == "--max-players")
+            {
+                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
+                {
+                    C.WriteLine("Missing or invalid max players!");
+                    return false;
+                }
+            }
+            else if (arg == "--tick-rate")
+            {
+                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
+                {
+                    C.WriteLine("Missing or invalid tick rate!");
+                    return false;
+                }
+            }
             else if (arg == "--cvar")
             {
                 if (!enumerator.MoveNext())
@@ -63,7 +94,7 @@ internal sealed class CommandLineArgs
                     C.WriteLine("Expected = in cvar!");
                     return false;
                 }
-                
+
                 cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
             }
             else if (arg == "--logLevel")
@@ -83,7 +114,7 @@ internal sealed class CommandLineArgs
                     C.WriteLine("Expected = in cvar!");
                     return false;
                 }
-                
+
                 loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
             }
             else if (arg.StartsWith("+"))
@@ -94,11 +125,11 @@ internal sealed class CommandLineArgs
             {
                 C.WriteLine("Unknown argument: {0}", arg);
             }
-            
+
         }
 
-        parsed = new CommandLineArgs(configFile, dataDir, cvars, loglevels, execCommands);
-        
+        parsed = new CommandLineArgs(configFile, dataDir, cvars, loglevels, execCommands, port, maxPlayers, tickRate);
+
         return true;
     }
 
@@ -107,7 +138,10 @@ internal sealed class CommandLineArgs
         string? dataDir,
         IReadOnlyCollection<(string, string)> cVars,
         IReadOnlyCollection<(string, string)> logLevels,
-        IReadOnlyList<string> execCommands
+        IReadOnlyList<string> execCommands,
+        int port,
+        int maxPlayers,
+        int tickRate
     )
     {
         ConfigFile = configFile;
@@ -115,5 +149,8 @@ internal sealed class CommandLineArgs
         CVars = cVars;
         LogLevels = logLevels;
         ExecCommands = execCommands;
+        Port = port;
+        MaxPlayers = maxPlayers;
+        TickRate = tickRate;
     }
 }
