@@ -18,6 +18,7 @@ TestResults/
 # Main repo build outputs
 /out/
 /artifacts/
+/build/
 
 # CMake and native build files anywhere
 **/CMakeFiles/
