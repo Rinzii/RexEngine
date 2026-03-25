@@ -8,6 +8,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Shared", "Rex.Shared\Re
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Generators", "Rex.Generators\Rex.Generators.csproj", "{D2F20706-68F8-4C43-9558-50C11DEF7D88}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".run", ".run", "{F8A29059-96A6-43E1-B605-83B218ACD285}"
+	ProjectSection(SolutionItems) = preProject
+		.run\Rex Client.run.xml = .run\Rex Client.run.xml
+		.run\Rex Listen Server.run.xml = .run\Rex Listen Server.run.xml
+		.run\Rex Server + Client.run.xml = .run\Rex Server + Client.run.xml
+		.run\Rex Server.run.xml = .run\Rex Server.run.xml
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
