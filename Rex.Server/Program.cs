@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Logging;
-using Rex.Shared.Server;
+using Rex.Server.Core;
 using Rex.Shared.Timing;
 
 namespace Rex.Server;

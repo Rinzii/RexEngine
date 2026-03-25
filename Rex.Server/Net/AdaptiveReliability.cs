@@ -1,7 +1,8 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Net;
 
-namespace Rex.Shared.Net;
+namespace Rex.Server.Net;
 
 /// <summary>
 /// Chooses a safer delivery mode for large snapshot packets.
@@ -12,6 +13,7 @@ public static class AdaptiveReliability
     /// Approximate MTU budget after headers.
     /// Bigger snapshot payloads switch to reliable delivery.
     /// </summary>
+    // ReSharper disable once MemberCanBePrivate.Global
     public const int ReliableThreshold = 1200;
 
     /// <summary>

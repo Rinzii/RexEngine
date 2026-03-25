@@ -1,12 +1,11 @@
 using LiteNetLib;
-using LiteNetLib.Utils;
 using Microsoft.Extensions.Logging;
+using Rex.Server.Net;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
 using Rex.Shared.Net.Transfer;
-using ConnectionState = Rex.Shared.Net.ConnectionState;
 
-namespace Rex.Shared.Server;
+namespace Rex.Server.Core;
 
 /// <summary>
 /// Server-side networking controller that accepts clients, buffers inputs, and broadcasts snapshots.
@@ -89,26 +88,12 @@ public sealed class GameServer
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
 
-        _netManager.Start(_config.Port);
+        if (!_netManager.Start(_config.Port))
+            throw new InvalidOperationException($"Failed to start server transport on port {_config.Port}.");
+
         _isRunning = true;
         _logger.LogInformation("Server started on port {Port} (tick rate: {TickRate}, max players: {MaxPlayers})",
             _config.Port, _config.TickRate, _config.MaxPlayers);
-    }
-
-    /// <summary>
-    /// Adds a local client for listen server mode and returns its client transport.
-    /// </summary>
-    public IClientNetChannel AddLocalClient()
-    {
-        var clientId = _nextClientId++;
-        var serverChannel = new LocalServerNetChannel(clientId);
-        var clientChannel = new LocalClientNetChannel(serverChannel);
-
-        var session = new ClientSession(serverChannel);
-        _sessions[clientId] = session;
-
-        _logger.LogInformation("Local client added with ID {ClientId}", clientId);
-        return clientChannel;
     }
 
     /// <summary>
@@ -132,7 +117,7 @@ public sealed class GameServer
 
         foreach (var session in _sessions.Values)
         {
-            if (session.Channel.State == ConnectionState.InGame)
+            if (session.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
             {
                 _transferManager.SendBulkData(session.Channel, dataType, data);
             }
@@ -149,19 +134,6 @@ public sealed class GameServer
 
         _dirtyTracker.ClearTick(_currentTick);
         _netManager?.PollEvents();
-        foreach (var session in _sessions.Values)
-        {
-            if (session.Channel is LocalServerNetChannel localChannel)
-            {
-                while (localChannel.TryDequeueFromClient(out var message))
-                {
-                    if (message != null)
-                    {
-                        HandleMessage(session, message);
-                    }
-                }
-            }
-        }
 
         foreach (var session in _sessions.Values)
         {
@@ -211,7 +183,7 @@ public sealed class GameServer
     {
         foreach (var session in _sessions.Values)
         {
-            if (session.Channel.State != ConnectionState.InGame)
+            if (session.Channel.State != Rex.Shared.Net.ConnectionState.InGame)
                 continue;
 
             var dirtyEntities = _dirtyTracker.GetDirtyEntities(session.LastAcknowledgedTick, _currentTick);
@@ -246,7 +218,7 @@ public sealed class GameServer
     private void OnPeerConnected(NetPeer peer)
     {
         var clientId = _nextClientId++;
-        var channel = new RemoteServerNetChannel(peer, clientId);
+        var channel = new Rex.Server.Net.RemoteServerNetChannel(peer, clientId);
         var session = new ClientSession(channel);
         _sessions[clientId] = session;
         _peerToClientId[peer] = clientId;
@@ -268,7 +240,7 @@ public sealed class GameServer
         var destroyMsg = new EntityDestroyMessage(clientId);
         foreach (var other in _sessions.Values)
         {
-            if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
+            if (other.ClientId != clientId && other.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
             {
                 other.Channel.Send(destroyMsg);
             }
@@ -334,7 +306,7 @@ public sealed class GameServer
         }
 
         session.PlayerName = request.PlayerName;
-        session.Channel.State = ConnectionState.Authenticated;
+        session.Channel.State = Rex.Shared.Net.ConnectionState.Authenticated;
         _logger.LogInformation("Client {ClientId} authenticated as '{PlayerName}'",
             session.ClientId, request.PlayerName);
 
@@ -343,14 +315,14 @@ public sealed class GameServer
 
         _world.SpawnEntity(session.ClientId, "player", 0f, 0f, 0f);
 
-        session.Channel.State = ConnectionState.InGame;
+        session.Channel.State = Rex.Shared.Net.ConnectionState.InGame;
         var snapshot = _world.BuildSnapshot(_currentTick, 0);
         session.Channel.Send(snapshot, DeliveryChannel.Reliable, DeliveryChannel.ReliableMethod);
 
         var spawnMsg = new EntitySpawnMessage(session.ClientId, session.ClientId, "player", 0f, 0f, 0f);
         foreach (var other in _sessions.Values)
         {
-            if (other.ClientId != session.ClientId && other.Channel.State == ConnectionState.InGame)
+            if (other.ClientId != session.ClientId && other.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
             {
                 other.Channel.Send(spawnMsg);
             }

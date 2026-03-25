@@ -1,4 +1,4 @@
-namespace Rex.Shared.Net;
+namespace Rex.Server.Net;
 
 /// <summary>
 /// Tracks network bandwidth and message counts, broken down by message type.
@@ -11,7 +11,7 @@ public sealed class RexNetStatistics
     private long _messagesReceived;
     private readonly Dictionary<ushort, long> _messageCountByType = new();
     private readonly Dictionary<ushort, long> _bytesByType = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     /// <summary>
     /// Gets the total bytes sent.
@@ -79,6 +79,7 @@ public sealed class RexNetStatistics
                 _bytesByType.TryGetValue(msgId, out var bytes);
                 result[msgId] = (count, bytes);
             }
+
             return result;
         }
     }

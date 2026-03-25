@@ -1,6 +1,6 @@
 using Rex.Shared.Utility;
 
-namespace Rex.Shared.Server;
+namespace Rex.Server.Core;
 
 /// <summary>
 /// Ring buffer tracking which entities changed each tick for delta snapshots.

@@ -53,7 +53,13 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
     public void Connect()
     {
         State = ConnectionState.Connecting;
-        _netManager.Start();
+        if (!_netManager.Start())
+        {
+            State = ConnectionState.Disconnected;
+            Disconnected?.Invoke("Client transport failed to start.");
+            return;
+        }
+
         _netManager.Connect(_host, _port, _connectionKey);
     }
 

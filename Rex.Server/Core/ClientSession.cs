@@ -1,7 +1,7 @@
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
 
-namespace Rex.Shared.Server;
+namespace Rex.Server.Core;
 
 /// <summary>
 /// Per-client networking state tracked by the server.

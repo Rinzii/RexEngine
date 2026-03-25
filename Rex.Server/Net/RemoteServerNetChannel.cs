@@ -1,7 +1,8 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Net;
 
-namespace Rex.Shared.Net;
+namespace Rex.Server.Net;
 
 /// <summary>
 /// LiteNetLib-backed server transport for one remote client.
@@ -18,7 +19,7 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     public bool IsLocal => false;
 
     /// <inheritdoc />
-    public ConnectionState State { get; set; }
+    public Rex.Shared.Net.ConnectionState State { get; set; }
 
     /// <inheritdoc />
     public int RoundTripTimeMs => _peer.Ping;
@@ -30,7 +31,7 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     {
         _peer = peer;
         ClientId = clientId;
-        State = ConnectionState.Connected;
+        State = Rex.Shared.Net.ConnectionState.Connected;
     }
 
     /// <inheritdoc />
@@ -51,10 +52,10 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     /// <inheritdoc />
     public void Disconnect(string reason)
     {
-        State = ConnectionState.Disconnecting;
+        State = Rex.Shared.Net.ConnectionState.Disconnecting;
         _writer.Reset();
         _writer.Put(reason);
         _peer.Disconnect(_writer);
-        State = ConnectionState.Disconnected;
+        State = Rex.Shared.Net.ConnectionState.Disconnected;
     }
 }

@@ -1,6 +1,6 @@
 using Rex.Shared.Net;
 
-namespace Rex.Shared.Server;
+namespace Rex.Server.Core;
 
 /// <summary>
 /// Networking and session settings for <see cref="GameServer"/>.

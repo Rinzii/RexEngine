@@ -1,6 +1,6 @@
 using Rex.Shared.Net.Messages;
 
-namespace Rex.Shared.Server;
+namespace Rex.Server.Core;
 
 public sealed class GameWorld
 {

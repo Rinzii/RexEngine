@@ -51,6 +51,11 @@ internal sealed class CommandLineArgs
             }
         }
 
+        if (!listenServer && connectAddress == null)
+        {
+            listenServer = true;
+        }
+
         parsed = new CommandLineArgs(headless, listenServer, connectAddress, port);
 
         return true;
