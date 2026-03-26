@@ -109,6 +109,7 @@ public sealed class BulkTransferManager
             return;
         }
 
+        // Chunks can arrive out of order. Index picks the slot to fill.
         transfer.ReceivedChunks[chunk.ChunkIndex] = chunk.Data;
         transfer.ChunksReceived++;
 

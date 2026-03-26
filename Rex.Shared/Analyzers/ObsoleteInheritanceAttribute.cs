@@ -13,7 +13,7 @@ namespace Rex.Shared.Analyzers;
 ///     [ObsoleteInheritance]
 ///     public class MyClass;
 ///     <br/>
-///     // Warning RA0034: Type 'MyDescendant' inherits from 'MyClass', which has obsoleted inheriting from itself.
+///     // Warning RA0024: Type 'MyDescendant' inherits from 'MyClass', which has obsoleted inheriting from itself.
 ///     public sealed class MyDescendant : MyClass;
 /// </code>
 /// </example>

@@ -2,6 +2,7 @@ using System.Diagnostics;
 
 namespace Rex.Shared.Timing;
 
+/// <summary>Fixed-timestep game loop with variable-rate rendering.</summary>
 public sealed class GameLoop
 {
     private readonly TickClock _clock;
@@ -9,17 +10,10 @@ public sealed class GameLoop
     private double _accumulator;
 
     public bool IsRunning { get; private set; }
-
     public Action? OnTick { get; set; }
-
-    /// <summary>
-    /// Called each frame with interpolation alpha (0..1). Only used by clients.
-    /// </summary>
     public Action<float>? OnRender { get; set; }
 
-    /// <summary>
-    /// Set to true on dedicated servers to yield CPU. False on clients to spin at max framerate.
-    /// </summary>
+    /// <summary>True on servers to yield CPU. False on clients for max framerate.</summary>
     public bool YieldBetweenFrames { get; set; } = true;
 
     public TickClock Clock => _clock;
@@ -41,7 +35,7 @@ public sealed class GameLoop
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
-            // Clamp frame time to prevent spiral of death.
+            // Cap a hitch so we don't run many sim steps in one frame (spiral of death).
             if (frameTime > 0.25)
                 frameTime = 0.25;
 
@@ -54,21 +48,17 @@ public sealed class GameLoop
                 _accumulator -= _clock.TickInterval;
             }
 
+            // How far we are from the next tick (0..1). Used for render interpolation.
             var alpha = (float)(_accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
             OnRender?.Invoke(alpha);
 
             if (YieldBetweenFrames)
-            {
                 Thread.Sleep(1);
-            }
         }
 
         _stopwatch.Stop();
     }
 
-    public void Stop()
-    {
-        IsRunning = false;
-    }
+    public void Stop() => IsRunning = false;
 }

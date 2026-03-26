@@ -3,9 +3,7 @@ using Rex.Shared.Serialization;
 
 namespace Rex.Shared.ViewVariables
 {
-    /// <summary>
-    ///     Attribute to make a property or field accessible to VV.
-    /// </summary>
+    /// <summary>Marks a member for view-variables style inspection tools.</summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
     public sealed class ViewVariablesAttribute : Attribute
     {
@@ -16,6 +14,7 @@ namespace Rex.Shared.ViewVariables
 
         }
 
+        /// <param name="access">Whether remote tools may write the value.</param>
         public ViewVariablesAttribute(VVAccess access)
         {
             Access = access;
@@ -25,14 +24,10 @@ namespace Rex.Shared.ViewVariables
     [Serializable, NetSerializable]
     public enum VVAccess : byte
     {
-        /// <summary>
-        ///     This property can only be read, not written.
-        /// </summary>
+        /// <summary>Inspect only.</summary>
         ReadOnly = 0,
 
-        /// <summary>
-        ///     This property is read and writable.
-        /// </summary>
+        /// <summary>Read and write allowed.</summary>
         ReadWrite = 1,
     }
 }

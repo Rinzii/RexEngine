@@ -21,9 +21,7 @@ public sealed class WorldSnapshotMessage : INetMessage
     /// </summary>
     public uint ServerTick { get; }
 
-    /// <summary>
-    /// Gets the latest input tick the server already applied for this client.
-    /// </summary>
+    /// <summary>Server-side last input tick applied for the receiving client. Used to trim prediction replay.</summary>
     public uint LastProcessedInputTick { get; }
 
     /// <summary>

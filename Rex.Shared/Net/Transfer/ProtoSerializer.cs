@@ -7,9 +7,7 @@ namespace Rex.Shared.Net.Transfer;
 /// </summary>
 public static class ProtoSerializer
 {
-    /// <summary>
-    /// Serializes a value into a byte array.
-    /// </summary>
+    /// <summary>Serializes using protobuf-net attributes on <typeparamref name="T"/>.</summary>
     public static byte[] Serialize<T>(T value)
     {
         using var ms = new MemoryStream();
@@ -17,18 +15,15 @@ public static class ProtoSerializer
         return ms.ToArray();
     }
 
-    /// <summary>
-    /// Deserializes a value from a byte array.
-    /// </summary>
+    /// <summary>Deserializes from a full protobuf payload (no Rex message header).</summary>
+    /// <param name="data">Raw protobuf bytes.</param>
     public static T Deserialize<T>(byte[] data)
     {
         using var ms = new MemoryStream(data);
         return Serializer.Deserialize<T>(ms);
     }
 
-    /// <summary>
-    /// Deserializes a value from a memory block.
-    /// </summary>
+    /// <summary>Same as array overload. Copies to a stream because protobuf-net wants a stream.</summary>
     public static T Deserialize<T>(ReadOnlyMemory<byte> data)
     {
         using var ms = new MemoryStream(data.ToArray());

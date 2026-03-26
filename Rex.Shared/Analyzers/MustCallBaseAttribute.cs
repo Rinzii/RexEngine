@@ -20,7 +20,7 @@ namespace Rex.Shared.Analyzers;
 ///     <br/>
 ///     public sealed class MyBadClass : MyBaseClass
 ///     {
-///         // Error RA0028: Overriders of this function must always call the base function.
+///         // Error RA0018: Overriders of this function must always call the base function.
 ///         public override void Initialize()
 ///         {
 ///             // We don't do anything in here, not even call base.Initialize().

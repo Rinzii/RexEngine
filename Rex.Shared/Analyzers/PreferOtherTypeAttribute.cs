@@ -19,7 +19,7 @@ namespace Rex.Shared.Analyzers;
 ///     <br/>
 ///     public sealed record MySpecializedType(int Field);
 ///     <br/>
-///     // Warning RA0031: Use the specific type MySpecializedType instead of MyGeneralType when the type argument is int.
+///     // Warning RA0021: Use the specific type MySpecializedType instead of MyGeneralType when the type argument is int.
 ///     var obj = new MyGeneralType&lt;int&gt;(42);
 ///     <br/>
 ///     // No warning.

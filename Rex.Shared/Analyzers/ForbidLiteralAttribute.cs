@@ -16,7 +16,7 @@ namespace Rex.Shared.Analyzers;
 ///     }
 ///     <br/>
 ///     <br/>
-///     // Error RA0033: The id parameter of IsPastry forbids literal values.
+///     // Error RA0023: The id parameter of IsPastry forbids literal values.
 ///     DebugTools.Assert(MyClass.IsPastry("cupcake"));
 ///     <br/>
 ///     var maybePastry = obj.GrabFromCupboard();

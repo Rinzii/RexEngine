@@ -2,6 +2,7 @@ using System;
 
 namespace Rex.Shared.Prototypes;
 
+/// <summary>Naming helpers for prototype types. Used by analyzers when <c>PrototypeAttribute</c> exists.</summary>
 public static class PrototypeUtility
 {
     /// <summary>

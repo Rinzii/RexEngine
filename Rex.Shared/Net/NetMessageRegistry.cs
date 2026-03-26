@@ -1,5 +1,6 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Analyzers;
 
 namespace Rex.Shared.Net;
 
@@ -16,8 +17,9 @@ public static class NetMessageRegistry
     /// </summary>
     /// <param name="messageId">The ID written in the packet header.</param>
     /// <param name="deserializer">Factory that reads the remaining packet bytes and returns the message.</param>
-    public static void Register<T>(ushort messageId, Func<NetPacketReader, T> deserializer) where T : INetMessage
+    public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetPacketReader, T> deserializer) where T : INetMessage
     {
+        // Same id twice replaces the previous entry. Avoid duplicate ids in RegisterAll.
         Deserializers[messageId] = reader => deserializer(reader);
     }
 
@@ -27,6 +29,7 @@ public static class NetMessageRegistry
     /// <exception cref="InvalidOperationException">Thrown when no deserializer is registered for the incoming ID.</exception>
     public static INetMessage Deserialize(NetPacketReader reader)
     {
+        // Reader position is immediately after LiteNetLib peeled the packet. First field is our message id.
         var messageId = reader.GetUShort();
 
         if (!Deserializers.TryGetValue(messageId, out var deserializer))
@@ -38,7 +41,7 @@ public static class NetMessageRegistry
     /// <summary>
     /// Writes the message ID prefix expected by <see cref="Deserialize"/>.
     /// </summary>
-    public static void WriteHeader(NetDataWriter writer, ushort messageId)
+    public static void WriteHeader(NetDataWriter writer, [ForbidLiteral] ushort messageId)
     {
         writer.Put(messageId);
     }

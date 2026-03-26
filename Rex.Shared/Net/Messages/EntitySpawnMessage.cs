@@ -1,5 +1,6 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Analyzers;
 
 namespace Rex.Shared.Net.Messages;
 
@@ -49,7 +50,7 @@ public sealed class EntitySpawnMessage : INetMessage
     /// <summary>
     /// Creates an entity spawn payload.
     /// </summary>
-    public EntitySpawnMessage(int entityId, int ownerClientId, string entityType, float x, float y, float z)
+    public EntitySpawnMessage(int entityId, int ownerClientId, [ForbidLiteral] string entityType, float x, float y, float z)
     {
         EntityId = entityId;
         OwnerClientId = ownerClientId;

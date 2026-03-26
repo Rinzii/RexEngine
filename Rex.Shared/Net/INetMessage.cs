@@ -17,8 +17,7 @@ public interface INetMessage
     /// </summary>
     MessageGroup Group { get; }
 
-    /// <summary>
-    /// Writes this message into a packet buffer.
-    /// </summary>
+    /// <summary>Writes payload bytes after any header your format requires (Rex puts message id first via <see cref="NetMessageRegistry.WriteHeader"/>).</summary>
+    /// <param name="writer">Target buffer. Do not reset unless you own the whole packet.</param>
     void Serialize(NetDataWriter writer);
 }

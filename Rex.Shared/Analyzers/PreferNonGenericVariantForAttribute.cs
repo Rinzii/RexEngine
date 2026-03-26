@@ -18,7 +18,7 @@ namespace Rex.Shared.Analyzers;
 ///         public static string DescribeCupcake(Cupcake food);
 ///     }
 ///     <br/>
-///     // Warning RA0030: Use the non-generic variant of this method for type Cupcake.
+///     // Warning RA0020: Use the non-generic variant of this method for type Cupcake.
 ///     MyClass.DescribeFood&lt;Cupcake&gt;(new Cupcake());
 ///     <br/>
 ///     // No warning
