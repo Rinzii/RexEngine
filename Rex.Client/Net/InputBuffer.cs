@@ -23,6 +23,7 @@ public sealed class InputBuffer
         slot.Value = input;
     }
 
+    /// <summary>Clears inputs the server has definitely applied (tick &lt;= ack).</summary>
     public void AcknowledgeUpTo(uint tick)
     {
         for (var i = 0; i < _buffer.Capacity; i++)
@@ -36,9 +37,7 @@ public sealed class InputBuffer
         }
     }
 
-    /// <summary>
-    /// Returns unacknowledged inputs after the given tick, sorted.
-    /// </summary>
+    /// <summary>Inputs with tick greater than <paramref name="tick"/>, ordered by tick ascending.</summary>
     public IReadOnlyList<PlayerInputMessage> GetInputsAfter(uint tick)
     {
         var result = new List<PlayerInputMessage>();
@@ -47,9 +46,7 @@ public sealed class InputBuffer
         {
             var slot = _buffer.GetSlotAt(i);
             if (slot.IsAssigned && slot.Value != null && slot.Tick > tick)
-            {
                 result.Add(slot.Value);
-            }
         }
 
         result.Sort((a, b) => a.Tick.CompareTo(b.Tick));

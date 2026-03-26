@@ -2,9 +2,7 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Client.Net;
 
-/// <summary>
-/// Applies inputs locally for immediate feedback, reconciles when the server state arrives.
-/// </summary>
+/// <summary>Client-side movement guess. <see cref="Reconcile"/> snaps to the server then replays unacked inputs.</summary>
 public sealed class PredictionSystem
 {
     private readonly InputBuffer _inputBuffer;
@@ -23,26 +21,20 @@ public sealed class PredictionSystem
         const float moveSpeed = 5.0f;
         PredictedX += input.MoveX * moveSpeed;
         PredictedZ += input.MoveY * moveSpeed;
+        // Y not predicted yet. Server owns vertical state for now.
     }
 
-    /// <summary>
-    /// Snaps to server state and replays unacknowledged inputs on top.
-    /// </summary>
+    /// <summary>Reset pose from <paramref name="serverState"/>. Drop inputs through <paramref name="lastProcessedInputTick"/>. Replay the rest.</summary>
     public void Reconcile(EntityState serverState, uint lastProcessedInputTick)
     {
-        // Snap to server's authoritative position.
         PredictedX = serverState.X;
         PredictedY = serverState.Y;
         PredictedZ = serverState.Z;
 
-        // Acknowledge processed inputs.
         _inputBuffer.AcknowledgeUpTo(lastProcessedInputTick);
 
-        // Re-apply any unacknowledged inputs on top of the server state.
         var unacknowledged = _inputBuffer.GetInputsAfter(lastProcessedInputTick);
         foreach (var input in unacknowledged)
-        {
             ApplyInputLocally(input);
-        }
     }
 }

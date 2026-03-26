@@ -2,21 +2,17 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Rex.Client.Net;
 using Rex.Shared.Net;
-using Rex.Shared.Timing;
-using Silk.NET.SDL;
 
 namespace Rex.Client;
 
+/// <summary>Entry point: parses args, optional listen-server child process, then <see cref="ClientApp"/>.</summary>
 internal static class Program
 {
     private static void Main(string[] args)
     {
         if (!CommandLineArgs.TryParse(args, out var parsed))
-        {
             return;
-        }
 
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -26,21 +22,50 @@ internal static class Program
 
         var logger = loggerFactory.CreateLogger("Rex.Client");
 
-        if (parsed.ListenServer)
+        if (parsed.Mode == NetMode.ListenServer)
         {
-            RunListenServer(parsed, loggerFactory, logger);
-        }
-        else if (parsed.ConnectAddress != null)
-        {
-            RunRemoteClient(parsed, loggerFactory, logger);
+            RunWithListenServer(parsed, loggerFactory, logger);
         }
         else
         {
-            logger.LogError("No mode specified. Use --listen to host or --connect <ip> to join.");
+            RunApp(parsed, loggerFactory, logger);
         }
     }
 
-    private static void RunListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
+    private static void RunApp(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
+    {
+        using var app = new ClientApp(args.Mode, loggerFactory)
+        {
+            Headless = args.Headless
+        };
+
+        Console.CancelKeyPress += (_, e) =>
+        {
+            e.Cancel = true;
+            logger.LogInformation("Shutdown signal received.");
+            // ReSharper disable once AccessToDisposedClosure
+            app.Stop();
+        };
+
+        // Parse host:port when connecting to a remote server.
+        string? host = null;
+        var port = args.Port;
+
+        if (args.ConnectAddress != null)
+        {
+            host = args.ConnectAddress;
+            var colonIndex = host.LastIndexOf(':');
+            if (colonIndex > 0 && int.TryParse(host[(colonIndex + 1)..], out var parsedPort))
+            {
+                host = host[..colonIndex];
+                port = parsedPort;
+            }
+        }
+
+        app.Run(host, port);
+    }
+
+    private static void RunWithListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
     {
         using var serverProcess = StartListenServerProcess(args.Port, logger);
         if (serverProcess == null)
@@ -48,7 +73,14 @@ internal static class Program
 
         try
         {
-            RunRemoteClient(args, loggerFactory, logger, "127.0.0.1", args.Port);
+            var clientArgs = new CommandLineArgs(
+                headless: args.Headless,
+                mode: NetMode.Client,
+                connectAddress: "127.0.0.1",
+                port: args.Port
+            );
+
+            RunApp(clientArgs, loggerFactory, logger);
         }
         finally
         {
@@ -56,67 +88,12 @@ internal static class Program
         }
     }
 
-    private static void RunRemoteClient(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
-    {
-        // Parse host:port from connect address.
-        var address = args.ConnectAddress!;
-        var host = address;
-        var port = args.Port;
-
-        var colonIndex = address.LastIndexOf(':');
-        if (colonIndex > 0 && int.TryParse(address[(colonIndex + 1)..], out var parsedPort))
-        {
-            host = address[..colonIndex];
-            port = parsedPort;
-        }
-
-        RunRemoteClient(args, loggerFactory, logger, host, port);
-    }
-
-    private static void RunRemoteClient(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger, string host, int port)
-    {
-        var client = new GameClient(loggerFactory);
-
-        var gameLoop = new GameLoop(ProtocolConstants.DefaultTickRate)
-        {
-            YieldBetweenFrames = !ShouldRender(args)
-        };
-
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            logger.LogInformation("Shutdown signal received.");
-            gameLoop.Stop();
-        };
-
-        client.Connect(host, port);
-
-        gameLoop.OnTick = () =>
-        {
-            client.Tick(gameLoop.Clock.CurrentTick);
-        };
-
-        gameLoop.OnRender = alpha =>
-        {
-            if (!ShouldRender(args))
-                return;
-
-            // Future: render using SDL with interpolated state.
-            // var entities = client.WorldState.GetInterpolatedState(alpha);
-        };
-
-        logger.LogInformation("Connecting to {Host}:{Port}. Press Ctrl+C to stop.", host, port);
-        gameLoop.Run();
-
-        client.Disconnect();
-    }
-
     private static Process? StartListenServerProcess(int port, ILogger logger)
     {
         var serverAssemblyPath = ResolveServerAssemblyPath();
         if (serverAssemblyPath == null)
         {
-            logger.LogError("Could not find the Rex.Server assembly to launch listen server mode.");
+            logger.LogError("Could not find Rex.Server assembly for listen server mode.");
             return null;
         }
 
@@ -146,22 +123,18 @@ internal static class Program
 
             logger.LogInformation("[Server] {Message}", e.Data);
             if (e.Data.Contains("Dedicated server running.", StringComparison.Ordinal))
-            {
                 readySignal.Set();
-            }
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-            {
                 logger.LogError("[Server] {Message}", e.Data);
-            }
         };
 
         if (!process.Start())
         {
-            logger.LogError("Failed to start the Rex.Server process.");
+            logger.LogError("Failed to start Rex.Server process.");
             process.Dispose();
             return null;
         }
@@ -173,13 +146,9 @@ internal static class Program
             return process;
 
         if (process.HasExited)
-        {
-            logger.LogError("Listen server exited before it finished startup.");
-        }
+            logger.LogError("Listen server exited before startup completed.");
         else
-        {
             logger.LogError("Timed out waiting for listen server startup.");
-        }
 
         StopListenServerProcess(process, logger);
         process.Dispose();
@@ -198,107 +167,20 @@ internal static class Program
 
     private static string? ResolveServerAssemblyPath()
     {
-        var siblingServerPath = Path.Combine(AppContext.BaseDirectory, "Rex.Server.dll");
-        if (File.Exists(siblingServerPath))
-            return siblingServerPath;
+        var siblingPath = Path.Combine(AppContext.BaseDirectory, "Rex.Server.dll");
+        if (File.Exists(siblingPath))
+            return siblingPath;
 
-        var outputDirectory = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
-        var targetFramework = outputDirectory.Name;
-        var configurationDirectory = outputDirectory.Parent?.Name;
-        var repoRoot = outputDirectory.Parent?.Parent?.Parent?.Parent;
+        var outputDir = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var tfm = outputDir.Name;
+        var config = outputDir.Parent?.Name;
+        // bin/{Config}/{Tfm}/ then up to repo root for dev layout when DLL isn't copied next to client.
+        var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
 
-        if (configurationDirectory == null || repoRoot == null)
+        if (config == null || repoRoot == null)
             return null;
 
-        var repoServerPath = Path.Combine(repoRoot.FullName, "Rex.Server", "bin", configurationDirectory, targetFramework, "Rex.Server.dll");
-        return File.Exists(repoServerPath) ? repoServerPath : null;
-    }
-
-    private static bool ShouldRender(CommandLineArgs args)
-    {
-        return !args.Headless;
+        var repoPath = Path.Combine(repoRoot.FullName, "Rex.Server", "bin", config, tfm, "Rex.Server.dll");
+        return File.Exists(repoPath) ? repoPath : null;
     }
 }
-
-
-
-//TODO ARRANGE, FIX, REPLACE, ABSTRACT
-internal sealed unsafe class WindowManager : IDisposable {
-    
-    private static readonly Sdl _sdl = Sdl.GetApi();
-    private static Renderer* _renderer;
-    private static Window* _window;
-
-    private readonly int _screenWidth;
-    private readonly int _screenHeight;
-
-    public WindowManager( int screenWidth, int screenHeight) {
-        _screenWidth = screenWidth;
-        _screenHeight = screenHeight;
-    }
-    public void InitSDL() {
-        int rendererFlags = (int)RendererFlags.Accelerated;
-        int windowFlags = 0;
-
-        if (_sdl.Init(Sdl.InitVideo) < 0) {
-            Kill($"Couldn't initialize SDL: {_sdl.GetErrorS()}");
-            
-        }
-        _window = _sdl.CreateWindow(
-            "Hello, World",
-            Sdl.WindowposUndefined,
-            Sdl.WindowposUndefined,
-            _screenWidth,
-            _screenHeight,
-            (uint)windowFlags);
-        if (_window == null) {
-            Kill($"Failed to open {_screenWidth} x {_screenHeight} window: {_sdl.GetErrorS()}");
-        }
-
-        _sdl.SetHint(Sdl.HintRenderScaleQuality, "linear");
-        _renderer = _sdl.CreateRenderer(_window, -1, (uint)rendererFlags);
-
-        if (_renderer == null) {
-            Kill($"Failed to create renderer: {_sdl.GetErrorS()}");
-        }
-    }
-
-    static void Draw() {
-        // ---- filled rectangle (red) ----
-        _sdl.SetRenderDrawColor(_renderer, 255, 0, 0, 255);
-        FRect redBox = new FRect { X = 50, Y = 50, H = 300, W = 400 };
-        _sdl.RenderFillRectF(_renderer, in redBox);
-    }
-
-    static void Kill(string msg) {
-        Console.WriteLine(msg);
-        _sdl.Quit();
-    }
-
-    public void GameLoop() {
-        bool running = true;
-
-        Event e;
-        
-        while (running) {
-            while (_sdl.PollEvent(&e) != 0) {
-                if (e.Type == (uint)EventType.Quit) {
-                    running = false;
-                }
-            }
-            _sdl.SetRenderDrawColor(_renderer, 30, 30, 30, 255);
-            _sdl.RenderClear(_renderer);
-            
-            Draw();
-            _sdl.RenderPresent(_renderer);
-        }
-        
-    }
-
-    public void Dispose() {
-        _sdl.DestroyRenderer(_renderer);
-        _sdl.DestroyWindow(_window);
-        _sdl.Quit();
-    }
-}
-

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Rex.Client.Input;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
 using Rex.Shared.Net.Transfer;
@@ -7,7 +8,7 @@ using ConnectionState = Rex.Shared.Net.ConnectionState;
 namespace Rex.Client.Net;
 
 /// <summary>
-/// Client-side networking controller that owns connection flow and inbound message handling.
+/// Client-side networking controller. Owns connection flow and inbound message handling.
 /// </summary>
 public sealed class GameClient
 {
@@ -16,49 +17,24 @@ public sealed class GameClient
     private IClientNetChannel? _channel;
     private InputCollector? _inputCollector;
 
-    /// <summary>
-    /// Gets the client ID assigned by the server.
-    /// </summary>
+    /// <summary>Assigned by the server after accept. Zero until then.</summary>
     public int ClientId { get; private set; }
-
-    /// <summary>
-    /// Gets the latest replicated world state.
-    /// </summary>
+    /// <summary>Last two snapshots for render interpolation.</summary>
     public ClientWorldState WorldState { get; } = new();
-
-    /// <summary>
-    /// Gets the buffer of unacknowledged local inputs.
-    /// </summary>
+    /// <summary>Inputs kept for prediction replay after snapshot reconcile.</summary>
     public InputBuffer InputBuffer { get; } = new();
-
-    /// <summary>
-    /// Gets the local prediction state for the controlled entity.
-    /// </summary>
     public PredictionSystem Prediction { get; }
 
-    /// <summary>
-    /// Gets a value that indicates whether the client is connected far enough to exchange gameplay messages.
-    /// </summary>
-    public bool IsConnected => _channel?.State is ConnectionState.Connected or ConnectionState.Authenticated or ConnectionState.InGame;
+    /// <summary>True while transport is up from connected through in-game.</summary>
+    public bool IsConnected => _channel?.State is ConnectionState.Connected
+        or ConnectionState.Authenticated or ConnectionState.InGame;
 
-    /// <summary>
-    /// Gets the current connection state.
-    /// </summary>
     public ConnectionState State => _channel?.State ?? ConnectionState.Disconnected;
-
-    /// <summary>
-    /// Gets the current round trip time in milliseconds.
-    /// </summary>
     public int RoundTripTimeMs => _channel?.RoundTripTimeMs ?? 0;
 
-    /// <summary>
-    /// Raised when a full bulk payload has been received and reassembled.
-    /// </summary>
+    /// <summary>Fired when a bulk transfer finishes reassembly on this client.</summary>
     public event Action<int, BulkDataType, byte[]>? BulkDataReceived;
 
-    /// <summary>
-    /// Creates the client networking controller.
-    /// </summary>
     public GameClient(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<GameClient>();
@@ -67,44 +43,29 @@ public sealed class GameClient
         _transferManager.TransferCompleted += OnTransferCompleted;
     }
 
-    /// <summary>
-    /// Sets the input source sampled during <see cref="Tick"/>.
-    /// </summary>
     public void SetInputCollector(InputCollector collector)
     {
         _inputCollector = collector;
     }
 
-    /// <summary>
-    /// Deserializes a completed bulk payload into its protobuf type.
-    /// </summary>
-    public T DeserializeBulkData<T>(byte[] data)
-    {
-        return ProtoSerializer.Deserialize<T>(data);
-    }
+    /// <summary>Runs protobuf-net deserialize on a completed bulk payload.</summary>
+    public T DeserializeBulkData<T>(byte[] data) => ProtoSerializer.Deserialize<T>(data);
 
-    /// <summary>
-    /// Connects to a remote server over LiteNetLib.
-    /// </summary>
+    /// <summary>Connects to a remote server over LiteNetLib.</summary>
     public void Connect(string host, int port)
     {
         Connect(new RemoteClientNetChannel(host, port, ProtocolConstants.ConnectionKey));
     }
 
-    /// <summary>
-    /// Connects through a transport bridge supplied by Shared.
-    /// </summary>
+    /// <summary>Connects through an arbitrary transport channel.</summary>
     public void Connect(IClientNetChannel channel)
     {
         NetMessages.RegisterAll();
-
         SetupChannel(channel);
         channel.Connect();
     }
 
-    /// <summary>
-    /// Pumps network events and sends the current input sample when gameplay is active.
-    /// </summary>
+    /// <summary>Pumps network events and sends input when in-game.</summary>
     public void Tick(uint currentTick)
     {
         _channel?.PollEvents();
@@ -117,13 +78,10 @@ public sealed class GameClient
             var input = _inputCollector.Sample(currentTick);
             InputBuffer.Store(input);
             Prediction.ApplyInputLocally(input);
-            _channel.Send(input);
+            _channel.Send(input); // unreliable lane by default for input group
         }
     }
 
-    /// <summary>
-    /// Disconnects from the current server.
-    /// </summary>
     public void Disconnect()
     {
         _channel?.Disconnect("Client disconnecting");
@@ -147,14 +105,12 @@ public sealed class GameClient
     private void OnConnected()
     {
         _logger.LogInformation("Connected to server");
-
-        var request = new ConnectRequestMessage(ProtocolConstants.ProtocolVersion, "Player");
-        _channel!.Send(request);
+        _channel!.Send(new ConnectRequestMessage(ProtocolConstants.ProtocolVersion, "Player"));
     }
 
     private void OnDisconnected(string reason)
     {
-        _logger.LogInformation("Disconnected from server: {Reason}", reason);
+        _logger.LogInformation("Disconnected: {Reason}", reason);
     }
 
     private void OnMessageReceived(INetMessage message)
@@ -193,20 +149,16 @@ public sealed class GameClient
 
         ClientId = response.ClientId;
         _channel!.State = ConnectionState.InGame;
-        _logger.LogInformation("Connection accepted. ClientId: {ClientId}, TickRate: {TickRate}",
+        _logger.LogInformation("Accepted. ClientId: {ClientId}, TickRate: {TickRate}",
             response.ClientId, response.TickRate);
     }
 
-    /// <summary>
-    /// Applies one server snapshot, acks it, then reconciles local prediction.
-    /// </summary>
     private void HandleWorldSnapshot(WorldSnapshotMessage snapshot)
     {
         WorldState.ApplySnapshot(snapshot);
+        _channel?.Send(new StateAckMessage(snapshot.ServerTick));
 
-        var ack = new StateAckMessage(snapshot.ServerTick);
-        _channel?.Send(ack);
-
+        // Client id doubles as controlled entity id on this prototype server.
         foreach (var entity in snapshot.Entities)
         {
             if (entity.EntityId == ClientId)
