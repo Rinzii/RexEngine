@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Graphics;
 using Rex.Client.Input;
@@ -20,7 +21,8 @@ public sealed class ClientApp : IDisposable
     private readonly NetMode _mode;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
-    private readonly GameLoop _gameLoop;
+    private readonly TickClock _clock;
+    private bool _isRunning;
 
     // Networked modes only.
     private GameClient? _client;
@@ -39,7 +41,8 @@ public sealed class ClientApp : IDisposable
     private IRenderer? _renderer;
 
     public NetMode Mode => _mode;
-    public GameLoop GameLoop => _gameLoop;
+    public TickClock Clock => _clock;
+    public bool IsRunning => _isRunning;
     public bool Headless { get; init; }
 
     /// <summary>The networked client. Only available in Client/ListenServer modes.</summary>
@@ -62,13 +65,13 @@ public sealed class ClientApp : IDisposable
         set => _renderer = value;
     }
 
-    /// <param name="tickRate">Sim ticks per second for the embedded <see cref="GameLoop"/>.</param>
+    /// <param name="tickRate">Sim ticks per second.</param>
     public ClientApp(NetMode mode, ILoggerFactory loggerFactory, int tickRate = ProtocolConstants.DefaultTickRate)
     {
         _mode = mode;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ClientApp>();
-        _gameLoop = new GameLoop(tickRate);
+        _clock = new TickClock(tickRate);
     }
 
     /// <summary>Sets the input source sampled each tick.</summary>
@@ -80,8 +83,6 @@ public sealed class ClientApp : IDisposable
     /// <summary>Initializes for the configured net mode, runs the game loop, and blocks until exit.</summary>
     public void Run(string? host = null, int port = ProtocolConstants.DefaultPort)
     {
-        _gameLoop.YieldBetweenFrames = Headless;
-
         InitializeWindow();
 
         switch (_mode)
@@ -99,20 +100,60 @@ public sealed class ClientApp : IDisposable
         }
 
         _logger.LogInformation("Client running in {Mode} mode.", _mode);
-        _gameLoop.Run();
+        RunFixedStepLoop();
 
         Shutdown();
     }
 
     public void Stop()
     {
-        _gameLoop.Stop();
+        _isRunning = false;
     }
 
     public void Dispose()
     {
         _renderer?.Dispose();
         _window?.Dispose();
+    }
+
+    private void RunFixedStepLoop()
+    {
+        _isRunning = true;
+        var stopwatch = Stopwatch.StartNew();
+        var previousTime = stopwatch.Elapsed.TotalSeconds;
+        double accumulator = 0;
+
+        while (_isRunning)
+        {
+            var currentTime = stopwatch.Elapsed.TotalSeconds;
+            var frameTime = currentTime - previousTime;
+            previousTime = currentTime;
+
+            if (frameTime > 0.25)
+                frameTime = 0.25;
+
+            accumulator += frameTime;
+
+            while (accumulator >= _clock.TickInterval)
+            {
+                if (_mode == NetMode.Standalone)
+                    TickStandalone();
+                else
+                    TickNetworked();
+
+                _clock.IncrementTick();
+                accumulator -= _clock.TickInterval;
+            }
+
+            var alpha = (float)(accumulator / _clock.TickInterval);
+            _clock.SetAlpha(alpha);
+            Render(alpha);
+
+            if (Headless)
+                Thread.Yield();
+        }
+
+        stopwatch.Stop();
     }
 
     private void InitializeWindow()
@@ -129,9 +170,6 @@ public sealed class ClientApp : IDisposable
         _world = new GameWorld();
         _localEntityId = _world.SpawnEntity(0, EntityTypeIds.Player, 0f, 0f, 0f);
 
-        _gameLoop.OnTick = TickStandalone;
-        _gameLoop.OnRender = Render;
-
         _logger.LogInformation("Standalone world initialized.");
     }
 
@@ -143,31 +181,26 @@ public sealed class ClientApp : IDisposable
             _client.SetInputCollector(_inputCollector);
 
         _client.Connect(host, port);
-
-        _gameLoop.OnTick = TickNetworked;
-        _gameLoop.OnRender = Render;
     }
 
     private void TickStandalone()
     {
-        // Apply input directly to the world. No messages or serialization.
         if (_inputCollector != null)
         {
-            var input = _inputCollector.Sample(_gameLoop.Clock.CurrentTick);
+            var input = _inputCollector.Sample(_clock.CurrentTick);
             _world!.ProcessInput(_localEntityId, input);
         }
 
-        var deltaTime = 1.0f / _gameLoop.Clock.TickRate;
+        var deltaTime = 1.0f / _clock.TickRate;
         _world!.Tick(deltaTime);
 
-        // Store previous/current entity snapshots for render interpolation.
         _previousEntities = _currentEntities;
         _currentEntities = new List<EntityState>(_world.Entities.Values);
     }
 
     private void TickNetworked()
     {
-        _client!.Tick(_gameLoop.Clock.CurrentTick);
+        _client!.Tick(_clock.CurrentTick);
     }
 
     private void Render(float alpha)
@@ -179,7 +212,7 @@ public sealed class ClientApp : IDisposable
 
         if (_window != null && !_window.IsOpen)
         {
-            _gameLoop.Stop();
+            Stop();
             return;
         }
 
@@ -224,7 +257,6 @@ public sealed class ClientApp : IDisposable
             }
             else
             {
-                // New this frame. Nothing to blend with.
                 result.Add(current);
             }
         }

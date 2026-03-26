@@ -9,7 +9,7 @@ public sealed class TickClock
     public double TickInterval { get; }
     /// <summary>Sim time advanced so far, in seconds (tick count * interval).</summary>
     public double ElapsedTime { get; private set; }
-    /// <summary>Portion of the current tick not yet consumed by sim. Set by <see cref="GameLoop"/> for render lerp.</summary>
+    /// <summary>Portion of the current tick not yet consumed by sim. Set each frame by the host app for render lerp.</summary>
     public float Alpha { get; private set; }
 
     public TickClock(int tickRate)

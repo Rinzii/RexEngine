@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Rex.Server.Core;
 using Rex.Server.Simulation;
@@ -14,21 +15,22 @@ public sealed class ServerApp : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly GameServerConfig _config;
-    private readonly GameLoop _gameLoop;
+    private readonly TickClock _clock;
+    private bool _isRunning;
 
     private GameServer? _server;
 
     public GameServerConfig Config => _config;
-    public GameLoop GameLoop => _gameLoop;
+    public TickClock Clock => _clock;
     public GameServer? Server => _server;
-    public bool IsRunning => _gameLoop.IsRunning;
+    public bool IsRunning => _isRunning;
 
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ServerApp>();
-        _gameLoop = new GameLoop(config.TickRate) { YieldBetweenFrames = true };
+        _clock = new TickClock(config.TickRate);
     }
 
     /// <summary>Starts networking and the game loop. Blocks until stopped.</summary>
@@ -37,10 +39,38 @@ public sealed class ServerApp : IDisposable
         _server = new GameServer(_config, _loggerFactory);
         _server.Start();
 
-        _gameLoop.OnTick = _server.Tick;
-
         _logger.LogInformation("Dedicated server running. Press Ctrl+C to stop.");
-        _gameLoop.Run();
+
+        _isRunning = true;
+        var stopwatch = Stopwatch.StartNew();
+        var previousTime = stopwatch.Elapsed.TotalSeconds;
+        double accumulator = 0;
+
+        while (_isRunning)
+        {
+            var currentTime = stopwatch.Elapsed.TotalSeconds;
+            var frameTime = currentTime - previousTime;
+            previousTime = currentTime;
+
+            if (frameTime > 0.25)
+                frameTime = 0.25;
+
+            accumulator += frameTime;
+
+            while (accumulator >= _clock.TickInterval)
+            {
+                _server.Tick();
+                _clock.IncrementTick();
+                accumulator -= _clock.TickInterval;
+            }
+
+            var alpha = (float)(accumulator / _clock.TickInterval);
+            _clock.SetAlpha(alpha);
+
+            Thread.Yield();
+        }
+
+        stopwatch.Stop();
 
         _server.Shutdown();
         _server = null;
@@ -50,7 +80,7 @@ public sealed class ServerApp : IDisposable
     public void Stop()
     {
         _logger.LogInformation("Shutdown signal received.");
-        _gameLoop.Stop();
+        _isRunning = false;
     }
 
     public void Dispose()
