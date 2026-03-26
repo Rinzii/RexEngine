@@ -6,7 +6,7 @@ public sealed class DeltaTimeSmoother
     private float _smooth;
 
     /// <param name="rawDeltaSeconds">Latest wall-frame duration.</param>
-    /// <param name="blendWeight">Responsiveness in (0,1]; higher tracks raw delta faster (Unity-like default ~0.1–0.2 per frame at 60 Hz).</param>
+    /// <param name="blendWeight">Responsiveness in (0,1]. Higher values track raw frame time faster. Typical values near 0.1-0.2 at 60 Hz (similar to Unity).</param>
     public float Next(float rawDeltaSeconds, float blendWeight = 0.12f)
     {
         if (rawDeltaSeconds <= 0f || float.IsNaN(rawDeltaSeconds) || float.IsInfinity(rawDeltaSeconds))

@@ -7,8 +7,8 @@ using Rex.Shared.Timing;
 namespace Rex.Server;
 
 /// <summary>
-/// Top-level dedicated server application. Runs fixed simulation ticks (Unity <c>FixedUpdate</c>-style),
-/// then optional variable-rate <see cref="OnUpdate"/> / <see cref="OnLateUpdate"/> for housekeeping.
+/// Top-level dedicated server application. Runs fixed simulation ticks like Unity <c>FixedUpdate</c>.
+/// Optional variable-rate <see cref="OnUpdate"/> and <see cref="OnLateUpdate"/> run after each batch of fixed steps for housekeeping.
 /// </summary>
 public sealed class ServerApp : IDisposable
 {
@@ -26,15 +26,18 @@ public sealed class ServerApp : IDisposable
     public GameServer? Server => _server;
     public bool IsRunning => _isRunning;
 
-    /// <summary>Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>; fixed ticks stay at config tick rate.</summary>
+    /// <summary>Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>. Fixed ticks always use the configured tick rate.</summary>
     public float TimeScale { get; set; } = 1f;
 
-    /// <summary>Variable-rate phase after fixed ticks (metrics, admin hooks). Keep authoritative sim in <see cref="GameServer.Tick"/>.</summary>
+    /// <summary>Optional work after fixed ticks (metrics, admin hooks). Authoritative simulation stays in <see cref="GameServer.Tick"/>.</summary>
     public Action<FrameContext>? OnUpdate { get; set; }
 
     /// <summary>Runs after <see cref="OnUpdate"/> each outer iteration.</summary>
     public Action<FrameContext>? OnLateUpdate { get; set; }
 
+    /// <summary>Creates a dedicated server host with the given simulation and network settings.</summary>
+    /// <param name="config">Port, tick rate, player limits, and display name.</param>
+    /// <param name="loggerFactory">Creates loggers for the server app and nested systems.</param>
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;

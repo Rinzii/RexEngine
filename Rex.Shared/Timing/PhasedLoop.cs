@@ -6,7 +6,7 @@ public static class PhasedLoop
     /// <summary>Default hitch clamp in seconds (spiral-of-death guard).</summary>
     public const float DefaultMaxFrameSeconds = 0.25f;
 
-    /// <summary>Adds <paramref name="frameSeconds"/> to <paramref name="accumulator"/> (clamped), then runs <paramref name="fixedStep"/> until the accumulator is below one tick.</summary>
+    /// <summary>Adds clamped <paramref name="frameSeconds"/> to <paramref name="accumulator"/>. Runs <paramref name="fixedStep"/> until the accumulator is below one tick interval.</summary>
     /// <returns>Number of fixed steps executed.</returns>
     public static int RunFixedSteps(
         TickClock clock,

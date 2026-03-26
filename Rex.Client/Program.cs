@@ -6,7 +6,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Client;
 
-/// <summary>Entry point: parses args, optional listen-server child process, then <see cref="ClientApp"/>.</summary>
+/// <summary>Parses command-line args and runs <see cref="ClientApp"/>. May start a listen-server child process.</summary>
 internal static class Program
 {
     private static void Main(string[] args)

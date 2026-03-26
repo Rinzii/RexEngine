@@ -17,7 +17,7 @@ public static class DebugTools
     }
 }
 
-/// <summary>Thrown by <see cref="DebugTools"/> assertions. Subclassing allowed (see <c>Virtual</c> analyzer).</summary>
+/// <summary>Thrown by <see cref="DebugTools"/> assertions. Subclassing allowed. Mark subclasses with <see cref="VirtualAttribute"/>.</summary>
 [Virtual]
 public class DebugAssertException : Exception
 {

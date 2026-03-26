@@ -10,7 +10,10 @@ public sealed class ClientWorldState
     private WorldSnapshotMessage? _previousSnapshot;
     private WorldSnapshotMessage? _currentSnapshot;
 
+    /// <summary>Latest world snapshot from the server.</summary>
     public WorldSnapshotMessage? CurrentSnapshot => _currentSnapshot;
+
+    /// <summary>Server tick from <see cref="CurrentSnapshot"/>, or 0 if none.</summary>
     public uint LastServerTick => _currentSnapshot?.ServerTick ?? 0;
 
     public void ApplySnapshot(WorldSnapshotMessage snapshot)

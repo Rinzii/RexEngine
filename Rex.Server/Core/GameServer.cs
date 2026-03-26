@@ -7,10 +7,7 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Server.Core;
 
-/// <summary>
-/// LiteNetLib network layer. Accepts remote peers and delegates
-/// simulation to GameServerHost.
-/// </summary>
+/// <summary>LiteNetLib facade. Accepts peers and delegates simulation to <see cref="GameServerHost"/>.</summary>
 public sealed class GameServer
 {
     private readonly GameServerHost _host;

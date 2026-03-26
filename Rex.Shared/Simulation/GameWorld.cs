@@ -5,7 +5,7 @@ namespace Rex.Shared.Simulation;
 
 /// <summary>
 /// Authoritative game world. Owns entity state, processes inputs, and advances the simulation.
-/// Used by both the dedicated server (with DirtyTracker) and standalone clients (without).
+/// Runs on the dedicated server with an optional <see cref="DirtyTracker"/> and on standalone clients without one.
 /// </summary>
 public sealed class GameWorld
 {

@@ -1,6 +1,6 @@
 namespace Rex.Shared.Timing;
 
-/// <summary>Fixed timestep clock: tick counter, sim time, and blend factor for rendering between ticks.</summary>
+/// <summary>Fixed timestep clock with tick counter, elapsed sim time, and blend factor for rendering between ticks.</summary>
 public sealed class TickClock
 {
     public int TickRate { get; }

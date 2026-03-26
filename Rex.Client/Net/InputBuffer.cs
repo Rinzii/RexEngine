@@ -23,7 +23,7 @@ public sealed class InputBuffer
         slot.Value = input;
     }
 
-    /// <summary>Clears inputs the server has definitely applied (tick ≤ ack).</summary>
+    /// <summary>Clears stored inputs whose tick is at or below the ack tick.</summary>
     public void AcknowledgeUpTo(uint tick)
     {
         for (var i = 0; i < _buffer.Capacity; i++)

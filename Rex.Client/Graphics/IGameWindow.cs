@@ -13,7 +13,7 @@ public interface IGameWindow : IDisposable
     /// <summary>Creates and shows the window.</summary>
     void Open(string title, int width, int height);
 
-    /// <summary>Pumps platform events (input, resize, close, etc.).</summary>
+    /// <summary>Pumps platform events such as input, resize, and close.</summary>
     void PollEvents();
 
     /// <summary>Presents the rendered frame to the screen.</summary>

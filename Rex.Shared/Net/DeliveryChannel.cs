@@ -12,9 +12,7 @@ public static class DeliveryChannel
     /// </summary>
     public const byte Reliable = 0;
 
-    /// <summary>
-    /// Default delivery mode for <see cref="Reliable"/>.
-    /// </summary>
+    /// <summary><see cref="DeliveryMethod.ReliableOrdered"/> for <see cref="Reliable"/>.</summary>
     public static readonly DeliveryMethod ReliableMethod = DeliveryMethod.ReliableOrdered;
 
     /// <summary>
@@ -22,9 +20,7 @@ public static class DeliveryChannel
     /// </summary>
     public const byte Snapshot = 1;
 
-    /// <summary>
-    /// Default delivery mode for <see cref="Snapshot"/>.
-    /// </summary>
+    /// <summary><see cref="DeliveryMethod.Sequenced"/> for <see cref="Snapshot"/>.</summary>
     public static readonly DeliveryMethod SnapshotMethod = DeliveryMethod.Sequenced;
 
     /// <summary>
@@ -32,9 +28,7 @@ public static class DeliveryChannel
     /// </summary>
     public const byte ReliableUnordered = 2;
 
-    /// <summary>
-    /// Default delivery mode for <see cref="ReliableUnordered"/>.
-    /// </summary>
+    /// <summary><see cref="DeliveryMethod.ReliableUnordered"/> for <see cref="ReliableUnordered"/>.</summary>
     public static readonly DeliveryMethod ReliableUnorderedMethod = DeliveryMethod.ReliableUnordered;
 
     /// <summary>
@@ -42,9 +36,7 @@ public static class DeliveryChannel
     /// </summary>
     public const byte Unreliable = 3;
 
-    /// <summary>
-    /// Default delivery mode for <see cref="Unreliable"/>.
-    /// </summary>
+    /// <summary><see cref="DeliveryMethod.Unreliable"/> for <see cref="Unreliable"/>.</summary>
     public static readonly DeliveryMethod UnreliableMethod = DeliveryMethod.Unreliable;
 
     /// <summary>
@@ -52,8 +44,6 @@ public static class DeliveryChannel
     /// </summary>
     public const byte Transfer = 4;
 
-    /// <summary>
-    /// Default delivery mode for <see cref="Transfer"/>.
-    /// </summary>
+    /// <summary><see cref="DeliveryMethod.ReliableOrdered"/> for <see cref="Transfer"/>.</summary>
     public static readonly DeliveryMethod TransferMethod = DeliveryMethod.ReliableOrdered;
 }

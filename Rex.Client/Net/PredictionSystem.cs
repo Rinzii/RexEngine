@@ -2,7 +2,7 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Client.Net;
 
-/// <summary>Client-side movement guess. <see cref="Reconcile"/> snaps to the server then replays unacked inputs.</summary>
+/// <summary>Client-side movement guess. <see cref="Reconcile"/> snaps to the server and replays inputs not yet acked.</summary>
 public sealed class PredictionSystem
 {
     private readonly InputBuffer _inputBuffer;
@@ -24,7 +24,7 @@ public sealed class PredictionSystem
         // Y not predicted yet. Server owns vertical state for now.
     }
 
-    /// <summary>Reset pose from <paramref name="serverState"/>. Drop inputs through <paramref name="lastProcessedInputTick"/>. Replay the rest.</summary>
+    /// <summary>Copies <paramref name="serverState"/> into the predicted pose. Drops inputs through <paramref name="lastProcessedInputTick"/>. Reapplies newer inputs.</summary>
     public void Reconcile(EntityState serverState, uint lastProcessedInputTick)
     {
         PredictedX = serverState.X;

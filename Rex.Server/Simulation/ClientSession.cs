@@ -6,8 +6,13 @@ namespace Rex.Server.Simulation;
 /// <summary>Per-client state tracked by the server host.</summary>
 public sealed class ClientSession
 {
+    /// <summary>Send and receive path for this client.</summary>
     public IServerNetChannel Channel { get; }
+
+    /// <summary>Same id as <see cref="IServerNetChannel.ClientId"/>.</summary>
     public int ClientId => Channel.ClientId;
+
+    /// <summary>Display name after the client authenticates.</summary>
     public string PlayerName { get; set; } = string.Empty;
 
     /// <summary>Highest input tick applied to sim this session (sent back in snapshots).</summary>

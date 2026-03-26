@@ -3,9 +3,7 @@ using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net.Messages;
 
-/// <summary>
-/// Server reply that accepts or rejects a connection request.
-/// </summary>
+/// <summary>Server reply to <see cref="ConnectRequestMessage"/>.</summary>
 public sealed class ConnectResponseMessage : INetMessage
 {
     public const ushort Id = 2;
@@ -16,29 +14,19 @@ public sealed class ConnectResponseMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Core;
 
-    /// <summary>
-    /// Gets a value that indicates whether the server accepted the client.
-    /// </summary>
+    /// <summary>True when the server accepted the client.</summary>
     public bool Accepted { get; }
 
-    /// <summary>
-    /// Gets the server-assigned client ID.
-    /// </summary>
+    /// <summary>Server-assigned client id when <see cref="Accepted"/> is true.</summary>
     public int ClientId { get; }
 
-    /// <summary>
-    /// Gets the tick rate the client should follow.
-    /// </summary>
+    /// <summary>Simulation rate the client should use.</summary>
     public int TickRate { get; }
 
-    /// <summary>
-    /// Gets the reject reason when <see cref="Accepted"/> is false.
-    /// </summary>
+    /// <summary>Human-readable failure text when <see cref="Accepted"/> is false.</summary>
     public string? RejectReason { get; }
 
-    /// <summary>
-    /// Creates a connection response payload.
-    /// </summary>
+    /// <summary>Builds a connection response payload.</summary>
     public ConnectResponseMessage(bool accepted, int clientId, int tickRate, string? rejectReason = null)
     {
         Accepted = accepted;

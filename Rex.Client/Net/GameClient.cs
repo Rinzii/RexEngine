@@ -26,9 +26,10 @@ public sealed class GameClient
     /// <summary>Inputs kept for prediction replay after snapshot reconcile.</summary>
     public InputBuffer InputBuffer { get; } = new();
 
+    /// <summary>Local movement prediction. See <see cref="PredictionSystem"/>.</summary>
     public PredictionSystem Prediction { get; }
 
-    /// <summary>True while transport is up from connected through in-game.</summary>
+    /// <summary>True while the transport is connected, authenticated, or in-game.</summary>
     public bool IsConnected => _channel?.State is ConnectionState.Connected
         or ConnectionState.Authenticated or ConnectionState.InGame;
 

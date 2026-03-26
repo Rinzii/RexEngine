@@ -3,7 +3,7 @@ using Rex.Server.Simulation;
 
 namespace Rex.Server;
 
-/// <summary>Headless dedicated server: CLI args, <see cref="GameServerConfig"/>, then <see cref="ServerApp"/>.</summary>
+/// <summary>Headless dedicated server. Reads CLI args into <see cref="GameServerConfig"/> and runs <see cref="ServerApp"/>.</summary>
 internal static class Program
 {
     internal static void Main(string[] args)

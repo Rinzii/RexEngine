@@ -1,8 +1,6 @@
 namespace Rex.Shared.Net;
 
-/// <summary>
-/// How the application participates in networking, similar to Unreal Engine's ENetMode.
-/// </summary>
+/// <summary>How this process uses the network stack, comparable to Unreal <c>ENetMode</c>.</summary>
 public enum NetMode
 {
     /// <summary>Single player. Game world runs in-process, no networking.</summary>
