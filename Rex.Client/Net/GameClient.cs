@@ -62,7 +62,7 @@ public sealed partial class GameClient
     /// <summary>Connects to a remote server over LiteNetLib.</summary>
     public void Connect(string host, int port)
     {
-        Connect(new RemoteClientNetChannel(host, port, ProtocolConstants.ConnectionKey));
+        Connect(new RemoteClientNetChannel(host, port, ProtocolConstants.ConnectionKey, _logger));
     }
 
     /// <summary>Connects through an arbitrary transport channel.</summary>
@@ -144,6 +144,9 @@ public sealed partial class GameClient
                 break;
             case EntityDestroyMessage destroy:
                 LogEntityDestroyed(destroy.EntityId);
+                break;
+            default:
+                LogUnhandledNetMessage(message.MessageId, message.GetType().Name);
                 break;
         }
     }

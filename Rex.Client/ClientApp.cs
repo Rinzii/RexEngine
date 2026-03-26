@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Graphics;
 using Rex.Client.Input;
@@ -32,6 +33,10 @@ public sealed partial class ClientApp : IDisposable
     private int _localEntityId;
     private IReadOnlyList<EntityState> _previousEntities = Array.Empty<EntityState>();
     private IReadOnlyList<EntityState> _currentEntities = Array.Empty<EntityState>();
+    private List<EntityState> _entitySnapshotBuffer0 = [];
+    private List<EntityState> _entitySnapshotBuffer1 = [];
+    private readonly Dictionary<int, EntityState> _standaloneInterpPrevious = [];
+    private readonly List<EntityState> _standaloneInterpolated = [];
 
     // Sampled once per fixed tick in both standalone and networked modes.
     private InputCollector? _inputCollector;
@@ -47,7 +52,7 @@ public sealed partial class ClientApp : IDisposable
 
     /// <summary>
     /// Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>. Use 0 to freeze scaled time and 1 for normal speed.
-    /// Fixed ticks always use <see cref="TickClock.TickRate"/>. Unity <c>timeScale</c> slows physics too. Rex does not scale fixed ticks.
+    /// Fixed ticks always use <see cref="TickClock.TickRate"/>. Rex does not scale fixed ticks.
     /// </summary>
     public float TimeScale { get; set; } = 1f;
 
@@ -96,7 +101,10 @@ public sealed partial class ClientApp : IDisposable
     }
 
     /// <summary>Wires the chosen net mode, runs the main loop until stop, then shuts down.</summary>
-    public void Run(string? host = null, int port = ProtocolConstants.DefaultPort)
+    /// <param name="port"></param>
+    /// <param name="cancellationToken">When canceled, the loop exits after the current frame.</param>
+    /// <param name="host"></param>
+    public void Run(string? host = null, int port = ProtocolConstants.DefaultPort, CancellationToken cancellationToken = default)
     {
         InitializeWindow();
 
@@ -117,7 +125,7 @@ public sealed partial class ClientApp : IDisposable
 
         LogClientRunning(_mode);
 
-        RunMainLoop();
+        RunMainLoop(cancellationToken);
 
         Shutdown();
     }
@@ -133,7 +141,7 @@ public sealed partial class ClientApp : IDisposable
         _window?.Dispose();
     }
 
-    private void RunMainLoop()
+    private void RunMainLoop(CancellationToken cancellationToken)
     {
         _isRunning = true;
         var stopwatch = Stopwatch.StartNew();
@@ -153,7 +161,7 @@ public sealed partial class ClientApp : IDisposable
             }
         }
 
-        while (_isRunning)
+        while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             var currentTime = stopwatch.Elapsed.TotalSeconds;
             var frameTime = currentTime - previousTime;
@@ -183,15 +191,14 @@ public sealed partial class ClientApp : IDisposable
             if (!Headless)
             {
                 _window?.PollEvents();
-                if (_window != null && !_window.IsOpen)
+                if (_window is { IsOpen: false })
                 {
                     Stop();
                     break;
                 }
             }
 
-            OnUpdate?.Invoke(ctx);
-            OnLateUpdate?.Invoke(ctx);
+            InvokeUpdateCallbacks(ctx);
 
             Render(ctx);
 
@@ -199,6 +206,11 @@ public sealed partial class ClientApp : IDisposable
             {
                 Thread.Yield();
             }
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            LogMainLoopCancellationRequested();
         }
 
         stopwatch.Stop();
@@ -246,9 +258,16 @@ public sealed partial class ClientApp : IDisposable
         var deltaTime = 1.0f / _clock.TickRate;
         _world!.Tick(deltaTime);
 
-        // Previous becomes the snapshot before this tick, current is after, for render lerp.
-        _previousEntities = _currentEntities;
-        _currentEntities = new List<EntityState>(_world.Entities.Values);
+        (_entitySnapshotBuffer0, _entitySnapshotBuffer1) = (_entitySnapshotBuffer1, _entitySnapshotBuffer0);
+        _previousEntities = _entitySnapshotBuffer0;
+        var newCurrent = _entitySnapshotBuffer1;
+        newCurrent.Clear();
+        foreach (var state in _world.Entities.Values)
+        {
+            newCurrent.Add(state);
+        }
+
+        _currentEntities = newCurrent;
     }
 
     private void TickNetworked()
@@ -287,31 +306,57 @@ public sealed partial class ClientApp : IDisposable
             return _currentEntities;
         }
 
-        var previousLookup = new Dictionary<int, EntityState>();
+        _standaloneInterpPrevious.Clear();
         foreach (var entity in _previousEntities)
         {
-            previousLookup[entity.EntityId] = entity;
+            _standaloneInterpPrevious[entity.EntityId] = entity;
         }
 
-        var result = new List<EntityState>(_currentEntities.Count);
+        _standaloneInterpolated.Clear();
         foreach (var current in _currentEntities)
         {
-            if (previousLookup.TryGetValue(current.EntityId, out var previous))
+            if (_standaloneInterpPrevious.TryGetValue(current.EntityId, out var previous))
             {
                 var x = previous.X + (current.X - previous.X) * alpha;
                 var y = previous.Y + (current.Y - previous.Y) * alpha;
                 var z = previous.Z + (current.Z - previous.Z) * alpha;
                 var rotY = previous.RotationY + (current.RotationY - previous.RotationY) * alpha;
-                result.Add(new EntityState(current.EntityId, x, y, z, rotY));
+                _standaloneInterpolated.Add(new EntityState(current.EntityId, x, y, z, rotY));
             }
             else
             {
-                // No matching prior tick (spawned this tick). Draw at current state.
-                result.Add(current);
+                _standaloneInterpolated.Add(current);
             }
         }
 
-        return result;
+        return _standaloneInterpolated;
+    }
+
+    private void InvokeUpdateCallbacks(FrameContext ctx)
+    {
+        if (OnUpdate != null)
+        {
+            try
+            {
+                OnUpdate(ctx);
+            }
+            catch (Exception ex)
+            {
+                LogOnUpdateFailed(ex);
+            }
+        }
+
+        if (OnLateUpdate != null)
+        {
+            try
+            {
+                OnLateUpdate(ctx);
+            }
+            catch (Exception ex)
+            {
+                LogOnLateUpdateFailed(ex);
+            }
+        }
     }
 
     private void Shutdown()

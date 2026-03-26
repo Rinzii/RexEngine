@@ -10,23 +10,35 @@ internal sealed class CommandLineArgs
     public NetMode Mode { get; }
     public string? ConnectAddress { get; }
     public int Port { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
 
-    internal CommandLineArgs(bool headless, NetMode mode, string? connectAddress, int port)
+    internal CommandLineArgs(
+        bool headless,
+        NetMode mode,
+        string? connectAddress,
+        int port,
+        IReadOnlyList<string> unrecognizedArguments)
     {
         Headless = headless;
         Mode = mode;
         ConnectAddress = connectAddress;
         Port = port;
+        UnrecognizedArguments = unrecognizedArguments;
     }
 
-    public static bool TryParse(IReadOnlyList<string> args, [NotNullWhen(true)] out CommandLineArgs? parsed)
+    public static bool TryParse(
+        IReadOnlyList<string> args,
+        [NotNullWhen(true)] out CommandLineArgs? parsed,
+        [NotNullWhen(false)] out string? error)
     {
         parsed = null;
+        error = null;
         var headless = false;
         var listenServer = false;
         var standalone = false;
         string? connectAddress = null;
         var port = ProtocolConstants.DefaultPort;
+        var unrecognized = new List<string>();
 
         using var enumerator = args.GetEnumerator();
 
@@ -45,14 +57,17 @@ internal sealed class CommandLineArgs
                     standalone = true;
                     break;
                 case "--connect" when !enumerator.MoveNext():
-                    Console.WriteLine("Missing connect address!");
+                    error = "Missing value for --connect.";
                     return false;
                 case "--connect":
                     connectAddress = enumerator.Current;
                     break;
                 case "--port" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port):
-                    Console.WriteLine("Missing or invalid port!");
+                    error = "Missing or invalid value for --port.";
                     return false;
+                default:
+                    unrecognized.Add(arg);
+                    break;
             }
         }
 
@@ -74,7 +89,7 @@ internal sealed class CommandLineArgs
             mode = NetMode.Standalone;
         }
 
-        parsed = new CommandLineArgs(headless, mode, connectAddress, port);
+        parsed = new CommandLineArgs(headless, mode, connectAddress, port, unrecognized);
         return true;
     }
 }

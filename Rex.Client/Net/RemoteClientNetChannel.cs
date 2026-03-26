@@ -1,12 +1,13 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Microsoft.Extensions.Logging;
 using Rex.Shared.Net;
 using ConnectionState = Rex.Shared.Net.ConnectionState;
 
 namespace Rex.Client.Net;
 
 /// <summary>LiteNetLib-backed client transport for remote servers.</summary>
-public sealed class RemoteClientNetChannel : IClientNetChannel
+public sealed partial class RemoteClientNetChannel : IClientNetChannel
 {
     private readonly EventBasedNetListener _listener;
     private readonly NetManager _netManager;
@@ -14,6 +15,7 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
     private readonly string _host;
     private readonly int _port;
     private readonly string _connectionKey;
+    private readonly ILogger _logger;
     private NetPeer? _serverPeer;
 
     public ConnectionState State { get; set; }
@@ -23,11 +25,12 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
     public event Action? Connected;
     public event Action<string>? Disconnected;
 
-    public RemoteClientNetChannel(string host, int port, string connectionKey)
+    public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
     {
         _host = host;
         _port = port;
         _connectionKey = connectionKey;
+        _logger = logger;
         _listener = new EventBasedNetListener();
         _netManager = new NetManager(_listener);
 
@@ -44,6 +47,7 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
         if (!_netManager.Start())
         {
             State = ConnectionState.Disconnected;
+            LogTransportStartFailed();
             Disconnected?.Invoke("Client transport failed to start.");
             return;
         }
@@ -104,8 +108,16 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
 
     private void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channel, DeliveryMethod deliveryMethod)
     {
-        var message = NetMessageRegistry.Deserialize(reader);
-        reader.Recycle(); // pool backing buffer
-        MessageReceived?.Invoke(message);
+        try
+        {
+            var message = NetMessageRegistry.Deserialize(reader);
+            reader.Recycle(); // pool backing buffer
+            MessageReceived?.Invoke(message);
+        }
+        catch (Exception ex)
+        {
+            LogDeserializeMessageFailed(ex);
+            reader.Recycle();
+        }
     }
 }

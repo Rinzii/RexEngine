@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Rex.Client.Logging;
 using Rex.Shared.Net;
 
 namespace Rex.Client;
@@ -11,11 +12,6 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-        if (!CommandLineArgs.TryParse(args, out var parsed))
-        {
-            return;
-        }
-
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
@@ -23,6 +19,17 @@ internal static class Program
         });
 
         var logger = loggerFactory.CreateLogger("Rex.Client");
+
+        if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
+        {
+            Logging.ClientProgramLog.CliParseFailed(logger, parseError ?? "Invalid arguments.");
+            return;
+        }
+
+        foreach (var arg in parsed.UnrecognizedArguments)
+        {
+            Logging.ClientProgramLog.UnrecognizedCliArgument(logger, arg);
+        }
 
         if (parsed.Mode == NetMode.ListenServer)
         {
@@ -41,30 +48,32 @@ internal static class Program
             Headless = args.Headless
         };
 
+        using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
-            logger.ShutdownSignalReceived();
+            Logging.ClientProgramLog.ShutdownSignalReceived(logger);
+            cts.Cancel();
             // ReSharper disable once AccessToDisposedClosure
             app.Stop();
         };
 
-        // Parse host:port when connecting to a remote server.
         string? host = null;
         var port = args.Port;
 
         if (args.ConnectAddress != null)
         {
-            host = args.ConnectAddress;
-            var colonIndex = host.LastIndexOf(':');
-            if (colonIndex > 0 && int.TryParse(host[(colonIndex + 1)..], out var parsedPort))
+            if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out var parsedHost, out var parsedPort))
             {
-                host = host[..colonIndex];
-                port = parsedPort;
+                Logging.ClientProgramLog.InvalidConnectAddress(logger, args.ConnectAddress);
+                return;
             }
+
+            host = parsedHost;
+            port = parsedPort;
         }
 
-        app.Run(host, port);
+        app.Run(host, port, cts.Token);
     }
 
     private static void RunWithListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
@@ -81,8 +90,8 @@ internal static class Program
                 args.Headless,
                 NetMode.Client,
                 "127.0.0.1",
-                args.Port
-            );
+                args.Port,
+                Array.Empty<string>());
 
             RunApp(clientArgs, loggerFactory, logger);
         }
@@ -97,7 +106,7 @@ internal static class Program
         var serverAssemblyPath = ResolveServerAssemblyPath();
         if (serverAssemblyPath == null)
         {
-            logger.ListenServerAssemblyNotFound();
+            Logging.ClientProgramLog.ListenServerAssemblyNotFound(logger);
             return null;
         }
 
@@ -127,9 +136,9 @@ internal static class Program
                 return;
             }
 
-            logger.ListenServerOutput(e.Data);
+            Logging.ClientProgramLog.ListenServerOutput(logger, e.Data);
 
-            if (e.Data.Contains("Dedicated server running.", StringComparison.Ordinal))
+            if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
             {
                 readySignal.Set();
             }
@@ -139,13 +148,13 @@ internal static class Program
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
             {
-                logger.ListenServerError(e.Data);
+                Logging.ClientProgramLog.ListenServerError(logger, e.Data);
             }
         };
 
         if (!process.Start())
         {
-            logger.ListenServerStartFailed();
+            Logging.ClientProgramLog.ListenServerStartFailed(logger);
             process.Dispose();
             return null;
         }
@@ -160,11 +169,11 @@ internal static class Program
 
         if (process.HasExited)
         {
-            logger.ListenServerExitedEarly();
+            Logging.ClientProgramLog.ListenServerExitedEarly(logger);
         }
         else
         {
-            logger.ListenServerStartupTimeout();
+            Logging.ClientProgramLog.ListenServerStartupTimeout(logger);
         }
 
         StopListenServerProcess(process, logger);
@@ -179,7 +188,7 @@ internal static class Program
             return;
         }
 
-        logger.StoppingListenServer();
+        Logging.ClientProgramLog.StoppingListenServer(logger);
         process.Kill(true);
         process.WaitForExit(5000);
     }
