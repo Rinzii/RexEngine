@@ -12,9 +12,8 @@ using Rex.Shared.Timing;
 namespace Rex.Client;
 
 /// <summary>
-/// Top-level client application. Owns the game loop and provides seams
-/// for windowing and rendering. In standalone mode, runs the simulation
-/// directly with no networking. In networked modes, delegates to GameClient.
+/// Top-level client application. Runs a Unity-style loop: fixed simulation ticks, then variable-rate
+/// <see cref="OnUpdate"/> / <see cref="OnLateUpdate"/>, then render with interpolation alpha.
 /// </summary>
 public sealed class ClientApp : IDisposable
 {
@@ -22,6 +21,7 @@ public sealed class ClientApp : IDisposable
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly TickClock _clock;
+    private readonly DeltaTimeSmoother _deltaSmoother = new();
     private bool _isRunning;
 
     // Networked modes only.
@@ -45,6 +45,18 @@ public sealed class ClientApp : IDisposable
     public bool IsRunning => _isRunning;
     public bool Headless { get; init; }
 
+    /// <summary>
+    /// Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>; 0 freezes scaled time, 1 is normal.
+    /// Fixed simulation ticks stay at <see cref="TickClock.TickRate"/> (unlike Unity, where <c>timeScale</c> also slows physics).
+    /// </summary>
+    public float TimeScale { get; set; } = 1f;
+
+    /// <summary>Variable-rate phase after fixed ticks; use for cameras, UI, non-authoritative motion.</summary>
+    public Action<FrameContext>? OnUpdate { get; set; }
+
+    /// <summary>Runs after <see cref="OnUpdate"/> each frame; use when another system must read updated transform-like state.</summary>
+    public Action<FrameContext>? OnLateUpdate { get; set; }
+
     /// <summary>The networked client. Only available in Client/ListenServer modes.</summary>
     public GameClient? Client => _client;
 
@@ -65,7 +77,7 @@ public sealed class ClientApp : IDisposable
         set => _renderer = value;
     }
 
-    /// <param name="tickRate">Sim ticks per second.</param>
+    /// <param name="tickRate">Sim ticks per second (fixed delta = 1/<paramref name="tickRate"/>).</param>
     public ClientApp(NetMode mode, ILoggerFactory loggerFactory, int tickRate = ProtocolConstants.DefaultTickRate)
     {
         _mode = mode;
@@ -100,7 +112,7 @@ public sealed class ClientApp : IDisposable
         }
 
         _logger.LogInformation("Client running in {Mode} mode.", _mode);
-        RunFixedStepLoop();
+        RunMainLoop();
 
         Shutdown();
     }
@@ -116,12 +128,21 @@ public sealed class ClientApp : IDisposable
         _window?.Dispose();
     }
 
-    private void RunFixedStepLoop()
+    private void RunMainLoop()
     {
         _isRunning = true;
         var stopwatch = Stopwatch.StartNew();
         var previousTime = stopwatch.Elapsed.TotalSeconds;
         double accumulator = 0;
+        ulong frameIndex = 0;
+
+        void FixedStep()
+        {
+            if (_mode == NetMode.Standalone)
+                TickStandalone();
+            else
+                TickNetworked();
+        }
 
         while (_isRunning)
         {
@@ -129,25 +150,38 @@ public sealed class ClientApp : IDisposable
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
-            if (frameTime > 0.25)
-                frameTime = 0.25;
-
-            accumulator += frameTime;
-
-            while (accumulator >= _clock.TickInterval)
-            {
-                if (_mode == NetMode.Standalone)
-                    TickStandalone();
-                else
-                    TickNetworked();
-
-                _clock.IncrementTick();
-                accumulator -= _clock.TickInterval;
-            }
+            var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, FixedStep);
 
             var alpha = (float)(accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
-            Render(alpha);
+            frameIndex++;
+
+            var unscaledDt = (float)Math.Min(frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            var smoothDt = _deltaSmoother.Next(unscaledDt);
+            var ctx = new FrameContext(
+                _clock,
+                unscaledDt,
+                smoothDt,
+                TimeScale,
+                fixedSteps,
+                alpha,
+                frameIndex,
+                stopwatch.Elapsed.TotalSeconds);
+
+            if (!Headless)
+            {
+                _window?.PollEvents();
+                if (_window != null && !_window.IsOpen)
+                {
+                    Stop();
+                    break;
+                }
+            }
+
+            OnUpdate?.Invoke(ctx);
+            OnLateUpdate?.Invoke(ctx);
+
+            Render(ctx);
 
             if (Headless)
                 Thread.Yield();
@@ -203,28 +237,20 @@ public sealed class ClientApp : IDisposable
         _client!.Tick(_clock.CurrentTick);
     }
 
-    private void Render(float alpha)
+    private void Render(FrameContext ctx)
     {
         if (Headless)
             return;
-
-        _window?.PollEvents();
-
-        if (_window != null && !_window.IsOpen)
-        {
-            Stop();
-            return;
-        }
 
         if (_renderer != null)
         {
             _renderer.BeginFrame();
 
             var entities = _mode == NetMode.Standalone
-                ? InterpolateStandalone(alpha)
-                : _client!.WorldState.GetInterpolatedState(alpha);
+                ? InterpolateStandalone(ctx.InterpolationAlpha)
+                : _client!.WorldState.GetInterpolatedState(ctx.InterpolationAlpha);
 
-            _renderer.RenderWorld(entities, alpha);
+            _renderer.RenderWorld(entities, ctx.InterpolationAlpha);
             _renderer.EndFrame();
         }
 

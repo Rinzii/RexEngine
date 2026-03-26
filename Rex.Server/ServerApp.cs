@@ -7,8 +7,8 @@ using Rex.Shared.Timing;
 namespace Rex.Server;
 
 /// <summary>
-/// Top-level dedicated server application. Owns the game loop, networking,
-/// and simulation lifecycle. Runs as a headless console process.
+/// Top-level dedicated server application. Runs fixed simulation ticks (Unity <c>FixedUpdate</c>-style),
+/// then optional variable-rate <see cref="OnUpdate"/> / <see cref="OnLateUpdate"/> for housekeeping.
 /// </summary>
 public sealed class ServerApp : IDisposable
 {
@@ -16,6 +16,7 @@ public sealed class ServerApp : IDisposable
     private readonly ILogger _logger;
     private readonly GameServerConfig _config;
     private readonly TickClock _clock;
+    private readonly DeltaTimeSmoother _deltaSmoother = new();
     private bool _isRunning;
 
     private GameServer? _server;
@@ -24,6 +25,15 @@ public sealed class ServerApp : IDisposable
     public TickClock Clock => _clock;
     public GameServer? Server => _server;
     public bool IsRunning => _isRunning;
+
+    /// <summary>Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>; fixed ticks stay at config tick rate.</summary>
+    public float TimeScale { get; set; } = 1f;
+
+    /// <summary>Variable-rate phase after fixed ticks (metrics, admin hooks). Keep authoritative sim in <see cref="GameServer.Tick"/>.</summary>
+    public Action<FrameContext>? OnUpdate { get; set; }
+
+    /// <summary>Runs after <see cref="OnUpdate"/> each outer iteration.</summary>
+    public Action<FrameContext>? OnLateUpdate { get; set; }
 
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
@@ -45,6 +55,7 @@ public sealed class ServerApp : IDisposable
         var stopwatch = Stopwatch.StartNew();
         var previousTime = stopwatch.Elapsed.TotalSeconds;
         double accumulator = 0;
+        ulong frameIndex = 0;
 
         while (_isRunning)
         {
@@ -52,20 +63,26 @@ public sealed class ServerApp : IDisposable
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
-            if (frameTime > 0.25)
-                frameTime = 0.25;
-
-            accumulator += frameTime;
-
-            while (accumulator >= _clock.TickInterval)
-            {
-                _server.Tick();
-                _clock.IncrementTick();
-                accumulator -= _clock.TickInterval;
-            }
+            var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, () => _server!.Tick());
 
             var alpha = (float)(accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
+            frameIndex++;
+
+            var unscaledDt = (float)Math.Min(frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            var smoothDt = _deltaSmoother.Next(unscaledDt);
+            var ctx = new FrameContext(
+                _clock,
+                unscaledDt,
+                smoothDt,
+                TimeScale,
+                fixedSteps,
+                alpha,
+                frameIndex,
+                stopwatch.Elapsed.TotalSeconds);
+
+            OnUpdate?.Invoke(ctx);
+            OnLateUpdate?.Invoke(ctx);
 
             Thread.Yield();
         }
