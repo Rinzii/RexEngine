@@ -5,7 +5,7 @@ namespace Rex.Shared.Net.Transfer;
 /// <summary>
 /// Splits large payloads into chunks for transfer on a dedicated channel.
 /// </summary>
-public sealed class BulkTransferManager
+public sealed partial class BulkTransferManager
 {
     /// <summary>
     /// Chunk size used for transfer messages.
@@ -50,9 +50,7 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug(
-            "Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
-            transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
+        LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
     /// <summary>
@@ -76,9 +74,7 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug(
-            "Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
-            transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
+        LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
     /// <summary>
@@ -98,9 +94,7 @@ public sealed class BulkTransferManager
             ChunksReceived = 0
         };
 
-        _logger.LogDebug(
-            "Receiving bulk transfer {TransferId}: {DataType}, expecting {ChunkCount} chunks ({TotalSize} bytes)",
-            init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
+        LogReceivingBulkTransfer(init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
     }
 
     /// <summary>
@@ -110,7 +104,7 @@ public sealed class BulkTransferManager
     {
         if (!_incomingTransfers.TryGetValue(chunk.TransferId, out var transfer))
         {
-            _logger.LogWarning("Received chunk for unknown transfer {TransferId}", chunk.TransferId);
+            LogUnknownTransferChunk(chunk.TransferId);
             return;
         }
 
@@ -127,8 +121,7 @@ public sealed class BulkTransferManager
 
             _incomingTransfers.Remove(chunk.TransferId);
 
-            _logger.LogDebug("Bulk transfer {TransferId} complete: {DataType}, {Size} bytes",
-                transfer.TransferId, transfer.DataType, finalData.Length);
+            LogBulkTransferComplete(transfer.TransferId, transfer.DataType, finalData.Length);
 
             TransferCompleted?.Invoke(transfer.TransferId, transfer.DataType, finalData);
         }
@@ -155,7 +148,10 @@ public sealed class BulkTransferManager
     private static byte[] Reassemble(IncomingTransfer transfer)
     {
         var totalSize = 0;
-        foreach (var chunk in transfer.ReceivedChunks) totalSize += chunk.Length;
+        foreach (var chunk in transfer.ReceivedChunks)
+        {
+            totalSize += chunk.Length;
+        }
 
         var result = new byte[totalSize];
         var offset = 0;

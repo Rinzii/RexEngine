@@ -10,12 +10,18 @@ public sealed class DeltaTimeSmoother
     public float Next(float rawDeltaSeconds, float blendWeight = 0.12f)
     {
         if (rawDeltaSeconds <= 0f || float.IsNaN(rawDeltaSeconds) || float.IsInfinity(rawDeltaSeconds))
+        {
             return _smooth > 0f ? _smooth : 1f / 60f;
+        }
 
         if (_smooth <= 0f)
+        {
             _smooth = rawDeltaSeconds;
+        }
         else
+        {
             _smooth += (rawDeltaSeconds - _smooth) * blendWeight;
+        }
 
         return _smooth;
     }

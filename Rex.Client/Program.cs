@@ -12,7 +12,9 @@ internal static class Program
     private static void Main(string[] args)
     {
         if (!CommandLineArgs.TryParse(args, out var parsed))
+        {
             return;
+        }
 
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -23,9 +25,13 @@ internal static class Program
         var logger = loggerFactory.CreateLogger("Rex.Client");
 
         if (parsed.Mode == NetMode.ListenServer)
+        {
             RunWithListenServer(parsed, loggerFactory, logger);
+        }
         else
+        {
             RunApp(parsed, loggerFactory, logger);
+        }
     }
 
     private static void RunApp(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
@@ -38,7 +44,7 @@ internal static class Program
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
-            logger.LogInformation("Shutdown signal received.");
+            logger.ShutdownSignalReceived();
             // ReSharper disable once AccessToDisposedClosure
             app.Stop();
         };
@@ -65,7 +71,9 @@ internal static class Program
     {
         using var serverProcess = StartListenServerProcess(args.Port, logger);
         if (serverProcess == null)
+        {
             return;
+        }
 
         try
         {
@@ -89,7 +97,7 @@ internal static class Program
         var serverAssemblyPath = ResolveServerAssemblyPath();
         if (serverAssemblyPath == null)
         {
-            logger.LogError("Could not find Rex.Server assembly for listen server mode.");
+            logger.ListenServerAssemblyNotFound();
             return null;
         }
 
@@ -115,22 +123,29 @@ internal static class Program
         process.OutputDataReceived += (_, e) =>
         {
             if (string.IsNullOrWhiteSpace(e.Data))
+            {
                 return;
+            }
 
-            logger.LogInformation("[Server] {Message}", e.Data);
+            logger.ListenServerOutput(e.Data);
+
             if (e.Data.Contains("Dedicated server running.", StringComparison.Ordinal))
+            {
                 readySignal.Set();
+            }
         };
 
         process.ErrorDataReceived += (_, e) =>
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
-                logger.LogError("[Server] {Message}", e.Data);
+            {
+                logger.ListenServerError(e.Data);
+            }
         };
 
         if (!process.Start())
         {
-            logger.LogError("Failed to start Rex.Server process.");
+            logger.ListenServerStartFailed();
             process.Dispose();
             return null;
         }
@@ -139,12 +154,18 @@ internal static class Program
         process.BeginErrorReadLine();
 
         if (readySignal.Wait(TimeSpan.FromSeconds(10)))
+        {
             return process;
+        }
 
         if (process.HasExited)
-            logger.LogError("Listen server exited before startup completed.");
+        {
+            logger.ListenServerExitedEarly();
+        }
         else
-            logger.LogError("Timed out waiting for listen server startup.");
+        {
+            logger.ListenServerStartupTimeout();
+        }
 
         StopListenServerProcess(process, logger);
         process.Dispose();
@@ -154,9 +175,11 @@ internal static class Program
     private static void StopListenServerProcess(Process process, ILogger logger)
     {
         if (process.HasExited)
+        {
             return;
+        }
 
-        logger.LogInformation("Stopping listen server process.");
+        logger.StoppingListenServer();
         process.Kill(true);
         process.WaitForExit(5000);
     }
@@ -165,18 +188,23 @@ internal static class Program
     {
         var siblingPath = Path.Combine(AppContext.BaseDirectory, "Rex.Server.dll");
         if (File.Exists(siblingPath))
+        {
             return siblingPath;
+        }
 
         var outputDir =
             new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar,
                 Path.AltDirectorySeparatorChar));
         var tfm = outputDir.Name;
         var config = outputDir.Parent?.Name;
+
         // bin/{Config}/{Tfm}/ then up to repo root for dev layout when DLL isn't copied next to client.
         var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
 
         if (config == null || repoRoot == null)
+        {
             return null;
+        }
 
         var repoPath = Path.Combine(repoRoot.FullName, "Rex.Server", "bin", config, tfm, "Rex.Server.dll");
         return File.Exists(repoPath) ? repoPath : null;

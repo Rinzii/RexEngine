@@ -11,7 +11,7 @@ namespace Rex.Server.Simulation;
 /// Transport-agnostic server host. Manages sessions, processes inputs,
 /// ticks the shared world, and broadcasts snapshots to connected clients.
 /// </summary>
-public sealed class GameServerHost
+public sealed partial class GameServerHost
 {
     private readonly GameServerConfig _config;
     private readonly ILogger _logger;
@@ -47,14 +47,15 @@ public sealed class GameServerHost
     public void Start()
     {
         if (_isRunning)
+        {
             throw new InvalidOperationException("Server host is already running.");
+        }
 
         NetMessages.RegisterAll();
         _transferManager = new BulkTransferManager(_loggerFactory);
         _isRunning = true;
 
-        _logger.LogInformation("Server host started (tick rate: {TickRate}, max players: {MaxPlayers})",
-            _config.TickRate, _config.MaxPlayers);
+        LogServerHostStarted(_config.TickRate, _config.MaxPlayers);
     }
 
     /// <summary>Allocates a new client ID for an incoming connection.</summary>
@@ -67,30 +68,39 @@ public sealed class GameServerHost
     public void AddSession(ClientSession session)
     {
         _sessions[session.ClientId] = session;
-        _logger.LogInformation("Session added: ClientId {ClientId}", session.ClientId);
+
+        LogSessionAdded(session.ClientId);
     }
 
     /// <summary>Removes a session and destroys its entities.</summary>
     public void RemoveSession(int clientId)
     {
         if (!_sessions.Remove(clientId))
+        {
             return;
+        }
 
         _world.DestroyEntity(clientId);
 
         var destroyMsg = new EntityDestroyMessage(clientId);
         foreach (var other in _sessions.Values)
+        {
             if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
+            {
                 other.Channel.Send(destroyMsg);
+            }
+        }
 
-        _logger.LogInformation("Session removed: ClientId {ClientId}", clientId);
+        LogSessionRemoved(clientId);
     }
 
     /// <summary>Routes an inbound message to the appropriate handler.</summary>
     public void HandleMessage(int clientId, INetMessage message)
     {
         if (!_sessions.TryGetValue(clientId, out var session))
+        {
             return;
+        }
 
         switch (message)
         {
@@ -104,12 +114,11 @@ public sealed class GameServerHost
                 session.LastAcknowledgedTick = stateAck.AcknowledgedTick;
                 break;
             case BulkTransferAckMessage transferAck:
-                _logger.LogDebug("Client {ClientId} acked transfer {TransferId}: {Success}",
-                    session.ClientId, transferAck.TransferId, transferAck.Success);
+                LogBulkTransferAcked(session.ClientId, transferAck.TransferId, transferAck.Success);
                 break;
             case DisconnectMessage disconnect:
-                _logger.LogInformation("Client {ClientId} disconnecting: {Reason}",
-                    session.ClientId, disconnect.Reason);
+                LogClientDisconnecting(session.ClientId, disconnect.Reason);
+
                 session.Channel.Disconnect(disconnect.Reason);
                 break;
         }
@@ -118,35 +127,50 @@ public sealed class GameServerHost
     public void SendBulkData<T>(int clientId, BulkDataType dataType, T data)
     {
         if (_transferManager == null || !_sessions.TryGetValue(clientId, out var session))
+        {
             return;
+        }
+
         _transferManager.SendBulkData(session.Channel, dataType, data);
     }
 
     public void BroadcastBulkData<T>(BulkDataType dataType, T data)
     {
         if (_transferManager == null)
+        {
             return;
+        }
 
         foreach (var session in _sessions.Values)
+        {
             if (session.Channel.State == ConnectionState.InGame)
+            {
                 _transferManager.SendBulkData(session.Channel, dataType, data);
+            }
+        }
     }
 
     /// <summary>Processes inputs, advances the world, and broadcasts snapshots.</summary>
     public void Tick()
     {
         if (!_isRunning)
+        {
             return;
+        }
 
         _dirtyTracker.ClearTick(_currentTick);
 
         foreach (var session in _sessions.Values)
+        {
             while (session.TryDequeueInput(out var input))
+            {
                 if (input != null)
                 {
                     _world.ProcessInput(session.ClientId, input);
                     session.LastProcessedInputTick = input.Tick;
                 }
+            }
+        }
 
         var deltaTime = 1.0f / _config.TickRate;
         _world.Tick(deltaTime);
@@ -157,17 +181,21 @@ public sealed class GameServerHost
     public void Shutdown()
     {
         if (!_isRunning)
+        {
             return;
+        }
 
-        _logger.LogInformation("Server host shutting down...");
+        LogServerHostShuttingDown();
 
         foreach (var session in _sessions.Values)
+        {
             session.Channel.Disconnect("Server shutting down");
+        }
 
         _sessions.Clear();
         _isRunning = false;
 
-        _logger.LogInformation("Server host stopped.");
+        LogServerHostStopped();
     }
 
     private void BroadcastSnapshots()
@@ -175,16 +203,22 @@ public sealed class GameServerHost
         foreach (var session in _sessions.Values)
         {
             if (session.Channel.State != ConnectionState.InGame)
+            {
                 continue;
+            }
 
             var dirtyEntities = _dirtyTracker.GetDirtyEntities(session.LastAcknowledgedTick, _currentTick);
             WorldSnapshotMessage snapshot;
 
             // Null means ack too old for the ring buffer. Send full state once.
             if (dirtyEntities == null)
+            {
                 snapshot = _world.BuildSnapshot(_currentTick, session.LastProcessedInputTick);
+            }
             else
+            {
                 snapshot = _world.BuildDeltaSnapshot(_currentTick, session.LastProcessedInputTick, dirtyEntities);
+            }
 
             var (channel, delivery) = AdaptiveReliability.GetAdaptiveDelivery(snapshot);
             session.Channel.Send(snapshot, channel, delivery);
@@ -203,8 +237,7 @@ public sealed class GameServerHost
 
         session.PlayerName = request.PlayerName;
         session.Channel.State = ConnectionState.Authenticated;
-        _logger.LogInformation("Client {ClientId} authenticated as '{PlayerName}'",
-            session.ClientId, request.PlayerName);
+        LogClientAuthenticated(session.ClientId, request.PlayerName);
 
         var response = new ConnectResponseMessage(true, session.ClientId, _config.TickRate);
         session.Channel.Send(response);
@@ -217,7 +250,11 @@ public sealed class GameServerHost
 
         var spawnMsg = new EntitySpawnMessage(session.ClientId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
         foreach (var other in _sessions.Values)
+        {
             if (other.ClientId != session.ClientId && other.Channel.State == ConnectionState.InGame)
+            {
                 other.Channel.Send(spawnMsg);
+            }
+        }
     }
 }

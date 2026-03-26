@@ -15,7 +15,7 @@ namespace Rex.Client;
 /// Top-level client application. Runs fixed-step simulation, then variable-rate <see cref="OnUpdate"/> and
 /// <see cref="OnLateUpdate"/>, then draws with interpolation between simulation ticks.
 /// </summary>
-public sealed class ClientApp : IDisposable
+public sealed partial class ClientApp : IDisposable
 {
     private readonly NetMode _mode;
     private readonly ILoggerFactory _loggerFactory;
@@ -109,13 +109,13 @@ public sealed class ClientApp : IDisposable
             case NetMode.ListenServer:
                 SetupNetworked(host ?? "127.0.0.1", port);
                 break;
+            case NetMode.DedicatedServer:
             default:
-                _logger.LogError("Net mode {Mode} is not valid for the client.", _mode);
+                LogInvalidClientNetMode(_mode);
                 return;
         }
 
-        if (_logger.IsEnabled(LogLevel.Information))
-            _logger.LogInformation("Client running in {Mode} mode.", _mode);
+        LogClientRunning(_mode);
 
         RunMainLoop();
 
@@ -144,9 +144,13 @@ public sealed class ClientApp : IDisposable
         void FixedStep()
         {
             if (_mode == NetMode.Standalone)
+            {
                 TickStandalone();
+            }
             else
+            {
                 TickNetworked();
+            }
         }
 
         while (_isRunning)
@@ -192,7 +196,9 @@ public sealed class ClientApp : IDisposable
             Render(ctx);
 
             if (Headless)
+            {
                 Thread.Yield();
+            }
         }
 
         stopwatch.Stop();
@@ -201,7 +207,9 @@ public sealed class ClientApp : IDisposable
     private void InitializeWindow()
     {
         if (Headless || _window == null)
+        {
             return;
+        }
 
         _window.Open("RexEngine", 1280, 720);
         _renderer?.Initialize(_window);
@@ -212,7 +220,7 @@ public sealed class ClientApp : IDisposable
         _world = new GameWorld();
         _localEntityId = _world.SpawnEntity(0, EntityTypeIds.Player, 0f, 0f, 0f);
 
-        _logger.LogInformation("Standalone world initialized.");
+        LogStandaloneWorldInitialized();
     }
 
     private void SetupNetworked(string host, int port)
@@ -220,7 +228,9 @@ public sealed class ClientApp : IDisposable
         _client = new GameClient(_loggerFactory);
 
         if (_inputCollector != null)
+        {
             _client.SetInputCollector(_inputCollector);
+        }
 
         _client.Connect(host, port);
     }
@@ -249,7 +259,9 @@ public sealed class ClientApp : IDisposable
     private void Render(FrameContext ctx)
     {
         if (Headless)
+        {
             return;
+        }
 
         if (_renderer != null)
         {
@@ -270,18 +282,20 @@ public sealed class ClientApp : IDisposable
     /// <summary>Linear blend between entity state at the previous tick and the current tick. Standalone draw path.</summary>
     private IReadOnlyList<EntityState> InterpolateStandalone(float alpha)
     {
-        if (_currentEntities.Count == 0)
+        if (_currentEntities.Count == 0 || _previousEntities.Count == 0)
+        {
             return _currentEntities;
-
-        if (_previousEntities.Count == 0)
-            return _currentEntities;
+        }
 
         var previousLookup = new Dictionary<int, EntityState>();
         foreach (var entity in _previousEntities)
+        {
             previousLookup[entity.EntityId] = entity;
+        }
 
         var result = new List<EntityState>(_currentEntities.Count);
         foreach (var current in _currentEntities)
+        {
             if (previousLookup.TryGetValue(current.EntityId, out var previous))
             {
                 var x = previous.X + (current.X - previous.X) * alpha;
@@ -295,6 +309,7 @@ public sealed class ClientApp : IDisposable
                 // No matching prior tick (spawned this tick). Draw at current state.
                 result.Add(current);
             }
+        }
 
         return result;
     }

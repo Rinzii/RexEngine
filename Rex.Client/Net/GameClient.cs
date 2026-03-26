@@ -10,7 +10,7 @@ namespace Rex.Client.Net;
 /// <summary>
 /// Client-side networking controller. Owns connection flow and inbound message handling.
 /// </summary>
-public sealed class GameClient
+public sealed partial class GameClient
 {
     private readonly ILogger _logger;
     private readonly BulkTransferManager _transferManager;
@@ -54,7 +54,7 @@ public sealed class GameClient
     }
 
     /// <summary>Runs protobuf-net deserialize on a completed bulk payload.</summary>
-    public T DeserializeBulkData<T>(byte[] data)
+    public static T DeserializeBulkData<T>(byte[] data)
     {
         return ProtoSerializer.Deserialize<T>(data);
     }
@@ -79,7 +79,9 @@ public sealed class GameClient
         _channel?.PollEvents();
 
         if (_channel?.State != ConnectionState.InGame)
+        {
             return;
+        }
 
         if (_inputCollector != null)
         {
@@ -112,13 +114,13 @@ public sealed class GameClient
 
     private void OnConnected()
     {
-        _logger.LogInformation("Connected to server");
+        LogConnectedToServer();
         _channel!.Send(new ConnectRequestMessage(ProtocolConstants.ProtocolVersion, "Player"));
     }
 
     private void OnDisconnected(string reason)
     {
-        _logger.LogInformation("Disconnected: {Reason}", reason);
+        LogDisconnected(reason);
     }
 
     private void OnMessageReceived(INetMessage message)
@@ -138,10 +140,10 @@ public sealed class GameClient
                 _transferManager.HandleTransferChunk(transferChunk);
                 break;
             case EntitySpawnMessage spawn:
-                _logger.LogDebug("Entity spawned: {EntityId} ({EntityType})", spawn.EntityId, spawn.EntityType);
+                LogEntitySpawned(spawn.EntityId, spawn.EntityType);
                 break;
             case EntityDestroyMessage destroy:
-                _logger.LogDebug("Entity destroyed: {EntityId}", destroy.EntityId);
+                LogEntityDestroyed(destroy.EntityId);
                 break;
         }
     }
@@ -150,15 +152,14 @@ public sealed class GameClient
     {
         if (!response.Accepted)
         {
-            _logger.LogWarning("Connection rejected: {Reason}", response.RejectReason);
+            LogConnectionRejected(response.RejectReason);
             _channel?.Disconnect(response.RejectReason ?? "Rejected");
             return;
         }
 
         ClientId = response.ClientId;
         _channel!.State = ConnectionState.InGame;
-        _logger.LogInformation("Accepted. ClientId: {ClientId}, TickRate: {TickRate}",
-            response.ClientId, response.TickRate);
+        LogConnectionAccepted(response.ClientId, response.TickRate);
     }
 
     private void HandleWorldSnapshot(WorldSnapshotMessage snapshot)
@@ -168,17 +169,19 @@ public sealed class GameClient
 
         // Client id doubles as controlled entity id on this prototype server.
         foreach (var entity in snapshot.Entities)
+        {
             if (entity.EntityId == ClientId)
             {
                 Prediction.Reconcile(entity, snapshot.LastProcessedInputTick);
                 break;
             }
+        }
     }
 
     private void OnTransferCompleted(int transferId, BulkDataType dataType, byte[] data)
     {
-        _logger.LogInformation("Bulk transfer {TransferId} complete: {DataType} ({Size} bytes)",
-            transferId, dataType, data.Length);
+        LogClientBulkTransferComplete(transferId, dataType, data.Length);
+
         BulkDataReceived?.Invoke(transferId, dataType, data);
     }
 }

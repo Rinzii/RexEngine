@@ -16,7 +16,9 @@ public static class PhasedLoop
         float maxFrameSeconds = DefaultMaxFrameSeconds)
     {
         if (frameSeconds > maxFrameSeconds)
+        {
             frameSeconds = maxFrameSeconds;
+        }
 
         accumulator += frameSeconds;
         var steps = 0;

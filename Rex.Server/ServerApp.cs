@@ -10,7 +10,7 @@ namespace Rex.Server;
 /// Top-level dedicated server application. Runs fixed simulation ticks like Unity <c>FixedUpdate</c>.
 /// Optional variable-rate <see cref="OnUpdate"/> and <see cref="OnLateUpdate"/> run after each batch of fixed steps for housekeeping.
 /// </summary>
-public sealed class ServerApp : IDisposable
+public sealed partial class ServerApp : IDisposable
 {
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
@@ -52,7 +52,7 @@ public sealed class ServerApp : IDisposable
         _server = new GameServer(_config, _loggerFactory);
         _server.Start();
 
-        _logger.LogInformation("Dedicated server running. Press Ctrl+C to stop.");
+        LogDedicatedServerRunning();
 
         _isRunning = true;
         var stopwatch = Stopwatch.StartNew();
@@ -99,7 +99,7 @@ public sealed class ServerApp : IDisposable
     /// <summary>Signals the game loop to exit after the current frame.</summary>
     public void Stop()
     {
-        _logger.LogInformation("Shutdown signal received.");
+        LogShutdownSignalReceived();
         _isRunning = false;
     }
 

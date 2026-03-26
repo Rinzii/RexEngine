@@ -8,7 +8,7 @@ using Rex.Shared.Net.Messages;
 namespace Rex.Server.Core;
 
 /// <summary>LiteNetLib facade. Accepts peers and delegates simulation to <see cref="GameServerHost"/>.</summary>
-public sealed class GameServer
+ public sealed partial class GameServer
 {
     private readonly GameServerHost _host;
     private readonly ILogger _logger;
@@ -38,9 +38,7 @@ public sealed class GameServer
         // Bind before GameServerHost.Start so we do not run the sim if the port is taken.
         if (!_netManager.Start(_host.Config.Port))
         {
-            _logger.LogError(
-                "Cannot listen on port {Port}. It is probably already in use. Stop the other process or use --port with a different value.",
-                _host.Config.Port);
+            LogCannotListenOnPort(_host.Config.Port);
             _netManager.Stop();
             _netManager = null;
             _listener = null;
@@ -49,7 +47,7 @@ public sealed class GameServer
 
         _host.Start();
 
-        _logger.LogInformation("Server listening on port {Port}", _host.Config.Port);
+        LogServerListening(_host.Config.Port);
     }
 
     public void Tick()
@@ -63,7 +61,7 @@ public sealed class GameServer
         _host.Shutdown();
         _peerToClientId.Clear();
         _netManager?.Stop();
-        _logger.LogInformation("Server network layer stopped.");
+        LogServerNetworkStopped();
     }
 
     private void OnConnectionRequest(ConnectionRequest request)
@@ -72,7 +70,7 @@ public sealed class GameServer
         if (_host.IsFull)
         {
             request.Reject();
-            _logger.LogWarning("Connection rejected: server full.");
+            LogConnectionRejectedServerFull();
             return;
         }
 
@@ -88,16 +86,19 @@ public sealed class GameServer
         _host.AddSession(session);
         _peerToClientId[peer] = clientId;
 
-        _logger.LogInformation("Peer connected: {EndPoint} -> ClientId {ClientId}", peer.Address, clientId);
+        LogPeerConnected(peer.Address, clientId);
     }
 
     private void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
     {
         if (!_peerToClientId.TryGetValue(peer, out var clientId))
+        {
             return;
+        }
 
         // Tear down sim and notify other clients via host.
-        _logger.LogInformation("Peer disconnected: ClientId {ClientId} ({Reason})", clientId, disconnectInfo.Reason);
+        LogPeerDisconnected(clientId, disconnectInfo.Reason);
+
         _host.RemoveSession(clientId);
         _peerToClientId.Remove(peer);
     }
