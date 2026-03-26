@@ -57,6 +57,7 @@ public sealed class RexNetStatistics
                 _bytesByType.TryGetValue(msgId, out var bytes);
                 result[msgId] = (count, bytes);
             }
+
             return result;
         }
     }

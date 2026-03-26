@@ -49,7 +49,8 @@ namespace Rex.Shared.Analyzers;
 /// </example>
 /// <seealso cref="AccessPermissions"/>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Struct
-                | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method | AttributeTargets.Constructor)]
+                | AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method |
+                AttributeTargets.Constructor)]
 public sealed class AccessAttribute : Attribute
 {
     /// <summary>
@@ -66,15 +67,17 @@ public sealed class AccessAttribute : Attribute
     /// <summary>
     ///     Access permissions for the type itself, or the type containing the member.
     /// </summary>
-    public AccessPermissions Self   { get; set; }  = SelfDefaultPermissions;
+    public AccessPermissions Self { get; set; } = SelfDefaultPermissions;
+
     /// <summary>
     ///     Access permissions for types specified as <see cref="Friends"/>.
     /// </summary>
-    public AccessPermissions Friend { get; set; }  = FriendDefaultPermissions;
+    public AccessPermissions Friend { get; set; } = FriendDefaultPermissions;
+
     /// <summary>
     ///     Access permissions for types that aren't <see cref="Self"/> and aren't <see cref="Friend"/>.
     /// </summary>
-    public AccessPermissions Other  { get; set;  } = OtherDefaultPermissions;
+    public AccessPermissions Other { get; set; } = OtherDefaultPermissions;
 
     public AccessAttribute(params Type[] friends)
     {

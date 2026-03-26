@@ -50,19 +50,15 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
         var location = context.Symbol.Locations[0];
 
         if (GetMessageFromAttributeData(data) is { } message)
-        {
             context.ReportDiagnostic(Diagnostic.Create(
                 RuleWithMessage,
                 location,
                 [typeSymbol.Name, baseType.Name, message]));
-        }
         else
-        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 location,
                 [typeSymbol.Name, baseType.Name]));
-        }
     }
 
     private static string? GetMessageFromAttributeData(AttributeData data)

@@ -65,14 +65,13 @@ public sealed class GameWorld
     }
 
     /// <summary>Builds a delta snapshot of only dirty entities. Used by the server for broadcasting.</summary>
-    public WorldSnapshotMessage BuildDeltaSnapshot(uint serverTick, uint lastProcessedInputTick, HashSet<int> dirtyEntityIds)
+    public WorldSnapshotMessage BuildDeltaSnapshot(uint serverTick, uint lastProcessedInputTick,
+        HashSet<int> dirtyEntityIds)
     {
         var entities = new List<EntityState>();
         foreach (var entityId in dirtyEntityIds)
-        {
             if (_entities.TryGetValue(entityId, out var state))
                 entities.Add(state);
-        }
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }
 }

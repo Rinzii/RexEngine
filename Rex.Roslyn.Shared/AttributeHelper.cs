@@ -7,7 +7,8 @@ namespace Rex.Roslyn.Shared;
 
 public static class AttributeHelper
 {
-    public static bool HasAttribute(ISymbol symbol, string attributeMetadataName, [NotNullWhen(true)] out AttributeData? matchedAttribute)
+    public static bool HasAttribute(ISymbol symbol, string attributeMetadataName,
+        [NotNullWhen(true)] out AttributeData? matchedAttribute)
     {
         foreach (var attribute in symbol.GetAttributes())
         {
@@ -51,13 +52,11 @@ public static class AttributeHelper
     {
         matchedAttribute = null;
         foreach (var typeAttribute in symbol.GetAttributes())
-        {
             if (SymbolEqualityComparer.Default.Equals(typeAttribute.AttributeClass, attribute))
             {
                 matchedAttribute = typeAttribute;
                 return true;
             }
-        }
 
         return false;
     }

@@ -21,7 +21,7 @@ public static class NetCompression
             return (data, false);
 
         using var output = new MemoryStream();
-        using (var brotli = new BrotliStream(output, CompressionLevel.Fastest, leaveOpen: true))
+        using (var brotli = new BrotliStream(output, CompressionLevel.Fastest, true))
         {
             brotli.Write(data);
         }
@@ -52,6 +52,7 @@ public static class NetCompression
                 break;
             totalRead += read;
         }
+
         return result;
     }
 }

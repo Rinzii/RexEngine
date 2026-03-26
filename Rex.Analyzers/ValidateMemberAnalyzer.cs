@@ -26,7 +26,8 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze |
+                                               GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.RegisterOperationAction(AnalyzeOperation, OperationKind.Invocation);
     }
 
@@ -59,29 +60,26 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
 
             // Find the value passed for this parameter.
             // We use GetConstantValue to resolve compile-time values - i.e. the result of nameof()
-            if (op.Value.ConstantValue is not { HasValue: true, Value: string fieldName})
+            if (op.Value.ConstantValue is not { HasValue: true, Value: string fieldName })
                 continue;
 
             // Check each member of the target type to see if it matches our passed in value
             var found = false;
             foreach (var member in targetType.GetMembers())
-            {
                 if (member.Name == fieldName)
                 {
                     found = true;
                     break;
                 }
-            }
+
             // If we didn't find it, report the violation
             if (!found)
-            {
                 context.ReportDiagnostic(Diagnostic.Create(
                     ValidateMemberDescriptor,
                     op.Syntax.GetLocation(),
                     fieldName,
                     targetType.Name
                 ));
-            }
         }
     }
 }

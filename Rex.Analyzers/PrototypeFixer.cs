@@ -21,13 +21,11 @@ public sealed class PrototypeFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
-        {
             switch (diagnostic.Id)
             {
                 case IdPrototypeRedundantType:
                     return RegisterRemoveType(context, diagnostic);
             }
-        }
 
         return Task.CompletedTask;
     }
@@ -48,9 +46,10 @@ public sealed class PrototypeFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> RemoveType(Document document, AttributeArgumentSyntax syntax, CancellationToken cancellation)
+    private static async Task<Document> RemoveType(Document document, AttributeArgumentSyntax syntax,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
 
         if (syntax.Parent is not AttributeArgumentListSyntax argListSyntax)
             return document;

@@ -18,10 +18,8 @@ public static class TypeSymbolHelper
     public static bool ImplementsInterface(ITypeSymbol type, string interfaceTypeName)
     {
         foreach (var interfaceType in type.AllInterfaces)
-        {
             if (ShittyTypeMatch(interfaceType, interfaceTypeName))
                 return true;
-        }
 
         return false;
     }
@@ -29,10 +27,8 @@ public static class TypeSymbolHelper
     public static bool ImplementsInterface(ITypeSymbol type, INamedTypeSymbol interfaceType)
     {
         foreach (var @interface in type.AllInterfaces)
-        {
             if (SymbolEqualityComparer.Default.Equals(@interface, interfaceType))
                 return true;
-        }
 
         return false;
     }
@@ -46,10 +42,7 @@ public static class TypeSymbolHelper
         var current = type;
         while (current != null)
         {
-            foreach (var member in current.GetMembers())
-            {
-                yield return member;
-            }
+            foreach (var member in current.GetMembers()) yield return member;
 
             current = current.BaseType;
         }
@@ -62,10 +55,8 @@ public static class TypeSymbolHelper
     // Modified from https://www.meziantou.net/working-with-types-in-a-roslyn-analyzer.htm
     public static ITypeSymbol GetNullableUnderlyingTypeOrSelf(ITypeSymbol type)
     {
-        if (type is INamedTypeSymbol namedType && namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
-        {
-            return namedType.TypeArguments[0];
-        }
+        if (type is INamedTypeSymbol namedType &&
+            namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T) return namedType.TypeArguments[0];
 
         return type;
     }
@@ -90,10 +81,8 @@ public static class TypeSymbolHelper
     public static bool Inherits(ITypeSymbol type, ITypeSymbol other)
     {
         foreach (var baseType in GetBaseTypes(type))
-        {
             if (SymbolEqualityComparer.Default.Equals(baseType, other))
                 return true;
-        }
         return false;
     }
 }

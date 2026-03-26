@@ -15,7 +15,7 @@ public sealed class ProxyForFixer : CodeFixProvider
     public override ImmutableArray<string> FixableDiagnosticIds =>
     [
         IdPreferProxy,
-        IdProxyForRedundantMethodName,
+        IdProxyForRedundantMethodName
     ];
 
     public override FixAllProvider? GetFixAllProvider()
@@ -26,7 +26,6 @@ public sealed class ProxyForFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
-        {
             switch (diagnostic.Id)
             {
                 case IdPreferProxy:
@@ -34,7 +33,6 @@ public sealed class ProxyForFixer : CodeFixProvider
                 case IdProxyForRedundantMethodName:
                     return RegisterRemoveRedundantMethodName(context, diagnostic);
             }
-        }
 
         return Task.CompletedTask;
     }
@@ -58,7 +56,8 @@ public sealed class ProxyForFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private async Task<Document> SubstituteProxy(Document document, InvocationExpressionSyntax token, string methodName, CancellationToken cancellation)
+    private async Task<Document> SubstituteProxy(Document document, InvocationExpressionSyntax token, string methodName,
+        CancellationToken cancellation)
     {
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var model = await document.GetSemanticModelAsync(cancellation);
@@ -104,7 +103,8 @@ public sealed class ProxyForFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private async Task<Document> RemoveRedundantMethodName(Document document, AttributeArgumentSyntax token, CancellationToken cancellation)
+    private async Task<Document> RemoveRedundantMethodName(Document document, AttributeArgumentSyntax token,
+        CancellationToken cancellation)
     {
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var model = await document.GetSemanticModelAsync(cancellation);

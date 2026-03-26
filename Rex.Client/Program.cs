@@ -23,13 +23,9 @@ internal static class Program
         var logger = loggerFactory.CreateLogger("Rex.Client");
 
         if (parsed.Mode == NetMode.ListenServer)
-        {
             RunWithListenServer(parsed, loggerFactory, logger);
-        }
         else
-        {
             RunApp(parsed, loggerFactory, logger);
-        }
     }
 
     private static void RunApp(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
@@ -74,10 +70,10 @@ internal static class Program
         try
         {
             var clientArgs = new CommandLineArgs(
-                headless: args.Headless,
-                mode: NetMode.Client,
-                connectAddress: "127.0.0.1",
-                port: args.Port
+                args.Headless,
+                NetMode.Client,
+                "127.0.0.1",
+                args.Port
             );
 
             RunApp(clientArgs, loggerFactory, logger);
@@ -171,7 +167,9 @@ internal static class Program
         if (File.Exists(siblingPath))
             return siblingPath;
 
-        var outputDir = new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        var outputDir =
+            new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar,
+                Path.AltDirectorySeparatorChar));
         var tfm = outputDir.Name;
         var config = outputDir.Parent?.Name;
         // bin/{Config}/{Tfm}/ then up to repo root for dev layout when DLL isn't copied next to client.

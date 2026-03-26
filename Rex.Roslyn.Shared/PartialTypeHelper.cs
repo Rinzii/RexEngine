@@ -30,10 +30,7 @@ public sealed record PartialTypeInfo(
         if (symbol.TypeParameters.Length > 0)
         {
             var builder = ImmutableArray.CreateBuilder<string>(symbol.TypeParameters.Length);
-            foreach (var typeParameter in symbol.TypeParameters)
-            {
-                builder.Add(typeParameter.Name);
-            }
+            foreach (var typeParameter in symbol.TypeParameters) builder.Add(typeParameter.Name);
 
             typeParameters = builder.MoveToImmutable();
         }
@@ -98,20 +95,14 @@ public sealed record PartialTypeInfo(
         else
         {
             if (IsRecord)
-            {
                 keyword = Kind == TypeKind.Struct ? "record struct" : "record";
-            }
             else
-            {
                 keyword = Kind == TypeKind.Struct ? "struct" : "class";
-            }
         }
 
         builder.Append($"{access} {(IsAbstract ? "abstract " : "")}partial {keyword} {Name}");
         if (TypeParameterNames.AsSpan().Length > 0)
-        {
             builder.Append($"<{string.Join(", ", TypeParameterNames.AsImmutableArray())}>");
-        }
     }
 
     public void WriteFooter(StringBuilder builder)

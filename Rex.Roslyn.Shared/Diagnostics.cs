@@ -42,5 +42,5 @@ public static class Diagnostics
     public const string IdProxyForTargetMethodNotFound = "RA0035";
 
     public static SuppressionDescriptor MeansImplicitAssignment =>
-        new SuppressionDescriptor("RADC1000", "CS0649", "Marked as implicitly assigned.");
+        new("RADC1000", "CS0649", "Marked as implicitly assigned.");
 }

@@ -5,10 +5,13 @@ public sealed class TickClock
 {
     public int TickRate { get; }
     public uint CurrentTick { get; private set; }
+
     /// <summary>Wall time for one sim tick in seconds (e.g. 60 Hz is ~0.0167).</summary>
     public double TickInterval { get; }
+
     /// <summary>Sim time advanced so far, in seconds (tick count * interval).</summary>
     public double ElapsedTime { get; private set; }
+
     /// <summary>Portion of the current tick not yet consumed by sim. Set each frame by the host app for render lerp.</summary>
     public float Alpha { get; private set; }
 

@@ -11,7 +11,7 @@ namespace Rex.Analyzers;
 public sealed class TaskResultAnalyzer : DiagnosticAnalyzer
 {
     [SuppressMessage("ReSharper", "RS2008")]
-    private static readonly DiagnosticDescriptor ResultRule = new DiagnosticDescriptor(
+    private static readonly DiagnosticDescriptor ResultRule = new(
         Diagnostics.IdTaskResult,
         "Risk of deadlock from accessing Task<T>.Result",
         "Accessing Task<T>.Result is dangerous and can cause deadlocks in some contexts. If you understand how this works and are certain that you aren't causing a deadlock here, mute this error with #pragma.",
@@ -33,10 +33,11 @@ public sealed class TaskResultAnalyzer : DiagnosticAnalyzer
     {
         var taskType = context.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
 
-        var operation = (IPropertyReferenceOperation) context.Operation;
+        var operation = (IPropertyReferenceOperation)context.Operation;
         var member = operation.Member;
 
-        if (member.Name == "Result" && taskType.Equals(member.ContainingType.ConstructedFrom, SymbolEqualityComparer.Default))
+        if (member.Name == "Result" &&
+            taskType.Equals(member.ContainingType.ConstructedFrom, SymbolEqualityComparer.Default))
         {
             var diag = Diagnostic.Create(ResultRule, operation.Syntax.GetLocation());
             context.ReportDiagnostic(diag);

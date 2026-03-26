@@ -6,8 +6,10 @@ namespace Rex.Shared.Net;
 public interface IServerNetChannel
 {
     int ClientId { get; }
+
     /// <summary>True for in-process channels (no real latency).</summary>
     bool IsLocal { get; }
+
     ConnectionState State { get; set; }
     int RoundTripTimeMs { get; }
 

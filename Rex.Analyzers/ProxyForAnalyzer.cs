@@ -50,12 +50,13 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     [
         PreferProxyDescriptor,
         RedundantMethodNameDescriptor,
-        TargetMethodNotFoundDescriptor,
+        TargetMethodNotFoundDescriptor
     ];
 
     public override void Initialize(AnalysisContext context)
     {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics | GeneratedCodeAnalysisFlags.Analyze);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics |
+                                               GeneratedCodeAnalysisFlags.Analyze);
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(static ctx =>
         {
@@ -82,9 +83,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
                 symbolContext.RegisterOperationAction(state.AnalyzeInvocation, OperationKind.Invocation);
             }, SymbolKind.NamedType);
 
-            ctx.RegisterOperationAction(operationContext => AnalyzeAttribute(operationContext, proxyForAttributeType), OperationKind.Attribute);
+            ctx.RegisterOperationAction(operationContext => AnalyzeAttribute(operationContext, proxyForAttributeType),
+                OperationKind.Attribute);
         });
-
     }
 
     /// <summary>
@@ -99,7 +100,8 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Returns information about all proxy methods available to the specified class.
     /// </summary>
-    private static bool TryGetProxyMethods(INamedTypeSymbol typeSymbol, INamedTypeSymbol proxyForAttribute, [NotNullWhen(true)] out ProxyMethod[]? proxyMethods)
+    private static bool TryGetProxyMethods(INamedTypeSymbol typeSymbol, INamedTypeSymbol proxyForAttribute,
+        [NotNullWhen(true)] out ProxyMethod[]? proxyMethods)
     {
         proxyMethods = null;
 
@@ -128,6 +130,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 
                 classMethods.Add(new ProxyMethod(method, targetType!, targetMethod));
             }
+
             proxySet.UnionWith(classMethods);
         }
 
@@ -226,6 +229,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
                 location
             ));
         }
+
         // Fall back to the method name
         targetMethodName ??= methodSymbol.Name;
 
@@ -238,13 +242,13 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         // Make sure there's a method with the right name and matching signature
         var found = false;
         foreach (var member in members)
-        {
             if (DoSignaturesMatch(member, methodSymbol))
                 found = true;
-        }
         if (!found)
         {
-            var methodParams = methodSymbol.Parameters.Length > 0 ? methodSymbol.Parameters.Select(p => p.ToDisplayString()) : [];
+            var methodParams = methodSymbol.Parameters.Length > 0
+                ? methodSymbol.Parameters.Select(p => p.ToDisplayString())
+                : [];
             var methodSignature = $"{targetType.Name}.{targetMethodName}({string.Join(", ", methodParams)})";
             context.ReportDiagnostic(Diagnostic.Create(
                 TargetMethodNotFoundDescriptor,
@@ -266,10 +270,8 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             var firstConstraints = first.TypeParameters[i].ConstraintTypes;
             var secondConstraints = second.TypeParameters[i].ConstraintTypes;
             for (var j = 0; j < firstConstraints.Length; j++)
-            {
                 if (!SymbolEqualityComparer.Default.Equals(firstConstraints[j], secondConstraints[j]))
                     return false;
-            }
         }
 
         // Convert any type arguments in second to use the types of first

@@ -14,12 +14,21 @@ namespace Rex.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
 {
-    private const string DataDefinitionNamespace = "Rex.Shared.Serialization.Manager.Attributes.DataDefinitionAttribute";
-    private const string ImplicitDataDefinitionNamespace = "Rex.Shared.Serialization.Manager.Attributes.ImplicitDataDefinitionForInheritorsAttribute";
-    private const string MeansDataDefinitionNamespace = "Rex.Shared.Serialization.Manager.Attributes.MeansDataDefinitionAttribute";
+    private const string DataDefinitionNamespace =
+        "Rex.Shared.Serialization.Manager.Attributes.DataDefinitionAttribute";
+
+    private const string ImplicitDataDefinitionNamespace =
+        "Rex.Shared.Serialization.Manager.Attributes.ImplicitDataDefinitionForInheritorsAttribute";
+
+    private const string MeansDataDefinitionNamespace =
+        "Rex.Shared.Serialization.Manager.Attributes.MeansDataDefinitionAttribute";
+
     private const string DataFieldBaseNamespace = "Rex.Shared.Serialization.Manager.Attributes.DataFieldBaseAttribute";
     private const string ViewVariablesNamespace = "Rex.Shared.ViewVariables.ViewVariablesAttribute";
-    private const string NotYamlSerializableName = "Rex.Shared.Serialization.Manager.Attributes.NotYamlSerializableAttribute";
+
+    private const string NotYamlSerializableName =
+        "Rex.Shared.Serialization.Manager.Attributes.NotYamlSerializableAttribute";
+
     private const string DataFieldAttributeName = "DataField";
     private const string ViewVariablesAttributeName = "ViewVariables";
 
@@ -94,7 +103,8 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     );
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-        DataDefinitionPartialRule, NestedDataDefinitionPartialRule, DataFieldWritableRule, DataFieldPropertyWritableRule,
+        DataDefinitionPartialRule, NestedDataDefinitionPartialRule, DataFieldWritableRule,
+        DataFieldPropertyWritableRule,
         DataFieldRedundantTagRule, DataFieldNoVVReadWriteRule, DataFieldYamlSerializableRule
     );
 
@@ -131,18 +141,17 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return;
 
         if (!IsPartial(declaration))
-        {
-            context.ReportDiagnostic(Diagnostic.Create(DataDefinitionPartialRule, declaration.Keyword.GetLocation(), type.Name));
-        }
+            context.ReportDiagnostic(Diagnostic.Create(DataDefinitionPartialRule, declaration.Keyword.GetLocation(),
+                type.Name));
 
         var containingType = type.ContainingType;
         while (containingType != null)
         {
-            var containingTypeDeclaration = (TypeDeclarationSyntax)containingType.DeclaringSyntaxReferences[0].GetSyntax();
+            var containingTypeDeclaration =
+                (TypeDeclarationSyntax)containingType.DeclaringSyntaxReferences[0].GetSyntax();
             if (!IsPartial(containingTypeDeclaration))
-            {
-                context.ReportDiagnostic(Diagnostic.Create(NestedDataDefinitionPartialRule, containingTypeDeclaration.Keyword.GetLocation(), containingType.Name, type.Name));
-            }
+                context.ReportDiagnostic(Diagnostic.Create(NestedDataDefinitionPartialRule,
+                    containingTypeDeclaration.Keyword.GetLocation(), containingType.Name, type.Name));
 
             containingType = containingType.ContainingType;
         }
@@ -169,19 +178,22 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             if (IsReadOnlyDataField(type, fieldSymbol))
             {
                 TryGetModifierLocation(field, SyntaxKind.ReadOnlyKeyword, out var location);
-                context.ReportDiagnostic(Diagnostic.Create(DataFieldWritableRule, location, fieldSymbol.Name, type.Name));
+                context.ReportDiagnostic(
+                    Diagnostic.Create(DataFieldWritableRule, location, fieldSymbol.Name, type.Name));
             }
 
             if (HasRedundantTag(fieldSymbol, datafieldAttribute))
             {
                 TryGetAttributeLocation(field, DataFieldAttributeName, out var location);
-                context.ReportDiagnostic(Diagnostic.Create(DataFieldRedundantTagRule, location, fieldSymbol.Name, type.Name));
+                context.ReportDiagnostic(Diagnostic.Create(DataFieldRedundantTagRule, location, fieldSymbol.Name,
+                    type.Name));
             }
 
             if (HasVVReadWrite(fieldSymbol))
             {
                 TryGetAttributeLocation(field, ViewVariablesAttributeName, out var location);
-                context.ReportDiagnostic(Diagnostic.Create(DataFieldNoVVReadWriteRule, location, fieldSymbol.Name, type.Name));
+                context.ReportDiagnostic(Diagnostic.Create(DataFieldNoVVReadWriteRule, location, fieldSymbol.Name,
+                    type.Name));
             }
 
             if (context.SemanticModel.GetSymbolInfo(field.Declaration.Type).Symbol is not ITypeSymbol fieldTypeSymbol)
@@ -190,14 +202,12 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             fieldTypeSymbol = TypeSymbolHelper.GetNullableUnderlyingTypeOrSelf(fieldTypeSymbol);
 
             if (IsNotYamlSerializable(fieldSymbol, fieldTypeSymbol))
-            {
                 context.ReportDiagnostic(Diagnostic.Create(DataFieldYamlSerializableRule,
                     (context.Node as FieldDeclarationSyntax)?.Declaration.Type.GetLocation(),
                     fieldSymbol.Name,
                     type.Name,
                     fieldTypeSymbol.MetadataName
                 ));
-            }
         }
     }
 
@@ -224,19 +234,22 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         if (IsReadOnlyDataField(type, propertySymbol))
         {
             var location = property.AccessorList != null ? property.AccessorList.GetLocation() : property.GetLocation();
-            context.ReportDiagnostic(Diagnostic.Create(DataFieldPropertyWritableRule, location, propertySymbol.Name, type.Name));
+            context.ReportDiagnostic(Diagnostic.Create(DataFieldPropertyWritableRule, location, propertySymbol.Name,
+                type.Name));
         }
 
         if (HasRedundantTag(propertySymbol, datafieldAttribute))
         {
             TryGetAttributeLocation(property, DataFieldAttributeName, out var location);
-            context.ReportDiagnostic(Diagnostic.Create(DataFieldRedundantTagRule, location, propertySymbol.Name, type.Name));
+            context.ReportDiagnostic(Diagnostic.Create(DataFieldRedundantTagRule, location, propertySymbol.Name,
+                type.Name));
         }
 
         if (HasVVReadWrite(propertySymbol))
         {
             TryGetAttributeLocation(property, ViewVariablesAttributeName, out var location);
-            context.ReportDiagnostic(Diagnostic.Create(DataFieldNoVVReadWriteRule, location, propertySymbol.Name, type.Name));
+            context.ReportDiagnostic(Diagnostic.Create(DataFieldNoVVReadWriteRule, location, propertySymbol.Name,
+                type.Name));
         }
 
         if (context.SemanticModel.GetSymbolInfo(property.Type).Symbol is not ITypeSymbol propertyTypeSymbol)
@@ -245,14 +258,12 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         propertyTypeSymbol = TypeSymbolHelper.GetNullableUnderlyingTypeOrSelf(propertyTypeSymbol);
 
         if (IsNotYamlSerializable(propertySymbol, propertyTypeSymbol))
-        {
             context.ReportDiagnostic(Diagnostic.Create(DataFieldYamlSerializableRule,
                 (context.Node as PropertyDeclarationSyntax)?.Type.GetLocation(),
                 propertySymbol.Name,
                 type.Name,
                 propertyTypeSymbol.Name
             ));
-        }
     }
 
     private static bool IsReadOnlyDataField(ITypeSymbol type, ISymbol field)
@@ -281,26 +292,22 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         if (member is IFieldSymbol field)
         {
             foreach (var attr in field.GetAttributes())
-            {
                 if (attr.AttributeClass != null && Inherits(attr.AttributeClass, DataFieldBaseNamespace))
                 {
                     type = field.Type;
                     attribute = attr;
                     return true;
                 }
-            }
         }
         else if (member is IPropertySymbol property)
         {
             foreach (var attr in property.GetAttributes())
-            {
                 if (attr.AttributeClass != null && Inherits(attr.AttributeClass, DataFieldBaseNamespace))
                 {
                     type = property.Type;
                     attribute = attr;
                     return true;
                 }
-            }
         }
 
         type = null!;
@@ -311,42 +318,40 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool Inherits(ITypeSymbol type, string parent)
     {
         foreach (var baseType in GetBaseTypes(type))
-        {
             if (baseType.ToDisplayString() == parent)
                 return true;
-        }
 
         return false;
     }
 
-    private static bool TryGetAttributeLocation(MemberDeclarationSyntax syntax, string attributeName, out Location location)
+    private static bool TryGetAttributeLocation(MemberDeclarationSyntax syntax, string attributeName,
+        out Location location)
     {
         foreach (var attributeList in syntax.AttributeLists)
+        foreach (var attribute in attributeList.Attributes)
         {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                if (attribute.Name.ToString() != attributeName)
-                    continue;
+            if (attribute.Name.ToString() != attributeName)
+                continue;
 
-                location = attribute.GetLocation();
-                return true;
-            }
+            location = attribute.GetLocation();
+            return true;
         }
+
         // Default to the declaration syntax's location
         location = syntax.GetLocation();
         return false;
     }
 
-    private static bool TryGetModifierLocation(MemberDeclarationSyntax syntax, SyntaxKind modifierKind, out Location location)
+    private static bool TryGetModifierLocation(MemberDeclarationSyntax syntax, SyntaxKind modifierKind,
+        out Location location)
     {
         foreach (var modifier in syntax.Modifiers)
-        {
             if (modifier.IsKind(modifierKind))
             {
                 location = modifier.GetLocation();
                 return true;
             }
-        }
+
         location = syntax.GetLocation();
         return false;
     }
@@ -374,10 +379,8 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool HasAttribute(ITypeSymbol type, string attributeName)
     {
         foreach (var attribute in type.GetAttributes())
-        {
             if (attribute.AttributeClass?.ToDisplayString() == attributeName)
                 return true;
-        }
 
         return false;
     }
@@ -407,12 +410,9 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         // Make sure it has ViewVariablesAttribute
         AttributeData? viewVariablesAttribute = null;
         foreach (var attr in symbol.GetAttributes())
-        {
             if (attr.AttributeClass?.ToDisplayString() == ViewVariablesNamespace)
-            {
                 viewVariablesAttribute = attr;
-            }
-        }
+
         if (viewVariablesAttribute == null)
             return false;
 
@@ -437,9 +437,10 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             if (HasAttribute(attribute.AttributeClass, MeansDataDefinitionNamespace))
                 return true;
         }
+
         return false;
     }
-    
+
     private static bool IsNotYamlSerializable(ISymbol field, ITypeSymbol type)
     {
         return HasAttribute(type, NotYamlSerializableName);
@@ -451,16 +452,12 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return true;
 
         foreach (var baseType in GetBaseTypes(type))
-        {
             if (HasAttribute(baseType, ImplicitDataDefinitionNamespace))
                 return true;
-        }
 
         foreach (var @interface in type.AllInterfaces)
-        {
             if (IsImplicitDataDefinitionInterface(@interface))
                 return true;
-        }
 
         return false;
     }
@@ -471,10 +468,8 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return true;
 
         foreach (var subInterface in @interface.AllInterfaces)
-        {
             if (HasAttribute(subInterface, ImplicitDataDefinitionNamespace))
                 return true;
-        }
 
         return false;
     }

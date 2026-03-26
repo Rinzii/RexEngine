@@ -28,7 +28,8 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+    [
         RuleNetSerializable,
         RuleSerializable
     ];
@@ -46,7 +47,9 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
             if (prototypeInterface == null || netSerializableAttribute == null)
                 return;
 
-            ctx.RegisterSymbolAction(symbolContext => CheckClass(prototypeInterface, netSerializableAttribute, symbolContext), SymbolKind.NamedType);
+            ctx.RegisterSymbolAction(
+                symbolContext => CheckClass(prototypeInterface, netSerializableAttribute, symbolContext),
+                SymbolKind.NamedType);
         });
     }
 
@@ -62,15 +65,11 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
             return;
 
         if (AttributeHelper.HasAttribute(symbol, netSerializableAttribute, out _))
-        {
             symbolContext.ReportDiagnostic(
                 Diagnostic.Create(RuleNetSerializable, symbol.Locations[0], symbol.ToDisplayString()));
-        }
 
         if (symbol.IsSerializable)
-        {
             symbolContext.ReportDiagnostic(
                 Diagnostic.Create(RuleSerializable, symbol.Locations[0], symbol.ToDisplayString()));
-        }
     }
 }

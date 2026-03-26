@@ -26,7 +26,8 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics | GeneratedCodeAnalysisFlags.Analyze);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics |
+                                               GeneratedCodeAnalysisFlags.Analyze);
         context.EnableConcurrentExecution();
         context.RegisterOperationAction(CheckForNonGenericVariant, OperationKind.Invocation);
     }
@@ -53,13 +54,9 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
             return;
 
         foreach (var typeArg in invocationOperation.TargetMethod.TypeArguments)
-        {
             if (forTypes.Contains(typeArg))
-            {
                 obj.ReportDiagnostic(
-                Diagnostic.Create(UseNonGenericVariantDescriptor,
-                    invocationOperation.Syntax.GetLocation(), typeArg.Name));
-            }
-        }
+                    Diagnostic.Create(UseNonGenericVariantDescriptor,
+                        invocationOperation.Syntax.GetLocation(), typeArg.Name));
     }
 }

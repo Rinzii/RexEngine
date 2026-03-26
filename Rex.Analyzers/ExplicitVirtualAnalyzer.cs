@@ -21,8 +21,8 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
         "Class must be explicitly marked as [Virtual], abstract, static or sealed",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Class must be explicitly marked as [Virtual], abstract, static or sealed.");
+        true,
+        "Class must be explicitly marked as [Virtual], abstract, static or sealed.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 

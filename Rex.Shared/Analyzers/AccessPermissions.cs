@@ -19,20 +19,22 @@ public enum AccessPermissions : byte
     ///     Allows field and property read operations, for example using getters, and also <see cref="PureAttribute"/>
     ///     marked methods.
     /// </summary>
-    Read    = 1 << 0, // 1
+    Read = 1 << 0, // 1
+
     /// <summary>
     ///     Allows field and property write operations, for example using setters.
     /// </summary>
-    Write   = 1 << 1, // 2
+    Write = 1 << 1, // 2
+
     /// <summary>
     ///     Allows executing methods.
     /// </summary>
     Execute = 1 << 2, // 4
 
-    ReadWrite        = Read  | Write,
-    ReadExecute      = Read  | Execute,
-    WriteExecute     = Write | Execute,
-    ReadWriteExecute = Read  | Write | Execute,
+    ReadWrite = Read | Write,
+    ReadExecute = Read | Execute,
+    WriteExecute = Write | Execute,
+    ReadWriteExecute = Read | Write | Execute
 }
 
 public static class AccessPermissionsExtensions
@@ -41,13 +43,13 @@ public static class AccessPermissionsExtensions
     {
         return permissions switch
         {
-            AccessPermissions.None             => "---",
-            AccessPermissions.Read             => "r--",
-            AccessPermissions.Write            => "-w-",
-            AccessPermissions.Execute          => "--x",
-            AccessPermissions.ReadWrite        => "rw-",
-            AccessPermissions.ReadExecute      => "r-x",
-            AccessPermissions.WriteExecute     => "-wx",
+            AccessPermissions.None => "---",
+            AccessPermissions.Read => "r--",
+            AccessPermissions.Write => "-w-",
+            AccessPermissions.Execute => "--x",
+            AccessPermissions.ReadWrite => "rw-",
+            AccessPermissions.ReadExecute => "r-x",
+            AccessPermissions.WriteExecute => "-wx",
             AccessPermissions.ReadWriteExecute => "rwx",
             _ => throw new ArgumentOutOfRangeException(nameof(permissions), permissions, null)
         };

@@ -272,7 +272,6 @@ public sealed class ClientApp : IDisposable
 
         var result = new List<EntityState>(_currentEntities.Count);
         foreach (var current in _currentEntities)
-        {
             if (previousLookup.TryGetValue(current.EntityId, out var previous))
             {
                 var x = previous.X + (current.X - previous.X) * alpha;
@@ -285,7 +284,6 @@ public sealed class ClientApp : IDisposable
             {
                 result.Add(current);
             }
-        }
 
         return result;
     }

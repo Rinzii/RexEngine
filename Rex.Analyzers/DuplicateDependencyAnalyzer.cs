@@ -54,7 +54,8 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
 
     private sealed class AnalyzerState(INamedTypeSymbol dependencyAttributeType)
     {
-        private readonly Dictionary<ITypeSymbol, List<IFieldSymbol>> _dependencyFields = new(SymbolEqualityComparer.Default);
+        private readonly Dictionary<ITypeSymbol, List<IFieldSymbol>> _dependencyFields =
+            new(SymbolEqualityComparer.Default);
 
         public void AnalyzeField(SyntaxNodeAnalysisContext context)
         {
@@ -87,10 +88,8 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         private bool IsDependency(ISymbol symbol)
         {
             foreach (var attributeData in symbol.GetAttributes())
-            {
                 if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, dependencyAttributeType))
                     return true;
-            }
 
             return false;
         }

@@ -24,7 +24,7 @@ public sealed class ClientWorldState
     public IReadOnlyList<EntityState> GetInterpolatedState(float alpha)
     {
         if (_currentSnapshot == null)
-            return Array.Empty<EntityState>();
+            return [];
 
         if (_previousSnapshot == null)
             return _currentSnapshot.Entities;
@@ -36,7 +36,6 @@ public sealed class ClientWorldState
             previousEntities[entity.EntityId] = entity;
 
         foreach (var current in _currentSnapshot.Entities)
-        {
             if (previousEntities.TryGetValue(current.EntityId, out var previous))
             {
                 var x = previous.X + (current.X - previous.X) * alpha;
@@ -50,7 +49,6 @@ public sealed class ClientWorldState
                 // First time we see this entity in the older snapshot. No lerp, use current.
                 result.Add(current);
             }
-        }
 
         return result;
     }

@@ -11,7 +11,7 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
 {
     private const string DependencyAttributeType = "Rex.Shared.IoC.DependencyAttribute";
 
-    private static readonly DiagnosticDescriptor Rule = new (
+    private static readonly DiagnosticDescriptor Rule = new(
         Diagnostics.IdDependencyFieldAssigned,
         "Assignment to dependency field",
         "Tried to assign to [Dependency] field '{0}'. Remove [Dependency] or inject it via field injection instead.",
@@ -51,10 +51,8 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
     private static bool HasAttribute(ImmutableArray<AttributeData> attributes, ISymbol symbol)
     {
         foreach (var attribute in attributes)
-        {
             if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, symbol))
                 return true;
-        }
 
         return false;
     }

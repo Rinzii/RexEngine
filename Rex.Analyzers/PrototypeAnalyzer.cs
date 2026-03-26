@@ -78,11 +78,9 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
         if (prototypeAttribute.ArgumentList?.Arguments[0] is not { } argumentSyntax)
         {
             if (!className.EndsWith(PrototypeUtility.PrototypeNameEnding))
-            {
                 context.ReportDiagnostic(Diagnostic.Create(PrototypeEndsWithPrototypeRule,
                     classDeclarationSyntax.Identifier.GetLocation(),
                     className));
-            }
 
             return;
         }
@@ -121,17 +119,15 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
             return null;
 
         foreach (var attributeList in classSyntax.AttributeLists)
+        foreach (var attribute in attributeList.Attributes)
         {
-            foreach (var attribute in attributeList.Attributes)
-            {
-                if (syntaxReference.SyntaxTree != attribute.SyntaxTree)
-                    continue;
+            if (syntaxReference.SyntaxTree != attribute.SyntaxTree)
+                continue;
 
-                if (!syntaxReference.Span.OverlapsWith(attribute.Span))
-                    continue;
+            if (!syntaxReference.Span.OverlapsWith(attribute.Span))
+                continue;
 
-                return attribute;
-            }
+            return attribute;
         }
 
         return null;

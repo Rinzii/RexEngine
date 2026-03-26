@@ -44,8 +44,15 @@ public sealed class LocalClientNetChannel : IClientNetChannel
         Connected?.Invoke();
     }
 
-    public void Send(INetMessage message, byte channel, DeliveryMethod delivery) => _outbound.Enqueue(message);
-    public void Send(INetMessage message) => _outbound.Enqueue(message);
+    public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
+    {
+        _outbound.Enqueue(message);
+    }
+
+    public void Send(INetMessage message)
+    {
+        _outbound.Enqueue(message);
+    }
 
     public void Disconnect(string reason)
     {
@@ -80,9 +87,20 @@ public sealed class LocalServerNetChannel : IServerNetChannel
         State = ConnectionState.Connected;
     }
 
-    public void Send(INetMessage message, byte channel, DeliveryMethod delivery) => _outbound.Enqueue(message);
-    public void Send(INetMessage message) => _outbound.Enqueue(message);
-    public void Disconnect(string reason) => State = ConnectionState.Disconnected;
+    public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
+    {
+        _outbound.Enqueue(message);
+    }
+
+    public void Send(INetMessage message)
+    {
+        _outbound.Enqueue(message);
+    }
+
+    public void Disconnect(string reason)
+    {
+        State = ConnectionState.Disconnected;
+    }
 
     /// <summary>Drains inbound client messages. Call before ticking the server host.</summary>
     public void DrainMessages(Action<INetMessage> handler)

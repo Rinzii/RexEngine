@@ -58,7 +58,10 @@ public sealed class GameServerHost
     }
 
     /// <summary>Allocates a new client ID for an incoming connection.</summary>
-    public int AllocateClientId() => _nextClientId++;
+    public int AllocateClientId()
+    {
+        return _nextClientId++;
+    }
 
     /// <summary>Registers a session created by the transport layer.</summary>
     public void AddSession(ClientSession session)
@@ -77,10 +80,8 @@ public sealed class GameServerHost
 
         var destroyMsg = new EntityDestroyMessage(clientId);
         foreach (var other in _sessions.Values)
-        {
             if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
                 other.Channel.Send(destroyMsg);
-        }
 
         _logger.LogInformation("Session removed: ClientId {ClientId}", clientId);
     }
@@ -127,10 +128,8 @@ public sealed class GameServerHost
             return;
 
         foreach (var session in _sessions.Values)
-        {
             if (session.Channel.State == ConnectionState.InGame)
                 _transferManager.SendBulkData(session.Channel, dataType, data);
-        }
     }
 
     /// <summary>Processes inputs, advances the world, and broadcasts snapshots.</summary>
@@ -142,16 +141,12 @@ public sealed class GameServerHost
         _dirtyTracker.ClearTick(_currentTick);
 
         foreach (var session in _sessions.Values)
-        {
             while (session.TryDequeueInput(out var input))
-            {
                 if (input != null)
                 {
                     _world.ProcessInput(session.ClientId, input);
                     session.LastProcessedInputTick = input.Tick;
                 }
-            }
-        }
 
         var deltaTime = 1.0f / _config.TickRate;
         _world.Tick(deltaTime);
@@ -222,9 +217,7 @@ public sealed class GameServerHost
 
         var spawnMsg = new EntitySpawnMessage(session.ClientId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
         foreach (var other in _sessions.Values)
-        {
             if (other.ClientId != session.ClientId && other.Channel.State == ConnectionState.InGame)
                 other.Channel.Send(spawnMsg);
-        }
     }
 }

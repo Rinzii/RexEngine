@@ -31,7 +31,8 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
             if (prototypeInterface == null)
                 return;
 
-            ctx.RegisterOperationAction(symContext => Check(prototypeInterface, symContext), OperationKind.ObjectCreation);
+            ctx.RegisterOperationAction(symContext => Check(prototypeInterface, symContext),
+                OperationKind.ObjectCreation);
         });
     }
 

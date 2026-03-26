@@ -12,7 +12,7 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
     private const string RegexTypeName = "Regex";
     private const string RegexType = $"System.Text.RegularExpressions.{RegexTypeName}";
 
-    private static readonly DiagnosticDescriptor Rule = new (
+    private static readonly DiagnosticDescriptor Rule = new(
         Diagnostics.IdUncachedRegex,
         "Use of uncached static Regex function",
         "Usage of a static Regex function that takes in a pattern string. This can cause constant re-parsing of the pattern.",

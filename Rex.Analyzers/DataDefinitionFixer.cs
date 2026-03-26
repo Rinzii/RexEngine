@@ -25,7 +25,6 @@ public sealed class DefinitionFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
-        {
             switch (diagnostic.Id)
             {
                 case IdDataDefinitionPartial:
@@ -41,7 +40,6 @@ public sealed class DefinitionFixer : CodeFixProvider
                 case IdDataFieldNoVVReadWrite:
                     return RegisterVVReadWriteFix(context, diagnostic);
             }
-        }
 
         return Task.CompletedTask;
     }
@@ -67,9 +65,10 @@ public sealed class DefinitionFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> MakeDataDefinitionPartial(Document document, TypeDeclarationSyntax declaration, CancellationToken cancellation)
+    private static async Task<Document> MakeDataDefinitionPartial(Document document, TypeDeclarationSyntax declaration,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var token = SyntaxFactory.Token(PartialKeyword);
         var newDeclaration = declaration.AddModifiers(token);
 
@@ -92,13 +91,12 @@ public sealed class DefinitionFixer : CodeFixProvider
         foreach (var attributeList in token.AttributeLists)
         {
             foreach (var attribute in attributeList.Attributes)
-            {
                 if (attribute.Name.ToString() == DataFieldAttributeName)
                 {
                     dataFieldAttribute = attribute;
                     break;
                 }
-            }
+
             if (dataFieldAttribute != null)
                 break;
         }
@@ -113,9 +111,10 @@ public sealed class DefinitionFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> RemoveRedundantTag(Document document, AttributeSyntax syntax, CancellationToken cancellation)
+    private static async Task<Document> RemoveRedundantTag(Document document, AttributeSyntax syntax,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
 
         if (syntax.ArgumentList == null)
             return document;
@@ -156,25 +155,24 @@ public sealed class DefinitionFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> RemoveVVAttribute(Document document, MemberDeclarationSyntax syntax, CancellationToken cancellation)
+    private static async Task<Document> RemoveVVAttribute(Document document, MemberDeclarationSyntax syntax,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
 
         var newLists = new SyntaxList<AttributeListSyntax>();
         foreach (var attributeList in syntax.AttributeLists)
         {
             var attributes = new SeparatedSyntaxList<AttributeSyntax>();
             foreach (var attribute in attributeList.Attributes)
-            {
                 if (attribute.Name.ToString() != ViewVariablesAttributeName)
-                {
                     attributes = attributes.Add(attribute);
-                }
-            }
+
             // Don't add empty lists []
             if (attributes.Count > 0)
                 newLists = newLists.Add(attributeList.WithAttributes(attributes));
         }
+
         var newSyntax = syntax.WithAttributeLists(newLists);
 
         root = root!.ReplaceNode(syntax, newSyntax);
@@ -186,7 +184,8 @@ public sealed class DefinitionFixer : CodeFixProvider
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
         var span = diagnostic.Location.SourceSpan;
-        var field = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<FieldDeclarationSyntax>().FirstOrDefault();
+        var field = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<FieldDeclarationSyntax>()
+            .FirstOrDefault();
 
         if (field == null)
             return;
@@ -202,7 +201,8 @@ public sealed class DefinitionFixer : CodeFixProvider
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
         var span = diagnostic.Location.SourceSpan;
-        var property = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>().FirstOrDefault();
+        var property = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<PropertyDeclarationSyntax>()
+            .FirstOrDefault();
 
         if (property == null)
             return;
@@ -214,9 +214,10 @@ public sealed class DefinitionFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> MakeFieldWritable(Document document, FieldDeclarationSyntax declaration, CancellationToken cancellation)
+    private static async Task<Document> MakeFieldWritable(Document document, FieldDeclarationSyntax declaration,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var token = declaration.Modifiers.First(t => t.IsKind(ReadOnlyKeyword));
         var newDeclaration = declaration.WithModifiers(declaration.Modifiers.Remove(token));
 
@@ -225,9 +226,10 @@ public sealed class DefinitionFixer : CodeFixProvider
         return document.WithSyntaxRoot(root);
     }
 
-    private static async Task<Document> MakePropertyWritable(Document document, PropertyDeclarationSyntax declaration, CancellationToken cancellation)
+    private static async Task<Document> MakePropertyWritable(Document document, PropertyDeclarationSyntax declaration,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var newDeclaration = declaration;
         var privateSet = newDeclaration
             .AccessorList?
@@ -235,17 +237,14 @@ public sealed class DefinitionFixer : CodeFixProvider
             .FirstOrDefault(s => s.IsKind(SetAccessorDeclaration) || s.IsKind(InitAccessorDeclaration));
 
         if (newDeclaration.AccessorList != null && privateSet != null)
-        {
             newDeclaration = newDeclaration.WithAccessorList(
                 newDeclaration.AccessorList.WithAccessors(
                     newDeclaration.AccessorList.Accessors.Remove(privateSet)
                 )
             );
-        }
 
         AccessorDeclarationSyntax setter;
         if (declaration.Modifiers.Any(m => m.IsKind(PrivateKeyword)))
-        {
             setter = SyntaxFactory.AccessorDeclaration(
                 SetAccessorDeclaration,
                 default,
@@ -255,9 +254,7 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 SyntaxFactory.Token(SemicolonToken)
             );
-        }
         else
-        {
             setter = SyntaxFactory.AccessorDeclaration(
                 SetAccessorDeclaration,
                 default,
@@ -267,7 +264,6 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 SyntaxFactory.Token(SemicolonToken)
             );
-        }
 
         newDeclaration = newDeclaration.AddAccessorListAccessors(setter);
 

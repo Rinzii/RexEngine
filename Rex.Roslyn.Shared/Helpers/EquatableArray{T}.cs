@@ -25,7 +25,7 @@ public static class EquatableArray
     public static EquatableArray<T> AsEquatableArray<T>(this ImmutableArray<T> array)
         where T : IEquatable<T>
     {
-        return new(array);
+        return new EquatableArray<T>(array);
     }
 }
 
@@ -85,17 +85,11 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     /// <sinheritdoc/>
     public override int GetHashCode()
     {
-        if (this.array is not T[] array)
-        {
-            return 0;
-        }
+        if (this.array is not T[] array) return 0;
 
         HashCode hashCode = default;
 
-        foreach (T item in array)
-        {
-            hashCode.Add(item);
-        }
+        foreach (var item in array) hashCode.Add(item);
 
         return hashCode.ToHashCode();
     }
@@ -107,7 +101,7 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ImmutableArray<T> AsImmutableArray()
     {
-        return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in this.array));
+        return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in array));
     }
 
     /// <summary>
@@ -117,7 +111,7 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     /// <returns>An <see cref="EquatableArray{T}"/> instance from a given <see cref="ImmutableArray{T}"/>.</returns>
     public static EquatableArray<T> FromImmutableArray(ImmutableArray<T> array)
     {
-        return new(array);
+        return new EquatableArray<T>(array);
     }
 
     /// <summary>

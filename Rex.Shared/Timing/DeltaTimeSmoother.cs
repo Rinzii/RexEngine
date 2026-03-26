@@ -20,5 +20,8 @@ public sealed class DeltaTimeSmoother
         return _smooth;
     }
 
-    public void Reset() => _smooth = 0f;
+    public void Reset()
+    {
+        _smooth = 0f;
+    }
 }

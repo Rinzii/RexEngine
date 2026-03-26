@@ -5,6 +5,7 @@ public enum ConnectionState
 {
     Connecting,
     Connected,
+
     /// <summary>Handshake done, not yet spawned in world.</summary>
     Authenticated,
     InGame,

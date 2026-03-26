@@ -17,7 +17,8 @@ public static class NetMessageRegistry
     /// </summary>
     /// <param name="messageId">The ID written in the packet header.</param>
     /// <param name="deserializer">Factory that reads the remaining packet bytes and returns the message.</param>
-    public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetPacketReader, T> deserializer) where T : INetMessage
+    public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetPacketReader, T> deserializer)
+        where T : INetMessage
     {
         // Same id twice replaces the previous entry. Avoid duplicate ids in RegisterAll.
         Deserializers[messageId] = reader => deserializer(reader);

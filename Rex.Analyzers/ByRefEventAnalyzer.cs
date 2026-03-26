@@ -52,7 +52,8 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze |
+                                               GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(compilationContext =>
         {
@@ -122,9 +123,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         if (eventParameter == null ||
             eventParameter.Type.SpecialType == SpecialType.System_Object ||
             eventParameter.Type.TypeKind == TypeKind.TypeParameter)
-        {
             return;
-        }
 
         var byRefAttribute = context.Compilation.GetTypeByMetadataName(ByRefAttribute);
         if (byRefAttribute == null)

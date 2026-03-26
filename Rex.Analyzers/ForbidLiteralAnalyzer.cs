@@ -27,7 +27,8 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze |
+                                               GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.EnableConcurrentExecution();
         context.RegisterOperationAction(AnalyzeOperation, OperationKind.Invocation);
     }
@@ -49,9 +50,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
             {
                 // Check each param value
                 foreach (var subArgument in subExpressionSyntax.ArgumentList.Arguments)
-                {
                     CheckArgumentSyntax(context, argumentOperation, subArgument);
-                }
                 continue;
             }
 
@@ -63,7 +62,8 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private void CheckArgumentSyntax(OperationAnalysisContext context, IArgumentOperation operation, ArgumentSyntax argumentSyntax)
+    private void CheckArgumentSyntax(OperationAnalysisContext context, IArgumentOperation operation,
+        ArgumentSyntax argumentSyntax)
     {
         // Handle collection types
         if (argumentSyntax.Expression is CollectionExpressionSyntax collectionExpressionSyntax)
@@ -84,6 +84,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
                     (context.Operation as IInvocationOperation).TargetMethod.Name
                 ));
             }
+
             return;
         }
 

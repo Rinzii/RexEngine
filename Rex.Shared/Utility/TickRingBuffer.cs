@@ -19,10 +19,7 @@ public sealed class TickRingBuffer<T>
         ArgumentNullException.ThrowIfNull(valueFactory);
 
         _entries = new Entry[capacity];
-        for (var i = 0; i < _entries.Length; i++)
-        {
-            _entries[i] = new Entry(valueFactory());
-        }
+        for (var i = 0; i < _entries.Length; i++) _entries[i] = new Entry(valueFactory());
     }
 
     public int Capacity => _entries.Length;
@@ -49,8 +46,10 @@ public sealed class TickRingBuffer<T>
 
         /// <summary>Tick this slot was last written for.</summary>
         public uint Tick { get; set; }
+
         /// <summary>False if the slot is stale or cleared.</summary>
         public bool IsAssigned { get; set; }
+
         public T Value { get; set; }
     }
 }

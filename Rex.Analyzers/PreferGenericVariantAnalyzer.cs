@@ -53,14 +53,15 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics | GeneratedCodeAnalysisFlags.Analyze);
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.ReportDiagnostics |
+                                               GeneratedCodeAnalysisFlags.Analyze);
         context.EnableConcurrentExecution();
         context.RegisterOperationAction(CheckForGenericVariant, OperationKind.Invocation);
     }
 
     private void CheckForGenericVariant(OperationAnalysisContext obj)
     {
-        if(obj.Operation is not IInvocationOperation invocationOperation) return;
+        if (obj.Operation is not IInvocationOperation invocationOperation) return;
 
         var preferGenericAttribute = obj.Compilation.GetTypeByMetadataName(AttributeType);
 
@@ -76,13 +77,13 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
             break;
         }
 
-        if(genericVariant == null) return;
+        if (genericVariant == null) return;
 
         var maxTypeParams = 0;
         var typeTypeSymbol = obj.Compilation.GetTypeByMetadataName("System.Type");
         foreach (var parameter in invocationOperation.TargetMethod.Parameters)
         {
-            if(!SymbolEqualityComparer.Default.Equals(parameter.Type, typeTypeSymbol)) break;
+            if (!SymbolEqualityComparer.Default.Equals(parameter.Type, typeTypeSymbol)) break;
 
             maxTypeParams++;
         }
@@ -102,15 +103,18 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
                 || methodSymbol.Name != genericVariant
                 || !methodSymbol.IsGenericMethod
                 || methodSymbol.TypeParameters.Length > maxTypeParams
-                || methodSymbol.Parameters.Length > invocationOperation.TargetMethod.Parameters.Length - methodSymbol.TypeParameters.Length
-                ) continue;
+                || methodSymbol.Parameters.Length > invocationOperation.TargetMethod.Parameters.Length -
+                methodSymbol.TypeParameters.Length
+               ) continue;
 
             var typeParamCount = methodSymbol.TypeParameters.Length;
             var failedParamComparison = false;
             var objType = obj.Compilation.GetSpecialType(SpecialType.System_Object);
-            for (int i = 0; i < methodSymbol.Parameters.Length; i++)
+            for (var i = 0; i < methodSymbol.Parameters.Length; i++)
             {
-                if (methodSymbol.Parameters[i].Type is ITypeParameterSymbol && SymbolEqualityComparer.Default.Equals(invocationOperation.TargetMethod.Parameters[i + typeParamCount].Type, objType))
+                if (methodSymbol.Parameters[i].Type is ITypeParameterSymbol &&
+                    SymbolEqualityComparer.Default.Equals(
+                        invocationOperation.TargetMethod.Parameters[i + typeParamCount].Type, objType))
                     continue;
 
                 if (!SymbolEqualityComparer.Default.Equals(methodSymbol.Parameters[i].Type,
@@ -121,7 +125,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            if(failedParamComparison) continue;
+            if (failedParamComparison) continue;
 
             genericVariantMethod = methodSymbol;
         }
@@ -137,24 +141,23 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
 
         var typeOperands = new string[genericVariantMethod.TypeParameters.Length];
         for (var i = 0; i < genericVariantMethod.TypeParameters.Length; i++)
-        {
             switch (invocationOperation.Arguments[i].Value)
             {
                 //todo figure out if ILocalReferenceOperation, IPropertyReferenceOperation or IFieldReferenceOperation is referencing static typeof assignments
                 case ITypeOfOperation typeOfOperation:
-                    typeOperands[i] = typeOfOperation.TypeOperand.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+                    typeOperands[i] =
+                        typeOfOperation.TypeOperand.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
                     continue;
                 default:
                     return;
             }
-        }
 
         obj.ReportDiagnostic(Diagnostic.Create(
             UseGenericVariantDescriptor,
             invocationOperation.Syntax.GetLocation(),
-            ImmutableDictionary.CreateRange(new Dictionary<string, string>()
+            ImmutableDictionary.CreateRange(new Dictionary<string, string>
             {
-                {"typeOperands", string.Join(",", typeOperands)}
+                { "typeOperands", string.Join(",", typeOperands) }
             })));
     }
 }
@@ -162,7 +165,10 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
 [ExportCodeFixProvider(LanguageNames.CSharp)]
 public class PreferGenericVariantCodeFixProvider : CodeFixProvider
 {
-    private static string Title(string method, string[] types) => $"Use {method}<{string.Join(",", types)}>.";
+    private static string Title(string method, string[] types)
+    {
+        return $"Use {method}<{string.Join(",", types)}>.";
+    }
 
     public override FixAllProvider GetFixAllProvider()
     {
@@ -172,7 +178,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var root = await context.Document.GetSyntaxRootAsync();
-        if(root == null) return;
+        if (root == null) return;
 
         foreach (var diagnostic in context.Diagnostics)
         {
@@ -183,7 +189,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
             if (node is ArgumentSyntax argumentSyntax)
                 node = argumentSyntax.Expression;
 
-            if(node is not InvocationExpressionSyntax invocationExpression)
+            if (node is not InvocationExpressionSyntax invocationExpression)
                 continue;
 
             var typeOperands = typeOperandsRaw.Split(',');
@@ -205,16 +211,13 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
     {
         var memberAccess = (MemberAccessExpressionSyntax)invocationExpression.Expression;
 
-        var root = (CompilationUnitSyntax) await contextDocument.GetSyntaxRootAsync(cancellationToken);
+        var root = (CompilationUnitSyntax)await contextDocument.GetSyntaxRootAsync(cancellationToken);
 
         var arguments = new ArgumentSyntax[invocationExpression.ArgumentList.Arguments.Count - typeOperands.Length];
         var types = new TypeSyntax[typeOperands.Length];
 
-        for (int i = 0; i < typeOperands.Length; i++)
-        {
+        for (var i = 0; i < typeOperands.Length; i++)
             types[i] = ((TypeOfExpressionSyntax)invocationExpression.ArgumentList.Arguments[i].Expression).Type;
-        }
-
 
 
         Array.Copy(
@@ -228,7 +231,9 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
             SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList(types))));
 
         root = root!.ReplaceNode(invocationExpression,
-            invocationExpression.WithArgumentList(invocationExpression.ArgumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)))
+            invocationExpression
+                .WithArgumentList(
+                    invocationExpression.ArgumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)))
                 .WithExpression(memberAccess));
 
         return contextDocument.WithSyntaxRoot(root);

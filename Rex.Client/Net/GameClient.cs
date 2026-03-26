@@ -19,10 +19,13 @@ public sealed class GameClient
 
     /// <summary>Assigned by the server after accept. Zero until then.</summary>
     public int ClientId { get; private set; }
+
     /// <summary>Last two snapshots for render interpolation.</summary>
     public ClientWorldState WorldState { get; } = new();
+
     /// <summary>Inputs kept for prediction replay after snapshot reconcile.</summary>
     public InputBuffer InputBuffer { get; } = new();
+
     public PredictionSystem Prediction { get; }
 
     /// <summary>True while transport is up from connected through in-game.</summary>
@@ -30,6 +33,7 @@ public sealed class GameClient
         or ConnectionState.Authenticated or ConnectionState.InGame;
 
     public ConnectionState State => _channel?.State ?? ConnectionState.Disconnected;
+
     public int RoundTripTimeMs => _channel?.RoundTripTimeMs ?? 0;
 
     /// <summary>Fired when a bulk transfer finishes reassembly on this client.</summary>
@@ -49,7 +53,10 @@ public sealed class GameClient
     }
 
     /// <summary>Runs protobuf-net deserialize on a completed bulk payload.</summary>
-    public T DeserializeBulkData<T>(byte[] data) => ProtoSerializer.Deserialize<T>(data);
+    public T DeserializeBulkData<T>(byte[] data)
+    {
+        return ProtoSerializer.Deserialize<T>(data);
+    }
 
     /// <summary>Connects to a remote server over LiteNetLib.</summary>
     public void Connect(string host, int port)
@@ -160,13 +167,11 @@ public sealed class GameClient
 
         // Client id doubles as controlled entity id on this prototype server.
         foreach (var entity in snapshot.Entities)
-        {
             if (entity.EntityId == ClientId)
             {
                 Prediction.Reconcile(entity, snapshot.LastProcessedInputTick);
                 break;
             }
-        }
     }
 
     private void OnTransferCompleted(int transferId, BulkDataType dataType, byte[] data)

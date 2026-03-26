@@ -76,6 +76,7 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
             _writer.Put(reason);
             _serverPeer.Disconnect(_writer);
         }
+
         _netManager.Stop();
         State = ConnectionState.Disconnected;
     }

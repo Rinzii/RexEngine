@@ -26,13 +26,11 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
-        {
             switch (diagnostic.Id)
             {
                 case IdPreferOtherType:
                     return RegisterReplaceType(context, diagnostic);
             }
-        }
 
         return Task.CompletedTask;
     }
@@ -53,9 +51,10 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         ), diagnostic);
     }
 
-    private static async Task<Document> ReplaceType(Document document, VariableDeclarationSyntax syntax, CancellationToken cancellation)
+    private static async Task<Document> ReplaceType(Document document, VariableDeclarationSyntax syntax,
+        CancellationToken cancellation)
     {
-        var root = (CompilationUnitSyntax?) await document.GetSyntaxRootAsync(cancellation);
+        var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         var model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
@@ -64,7 +63,7 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         if (syntax.Type is not GenericNameSyntax genericNameSyntax)
             return document;
         var genericTypeSyntax = genericNameSyntax.TypeArgumentList.Arguments[0];
-        if (model.GetSymbolInfo(genericTypeSyntax).Symbol is not {} genericTypeSymbol)
+        if (model.GetSymbolInfo(genericTypeSyntax).Symbol is not { } genericTypeSymbol)
             return document;
 
         var symbolInfo = model.GetSymbolInfo(syntax.Type);

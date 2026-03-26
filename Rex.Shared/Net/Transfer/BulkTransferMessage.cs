@@ -49,7 +49,8 @@ public sealed class BulkTransferInitMessage : INetMessage
     /// <summary>
     /// Creates a bulk transfer init payload.
     /// </summary>
-    public BulkTransferInitMessage(int transferId, BulkDataType dataType, int totalSize, int originalSize, bool isCompressed, int chunkCount)
+    public BulkTransferInitMessage(int transferId, BulkDataType dataType, int totalSize, int originalSize,
+        bool isCompressed, int chunkCount)
     {
         TransferId = transferId;
         DataType = dataType;

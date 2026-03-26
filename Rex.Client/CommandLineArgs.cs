@@ -26,7 +26,7 @@ internal sealed class CommandLineArgs
         var listenServer = false;
         var standalone = false;
         string? connectAddress = null;
-        int port = ProtocolConstants.DefaultPort;
+        var port = ProtocolConstants.DefaultPort;
 
         using var enumerator = args.GetEnumerator();
 

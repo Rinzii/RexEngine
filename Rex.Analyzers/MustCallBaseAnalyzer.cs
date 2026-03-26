@@ -23,7 +23,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
         "Overriders of this function must always call the base function",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
@@ -49,7 +49,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
         if (data is { onlyOverrides: true, depth: < 2 })
             return;
 
-        var syntax = (MethodDeclarationSyntax) method.DeclaringSyntaxReferences[0].GetSyntax();
+        var syntax = (MethodDeclarationSyntax)method.DeclaringSyntaxReferences[0].GetSyntax();
         if (HasBaseCall(syntax))
             return;
 
@@ -69,7 +69,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
             if (GetAttribute(method, attributeSymbol) is not { } attribute)
                 continue;
 
-            var onlyOverrides = attribute.ConstructorArguments is [{Kind: TypedConstantKind.Primitive, Value: true}];
+            var onlyOverrides = attribute.ConstructorArguments is [{ Kind: TypedConstantKind.Primitive, Value: true }];
             return (depth, onlyOverrides);
         }
 

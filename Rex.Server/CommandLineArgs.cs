@@ -25,9 +25,9 @@ internal sealed class CommandLineArgs
         var cvars = new List<(string, string)>();
         var loglevels = new List<(string, string)>();
         var execCommands = new List<string>();
-        int port = ProtocolConstants.DefaultPort;
-        int maxPlayers = ProtocolConstants.DefaultMaxPlayers;
-        int tickRate = ProtocolConstants.DefaultTickRate;
+        var port = ProtocolConstants.DefaultPort;
+        var maxPlayers = ProtocolConstants.DefaultMaxPlayers;
+        var tickRate = ProtocolConstants.DefaultTickRate;
 
         using var enumerator = args.GetEnumerator();
 
@@ -126,7 +126,6 @@ internal sealed class CommandLineArgs
             {
                 C.WriteLine("Unknown argument: {0}", arg);
             }
-
         }
 
         parsed = new CommandLineArgs(configFile, dataDir, cvars, loglevels, execCommands, port, maxPlayers, tickRate);

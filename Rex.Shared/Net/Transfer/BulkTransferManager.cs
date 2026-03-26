@@ -40,7 +40,8 @@ public sealed class BulkTransferManager
         var transferId = _nextTransferId++;
 
         var chunks = ChunkData(payload);
-        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed, chunks.Count);
+        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
+            chunks.Count);
         channel.Send(init);
 
         for (var i = 0; i < chunks.Count; i++)
@@ -49,7 +50,8 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug("Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
+        _logger.LogDebug(
+            "Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
             transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
@@ -64,7 +66,8 @@ public sealed class BulkTransferManager
         var transferId = _nextTransferId++;
 
         var chunks = ChunkData(payload);
-        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed, chunks.Count);
+        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
+            chunks.Count);
         channel.Send(init);
 
         for (var i = 0; i < chunks.Count; i++)
@@ -73,7 +76,8 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug("Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
+        _logger.LogDebug(
+            "Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
             transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
@@ -94,7 +98,8 @@ public sealed class BulkTransferManager
             ChunksReceived = 0
         };
 
-        _logger.LogDebug("Receiving bulk transfer {TransferId}: {DataType}, expecting {ChunkCount} chunks ({TotalSize} bytes)",
+        _logger.LogDebug(
+            "Receiving bulk transfer {TransferId}: {DataType}, expecting {ChunkCount} chunks ({TotalSize} bytes)",
             init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
     }
 
@@ -150,10 +155,7 @@ public sealed class BulkTransferManager
     private static byte[] Reassemble(IncomingTransfer transfer)
     {
         var totalSize = 0;
-        foreach (var chunk in transfer.ReceivedChunks)
-        {
-            totalSize += chunk.Length;
-        }
+        foreach (var chunk in transfer.ReceivedChunks) totalSize += chunk.Length;
 
         var result = new byte[totalSize];
         var offset = 0;
