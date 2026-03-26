@@ -13,7 +13,10 @@ public static class DebugTools
         string? message = null
     )
     {
-        if (arg == null) throw new DebugAssertException(message ?? "Value cannot be null");
+        if (arg == null)
+        {
+            throw new DebugAssertException(message ?? "Value cannot be null");
+        }
     }
 }
 

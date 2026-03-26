@@ -45,13 +45,19 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
         var classDecl = (ClassDeclarationSyntax)context.Node;
         var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
         if (classSymbol == null)
+        {
             return;
+        }
 
         if (classSymbol.IsSealed || classSymbol.IsAbstract || classSymbol.IsStatic)
+        {
             return;
+        }
 
         if (HasAttribute(classSymbol, attrSymbol))
+        {
             return;
+        }
 
         var diag = Diagnostic.Create(Rule, classDecl.Keyword.GetLocation());
         context.ReportDiagnostic(diag);

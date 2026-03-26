@@ -16,7 +16,9 @@ public static class NetMessages
     public static void RegisterAll()
     {
         if (_registered)
+        {
             return;
+        }
 
         _registered = true;
 

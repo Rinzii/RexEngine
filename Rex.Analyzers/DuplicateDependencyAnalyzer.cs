@@ -35,14 +35,18 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         {
             var dependencyAttributeType = compilationContext.Compilation.GetTypeByMetadataName(DependencyAttributeType);
             if (dependencyAttributeType == null)
+            {
                 return;
+            }
 
             compilationContext.RegisterSymbolStartAction(symbolContext =>
                 {
                     var typeSymbol = (INamedTypeSymbol)symbolContext.Symbol;
                     // Only deal with non-static classes, doesn't make sense to have dependencies in anything else.
                     if (typeSymbol.TypeKind != TypeKind.Class || typeSymbol.IsStatic)
+                    {
                         return;
+                    }
 
                     var state = new AnalyzerState(dependencyAttributeType);
                     symbolContext.RegisterSyntaxNodeAction(state.AnalyzeField, SyntaxKind.FieldDeclaration);
@@ -61,17 +65,25 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         {
             var field = (FieldDeclarationSyntax)context.Node;
             if (field.AttributeLists.Count == 0)
+            {
                 return;
+            }
 
             if (context.ContainingSymbol is not IFieldSymbol fieldSymbol)
+            {
                 return;
+            }
 
             // Can't have [Dependency]s for non-reference types.
             if (!fieldSymbol.Type.IsReferenceType)
+            {
                 return;
+            }
 
             if (!IsDependency(context.ContainingSymbol))
+            {
                 return;
+            }
 
             lock (_dependencyFields)
             {
@@ -88,8 +100,12 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         private bool IsDependency(ISymbol symbol)
         {
             foreach (var attributeData in symbol.GetAttributes())
+            {
                 if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, dependencyAttributeType))
+                {
                     return true;
+                }
+            }
 
             return false;
         }
@@ -103,7 +119,9 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
                     var fieldType = pair.Key;
                     var fields = pair.Value;
                     if (fields.Count <= 1)
+                    {
                         continue;
+                    }
 
                     // Sort so we can have deterministic order to skip reporting for a single field.
                     // Whichever sorts first doesn't get reported.

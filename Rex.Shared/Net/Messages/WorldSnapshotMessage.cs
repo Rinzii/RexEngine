@@ -47,7 +47,10 @@ public sealed class WorldSnapshotMessage : INetMessage
         writer.Put(LastProcessedInputTick);
         writer.Put((ushort)Entities.Count);
 
-        foreach (var entity in Entities) entity.Serialize(writer);
+        foreach (var entity in Entities)
+        {
+            entity.Serialize(writer);
+        }
     }
 
     public static WorldSnapshotMessage Deserialize(NetPacketReader reader)
@@ -57,7 +60,10 @@ public sealed class WorldSnapshotMessage : INetMessage
         var entityCount = reader.GetUShort();
         var entities = new List<EntityState>(entityCount);
 
-        for (var i = 0; i < entityCount; i++) entities.Add(EntityState.Deserialize(reader));
+        for (var i = 0; i < entityCount; i++)
+        {
+            entities.Add(EntityState.Deserialize(reader));
+        }
 
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }

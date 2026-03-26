@@ -26,11 +26,13 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
+        {
             switch (diagnostic.Id)
             {
                 case IdPreferOtherType:
                     return RegisterReplaceType(context, diagnostic);
             }
+        }
 
         return Task.CompletedTask;
     }
@@ -42,7 +44,9 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<VariableDeclarationSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Replace type",
@@ -58,31 +62,48 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         var model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
+        {
             return document;
+        }
 
         if (syntax.Type is not GenericNameSyntax genericNameSyntax)
+        {
             return document;
+        }
+
         var genericTypeSyntax = genericNameSyntax.TypeArgumentList.Arguments[0];
         if (model.GetSymbolInfo(genericTypeSyntax).Symbol is not { } genericTypeSymbol)
+        {
             return document;
+        }
 
         var symbolInfo = model.GetSymbolInfo(syntax.Type);
         if (symbolInfo.Symbol?.GetAttributes() is not { } attributes)
+        {
             return document;
+        }
 
         foreach (var attribute in attributes)
         {
             if (attribute.AttributeClass?.Name != PreferOtherTypeAttributeName)
+            {
                 continue;
+            }
 
             if (attribute.ConstructorArguments[0].Value is not ITypeSymbol checkedTypeSymbol)
+            {
                 continue;
+            }
 
             if (!SymbolEqualityComparer.Default.Equals(checkedTypeSymbol, genericTypeSymbol))
+            {
                 continue;
+            }
 
             if (attribute.ConstructorArguments[1].Value is not ITypeSymbol replacementTypeSymbol)
+            {
                 continue;
+            }
 
             var replacementIdentifier = SyntaxFactory.IdentifierName(replacementTypeSymbol.Name);
             var replacementSyntax = syntax.WithType(replacementIdentifier);

@@ -25,6 +25,7 @@ public sealed class DefinitionFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
+        {
             switch (diagnostic.Id)
             {
                 case IdDataDefinitionPartial:
@@ -40,6 +41,7 @@ public sealed class DefinitionFixer : CodeFixProvider
                 case IdDataFieldNoVVReadWrite:
                     return RegisterVVReadWriteFix(context, diagnostic);
             }
+        }
 
         return Task.CompletedTask;
     }
@@ -56,7 +58,9 @@ public sealed class DefinitionFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Make type partial",
@@ -84,25 +88,33 @@ public sealed class DefinitionFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<MemberDeclarationSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         // Find the DataField attribute
         AttributeSyntax? dataFieldAttribute = null;
         foreach (var attributeList in token.AttributeLists)
         {
             foreach (var attribute in attributeList.Attributes)
+            {
                 if (attribute.Name.ToString() == DataFieldAttributeName)
                 {
                     dataFieldAttribute = attribute;
                     break;
                 }
+            }
 
             if (dataFieldAttribute != null)
+            {
                 break;
+            }
         }
 
         if (dataFieldAttribute == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Remove explicitly set tag",
@@ -117,7 +129,9 @@ public sealed class DefinitionFixer : CodeFixProvider
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
 
         if (syntax.ArgumentList == null)
+        {
             return document;
+        }
 
         AttributeSyntax? newSyntax;
         if (syntax.ArgumentList.Arguments.Count == 1)
@@ -146,7 +160,9 @@ public sealed class DefinitionFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<MemberDeclarationSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Remove ViewVariables attribute",
@@ -165,12 +181,18 @@ public sealed class DefinitionFixer : CodeFixProvider
         {
             var attributes = new SeparatedSyntaxList<AttributeSyntax>();
             foreach (var attribute in attributeList.Attributes)
+            {
                 if (attribute.Name.ToString() != ViewVariablesAttributeName)
+                {
                     attributes = attributes.Add(attribute);
+                }
+            }
 
             // Don't add empty lists []
             if (attributes.Count > 0)
+            {
                 newLists = newLists.Add(attributeList.WithAttributes(attributes));
+            }
         }
 
         var newSyntax = syntax.WithAttributeLists(newLists);
@@ -188,7 +210,9 @@ public sealed class DefinitionFixer : CodeFixProvider
             .FirstOrDefault();
 
         if (field == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Make data field writable",
@@ -205,7 +229,9 @@ public sealed class DefinitionFixer : CodeFixProvider
             .FirstOrDefault();
 
         if (property == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Make data field writable",
@@ -237,14 +263,17 @@ public sealed class DefinitionFixer : CodeFixProvider
             .FirstOrDefault(s => s.IsKind(SetAccessorDeclaration) || s.IsKind(InitAccessorDeclaration));
 
         if (newDeclaration.AccessorList != null && privateSet != null)
+        {
             newDeclaration = newDeclaration.WithAccessorList(
                 newDeclaration.AccessorList.WithAccessors(
                     newDeclaration.AccessorList.Accessors.Remove(privateSet)
                 )
             );
+        }
 
         AccessorDeclarationSyntax setter;
         if (declaration.Modifiers.Any(m => m.IsKind(PrivateKeyword)))
+        {
             setter = SyntaxFactory.AccessorDeclaration(
                 SetAccessorDeclaration,
                 default,
@@ -254,7 +283,9 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 SyntaxFactory.Token(SemicolonToken)
             );
+        }
         else
+        {
             setter = SyntaxFactory.AccessorDeclaration(
                 SetAccessorDeclaration,
                 default,
@@ -264,6 +295,7 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 SyntaxFactory.Token(SemicolonToken)
             );
+        }
 
         newDeclaration = newDeclaration.AddAccessorListAccessors(setter);
 

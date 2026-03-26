@@ -39,7 +39,9 @@ public sealed class GameWorld
     public void ProcessInput(int entityId, PlayerInputMessage input)
     {
         if (!_entities.TryGetValue(entityId, out var current))
+        {
             return;
+        }
 
         const float moveSpeed = 5.0f;
         // MoveXZ and yaw only. Y unchanged (no jump or fly yet).
@@ -70,8 +72,13 @@ public sealed class GameWorld
     {
         var entities = new List<EntityState>();
         foreach (var entityId in dirtyEntityIds)
+        {
             if (_entities.TryGetValue(entityId, out var state))
+            {
                 entities.Add(state);
+            }
+        }
+
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }
 }

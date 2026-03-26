@@ -29,7 +29,9 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
         {
             var prototypeInterface = ctx.Compilation.GetTypeByMetadataName(PrototypeInterfaceType);
             if (prototypeInterface == null)
+            {
                 return;
+            }
 
             ctx.RegisterOperationAction(symContext => Check(prototypeInterface, symContext),
                 OperationKind.ObjectCreation);
@@ -39,10 +41,14 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
     private static void Check(INamedTypeSymbol prototypeInterface, OperationAnalysisContext ctx)
     {
         if (ctx.Operation is not IObjectCreationOperation { Type: { } resultType } creationOp)
+        {
             return;
+        }
 
         if (!TypeSymbolHelper.ImplementsInterface(resultType, prototypeInterface))
+        {
             return;
+        }
 
         ctx.ReportDiagnostic(Diagnostic.Create(Rule, creationOp.Syntax.GetLocation()));
     }

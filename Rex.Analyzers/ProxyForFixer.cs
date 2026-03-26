@@ -26,6 +26,7 @@ public sealed class ProxyForFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
+        {
             switch (diagnostic.Id)
             {
                 case IdPreferProxy:
@@ -33,6 +34,7 @@ public sealed class ProxyForFixer : CodeFixProvider
                 case IdProxyForRedundantMethodName:
                     return RegisterRemoveRedundantMethodName(context, diagnostic);
             }
+        }
 
         return Task.CompletedTask;
     }
@@ -44,10 +46,14 @@ public sealed class ProxyForFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<InvocationExpressionSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         if (diagnostic.Properties[ProxyForAnalyzer.ProxyMethodName] is not string methodName)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Substitute proxy method",
@@ -63,10 +69,14 @@ public sealed class ProxyForFixer : CodeFixProvider
         var model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
+        {
             return document;
+        }
 
         if (token.Expression is not MemberAccessExpressionSyntax expression)
+        {
             return document;
+        }
 
         // Create a token with the proxy method name
         var identifierToken = SyntaxFactory.Identifier(methodName);
@@ -94,7 +104,9 @@ public sealed class ProxyForFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<AttributeArgumentSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Remove method name parameter",
@@ -110,11 +122,15 @@ public sealed class ProxyForFixer : CodeFixProvider
         var model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
+        {
             return document;
+        }
 
         // Get the argument list containing the offending argument
         if (token.Parent is not AttributeArgumentListSyntax listSyntax)
+        {
             return document;
+        }
 
         // Create a new list with the argument removed
         var newListSyntax = listSyntax.WithArguments(listSyntax.Arguments.Remove(token));

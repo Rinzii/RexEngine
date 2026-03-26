@@ -1,5 +1,7 @@
 namespace Rex.Client.Graphics;
 
+// TODO: This is a very basic interface and will likely need to be expanded and improved.
+
 /// <summary>Window and GL context lifecycle. SDL or other backends implement this.</summary>
 public interface IGameWindow : IDisposable
 {

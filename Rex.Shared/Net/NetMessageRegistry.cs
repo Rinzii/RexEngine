@@ -34,7 +34,9 @@ public static class NetMessageRegistry
         var messageId = reader.GetUShort();
 
         if (!Deserializers.TryGetValue(messageId, out var deserializer))
+        {
             throw new InvalidOperationException($"No deserializer registered for message ID {messageId}");
+        }
 
         return deserializer(reader);
     }

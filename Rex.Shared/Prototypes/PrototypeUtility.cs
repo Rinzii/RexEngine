@@ -17,7 +17,9 @@ public static class PrototypeUtility
     {
         var name = type.AsSpan();
         if (!type.EndsWith(PrototypeNameEnding))
+        {
             return $"{char.ToLowerInvariant(name[0])}{name.Slice(1).ToString()}";
+        }
 
         return
             $"{char.ToLowerInvariant(name[0])}{name.Slice(1, name.Length - PrototypeNameEnding.Length - 1).ToString()}";

@@ -64,7 +64,9 @@ public sealed class LocalClientNetChannel : IClientNetChannel
     {
         // Drain everything the server queued for this client this frame.
         while (_inbound.Count > 0)
+        {
             MessageReceived?.Invoke(_inbound.Dequeue());
+        }
     }
 }
 
@@ -107,6 +109,8 @@ public sealed class LocalServerNetChannel : IServerNetChannel
     {
         // Everything the client enqueued for this tick.
         while (_inbound.Count > 0)
+        {
             handler(_inbound.Dequeue());
+        }
     }
 }

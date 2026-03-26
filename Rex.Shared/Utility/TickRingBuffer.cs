@@ -19,7 +19,10 @@ public sealed class TickRingBuffer<T>
         ArgumentNullException.ThrowIfNull(valueFactory);
 
         _entries = new Entry[capacity];
-        for (var i = 0; i < _entries.Length; i++) _entries[i] = new Entry(valueFactory());
+        for (var i = 0; i < _entries.Length; i++)
+        {
+            _entries[i] = new Entry(valueFactory());
+        }
     }
 
     public int Capacity => _entries.Length;

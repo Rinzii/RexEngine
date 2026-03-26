@@ -43,23 +43,33 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
     private static void CheckInvocation(OperationAnalysisContext context)
     {
         if (context.Operation is not IInvocationOperation invocation)
+        {
             return;
+        }
 
         // All Regex functions we care about are static.
         var targetMethod = invocation.TargetMethod;
         if (!targetMethod.IsStatic)
+        {
             return;
+        }
 
         // Bail early.
         if (targetMethod.ContainingType.Name != "Regex")
+        {
             return;
+        }
 
         var regexType = context.Compilation.GetTypeByMetadataName(RegexType);
         if (!SymbolEqualityComparer.Default.Equals(regexType, targetMethod.ContainingType))
+        {
             return;
+        }
 
         if (!BadFunctions.Contains(targetMethod.Name))
+        {
             return;
+        }
 
         context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation()));
     }

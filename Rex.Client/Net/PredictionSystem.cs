@@ -35,6 +35,8 @@ public sealed class PredictionSystem
 
         var unacknowledged = _inputBuffer.GetInputsAfter(lastProcessedInputTick);
         foreach (var input in unacknowledged)
+        {
             ApplyInputLocally(input);
+        }
     }
 }

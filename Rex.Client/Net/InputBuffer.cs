@@ -46,7 +46,9 @@ public sealed class InputBuffer
         {
             var slot = _buffer.GetSlotAt(i);
             if (slot is { IsAssigned: true, Value: not null } && slot.Tick > tick)
+            {
                 result.Add(slot.Value);
+            }
         }
 
         result.Sort((a, b) => a.Tick.CompareTo(b.Tick));

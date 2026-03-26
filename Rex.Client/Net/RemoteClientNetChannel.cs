@@ -54,7 +54,9 @@ public sealed class RemoteClientNetChannel : IClientNetChannel
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
         if (_serverPeer == null)
+        {
             return;
+        }
 
         _writer.Reset();
         message.Serialize(_writer);

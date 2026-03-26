@@ -34,7 +34,10 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
 
     private void CheckForNonGenericVariant(OperationAnalysisContext obj)
     {
-        if (obj.Operation is not IInvocationOperation invocationOperation) return;
+        if (obj.Operation is not IInvocationOperation invocationOperation)
+        {
+            return;
+        }
 
         var preferNonGenericAttribute = obj.Compilation.GetTypeByMetadataName(AttributeType);
 
@@ -42,21 +45,31 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
         foreach (var attribute in invocationOperation.TargetMethod.GetAttributes())
         {
             if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, preferNonGenericAttribute))
+            {
                 continue;
+            }
 
             foreach (var type in attribute.ConstructorArguments[0].Values)
+            {
                 forTypes.Add((ITypeSymbol)type.Value);
+            }
 
             break;
         }
 
         if (forTypes == null)
+        {
             return;
+        }
 
         foreach (var typeArg in invocationOperation.TargetMethod.TypeArguments)
+        {
             if (forTypes.Contains(typeArg))
+            {
                 obj.ReportDiagnostic(
                     Diagnostic.Create(UseNonGenericVariantDescriptor,
                         invocationOperation.Syntax.GetLocation(), typeArg.Name));
+            }
+        }
     }
 }

@@ -2,6 +2,8 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Client.Graphics;
 
+// TODO: This is a very basic interface and will likely need to be expanded and improved.
+
 /// <summary>Draws a frame from interpolated entity state for standalone or networked clients.</summary>
 public interface IRenderer : IDisposable
 {

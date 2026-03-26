@@ -13,7 +13,9 @@ public static class AttributeHelper
         foreach (var attribute in symbol.GetAttributes())
         {
             if (attribute.AttributeClass == null)
+            {
                 continue;
+            }
 
             if (TypeSymbolHelper.ShittyTypeMatch(attribute.AttributeClass, attributeMetadataName))
             {
@@ -31,13 +33,19 @@ public static class AttributeHelper
         foreach (var kv in data.NamedArguments)
         {
             if (kv.Key != name)
+            {
                 continue;
+            }
 
             if (kv.Value.Kind != TypedConstantKind.Primitive)
+            {
                 continue;
+            }
 
             if (kv.Value.Value is not bool value)
+            {
                 continue;
+            }
 
             return value;
         }
@@ -52,11 +60,13 @@ public static class AttributeHelper
     {
         matchedAttribute = null;
         foreach (var typeAttribute in symbol.GetAttributes())
+        {
             if (SymbolEqualityComparer.Default.Equals(typeAttribute.AttributeClass, attribute))
             {
                 matchedAttribute = typeAttribute;
                 return true;
             }
+        }
 
         return false;
     }

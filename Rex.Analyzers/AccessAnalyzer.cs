@@ -55,18 +55,18 @@ public class AccessAnalyzer : DiagnosticAnalyzer
         switch (operation)
         {
             case IMemberReferenceOperation memberRef:
-            {
-                member = memberRef.Member;
-                targetAccess = memberRef.Parent;
-                break;
-            }
+                {
+                    member = memberRef.Member;
+                    targetAccess = memberRef.Parent;
+                    break;
+                }
 
             case IInvocationOperation invocation:
-            {
-                member = invocation.TargetMethod;
-                targetAccess = invocation;
-                break;
-            }
+                {
+                    member = invocation.TargetMethod;
+                    targetAccess = invocation;
+                    break;
+                }
 
             default:
                 return;
@@ -81,13 +81,17 @@ public class AccessAnalyzer : DiagnosticAnalyzer
 
         // Get the type that is containing this expression, or, the type where this is happening.
         if (context.ContainingSymbol?.ContainingType is not { } accessingType)
+        {
             return;
+        }
 
         // Should we ignore the access attempt due to the accessing type being auto-generated?
         if (accessingType.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass != null &&
                 a.AttributeClass.Equals(autoGenAttribute, SymbolEqualityComparer.Default)) is { } attr)
+        {
             return;
+        }
 
         // Determine which type of access is happening here... Read, write or execute?
         var accessAttempt = DetermineAccess(context, targetAccess, operation);
@@ -100,7 +104,9 @@ public class AccessAnalyzer : DiagnosticAnalyzer
         {
             // If the attribute isn't the friend attribute, we don't care about it.
             if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, friendAttribute))
+            {
                 return false;
+            }
 
             var self = AccessAttribute.SelfDefaultPermissions;
             var friends = AccessAttribute.FriendDefaultPermissions;
@@ -109,29 +115,31 @@ public class AccessAnalyzer : DiagnosticAnalyzer
             foreach (var kv in attribute.NamedArguments)
             {
                 if (kv.Value.Value is not byte value)
+                {
                     continue;
+                }
 
                 var permissions = (AccessPermissions)value;
 
                 switch (kv.Key)
                 {
                     case nameof(AccessAttribute.Self):
-                    {
-                        self = permissions;
-                        break;
-                    }
+                        {
+                            self = permissions;
+                            break;
+                        }
 
                     case nameof(AccessAttribute.Friend):
-                    {
-                        friends = permissions;
-                        break;
-                    }
+                        {
+                            friends = permissions;
+                            break;
+                        }
 
                     case nameof(AccessAttribute.Other):
-                    {
-                        others = permissions;
-                        break;
-                    }
+                        {
+                            others = permissions;
+                            break;
+                        }
 
                     default:
                         continue;
@@ -154,11 +162,15 @@ public class AccessAnalyzer : DiagnosticAnalyzer
                 {
                     // Check if the value is a type...
                     if (constant.Value is not INamedTypeSymbol friendType)
+                    {
                         continue;
+                    }
 
                     // Check if the accessing type is specified in the attribute...
                     if (!InheritsFromOrEquals(accessingType, friendType))
+                    {
                         continue;
+                    }
 
                     // Set the permissions check to the friend permissions!
                     permissionCheck = friends;
@@ -175,7 +187,9 @@ public class AccessAnalyzer : DiagnosticAnalyzer
 
             // If we allow this access, return! All is good.
             if ((accessAttempt & permissionCheck) != 0)
+            {
                 return true;
+            }
 
             // Access denied! Report an error.
             context.ReportDiagnostic(
@@ -192,13 +206,21 @@ public class AccessAnalyzer : DiagnosticAnalyzer
 
         // Check attributes in the member first, since they take priority and can override type restrictions.
         foreach (var attribute in member.GetAttributes())
+        {
             if (CheckAttributeFriendship(attribute, true))
+            {
                 return;
+            }
+        }
 
         // Check attributes in the type containing the member last.
         foreach (var attribute in accessedType.GetAttributes())
+        {
             if (CheckAttributeFriendship(attribute, false))
+            {
                 return;
+            }
+        }
     }
 
     private static AccessPermissions DetermineAccess(OperationAnalysisContext context, IOperation operation,
@@ -207,39 +229,47 @@ public class AccessAnalyzer : DiagnosticAnalyzer
         switch (operation)
         {
             case IAssignmentOperation assign:
-            {
-                return assign.Target.Equals(original) ? AccessPermissions.Write : AccessPermissions.Read;
-            }
+                {
+                    return assign.Target.Equals(original) ? AccessPermissions.Write : AccessPermissions.Read;
+                }
 
             case IInvocationOperation invoke:
-            {
-                var pureAttribute = context.Compilation.GetTypeByMetadataName(PureAttributeType);
+                {
+                    var pureAttribute = context.Compilation.GetTypeByMetadataName(PureAttributeType);
 
-                foreach (var attribute in invoke.TargetMethod.GetAttributes())
-                    // Pure methods are treated as read accesses.
-                    if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, pureAttribute))
-                        return AccessPermissions.Read;
+                    foreach (var attribute in invoke.TargetMethod.GetAttributes())
+                    {
+                        // Pure methods are treated as read accesses.
+                        if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, pureAttribute))
+                        {
+                            return AccessPermissions.Read;
+                        }
+                    }
 
-                return AccessPermissions.Execute;
-            }
+                    return AccessPermissions.Execute;
+                }
 
             case IMemberReferenceOperation member:
-            {
-                return DetermineAccess(context, member.Parent, operation);
-            }
+                {
+                    return DetermineAccess(context, member.Parent, operation);
+                }
 
             default:
-            {
-                return AccessPermissions.Read;
-            }
+                {
+                    return AccessPermissions.Read;
+                }
         }
     }
 
     private bool InheritsFromOrEquals(INamedTypeSymbol type, INamedTypeSymbol baseType)
     {
         foreach (var otherType in GetBaseTypesAndThis(type))
+        {
             if (SymbolEqualityComparer.Default.Equals(otherType, baseType))
+            {
                 return true;
+            }
+        }
 
         return false;
     }

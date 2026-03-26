@@ -61,21 +61,29 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         context.RegisterCompilationStartAction(static ctx =>
         {
             if (ctx.Compilation.GetTypeByMetadataName(ProxyForAttributeType) is not { } proxyForAttributeType)
+            {
                 return;
+            }
 
             ctx.RegisterSymbolStartAction(symbolContext =>
             {
                 // We only care about classes
                 if (symbolContext.Symbol is not INamedTypeSymbol typeSymbol || typeSymbol.TypeKind != TypeKind.Class)
+                {
                     return;
+                }
 
                 // Find information about all marked proxy methods available to this class
                 if (!TryGetProxyMethods(typeSymbol, proxyForAttributeType, out var proxyMethods))
+                {
                     return;
+                }
 
                 // No proxy methods are available to this class, so we're done
                 if (proxyMethods.Length == 0)
+                {
                     return;
+                }
 
                 // Pass proxy method information to the analyzer state
                 var state = new AnalyzerState(proxyMethods);
@@ -107,7 +115,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 
         // Don't fault the proxy type for not using its own proxy methods
         if (typeSymbol.BaseType is null)
+        {
             return false;
+        }
 
         HashSet<ProxyMethod> proxySet = [];
         // Search for methods in each type this inherits from
@@ -119,11 +129,15 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             {
                 // We only care about methods
                 if (member is not IMethodSymbol method)
+                {
                     continue;
+                }
 
                 // Make sure the method is marked as a proxy
                 if (!AttributeHelper.HasAttribute(method, proxyForAttribute, out var attributeData))
+                {
                     continue;
+                }
 
                 var targetType = attributeData.ConstructorArguments[0].Value as INamedTypeSymbol;
                 var targetMethod = attributeData.ConstructorArguments[1].Value as string ?? member.Name;
@@ -135,7 +149,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         }
 
         if (proxySet.Count == 0)
+        {
             return false;
+        }
 
         proxyMethods = proxySet.ToArray();
         return true;
@@ -146,15 +162,21 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         public void AnalyzeInvocation(OperationAnalysisContext context)
         {
             if (context.Operation is not IInvocationOperation operation)
+            {
                 return;
+            }
 
             // Make sure the invocation is happening on a member, not a parameter or something else
             if (operation.Instance is not IMemberReferenceOperation reference)
+            {
                 return;
+            }
 
             // Make sure the member belongs to the proxy class
             if (!TypeSymbolHelper.Inherits(context.ContainingSymbol.ContainingType, reference.Member.ContainingType))
+            {
                 return;
+            }
 
             // Get the method being invoked
             var invokedMethod = operation.TargetMethod;
@@ -164,15 +186,21 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             {
                 // Make sure the Type specified by the attribute is the one containing the method being invoked
                 if (!SymbolEqualityComparer.Default.Equals(targetType, invokedMethod.ContainingType))
+                {
                     continue;
+                }
 
                 // Make sure the method name specified by the attribute is same as the one being invoked
                 if (targetMethod != invokedMethod.Name)
+                {
                     continue;
+                }
 
                 // Make sure this method has the same signature as the one being invoked
                 if (!DoSignaturesMatch(invokedMethod, method))
+                {
                     continue;
+                }
 
                 var props = new Dictionary<string, string?>
                 {
@@ -199,24 +227,36 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeAttribute(OperationAnalysisContext context, INamedTypeSymbol proxyForAttribute)
     {
         if (context.ContainingSymbol is not IMethodSymbol methodSymbol)
+        {
             return;
+        }
 
         if (context.Operation is not IAttributeOperation operation)
+        {
             return;
+        }
 
         if (operation.Syntax is not AttributeSyntax attributeSyntax)
+        {
             return;
+        }
 
         if (operation.Operation is not IObjectCreationOperation creationOperation)
+        {
             return;
+        }
 
         // Make sure we're looking at the right attribute
         if (!SymbolEqualityComparer.Default.Equals(creationOperation.Type, proxyForAttribute))
+        {
             return;
+        }
 
         // Get the target Type specified by the attribute
         if ((creationOperation.Arguments[0].Value as ITypeOfOperation)?.TypeOperand is not { } targetType)
+        {
             return;
+        }
 
         // Try to get the set method name from the attribute constructor
         var targetMethodName = creationOperation.Arguments[1].Value.ConstantValue.Value as string;
@@ -242,8 +282,13 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         // Make sure there's a method with the right name and matching signature
         var found = false;
         foreach (var member in members)
+        {
             if (DoSignaturesMatch(member, methodSymbol))
+            {
                 found = true;
+            }
+        }
+
         if (!found)
         {
             var methodParams = methodSymbol.Parameters.Length > 0
@@ -262,7 +307,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     {
         // Make sure the number of type arguments is the same
         if (first.TypeArguments.Length != second.TypeArguments.Length)
+        {
             return false;
+        }
 
         // Make sure any type constraints on the methods are the same
         for (var i = 0; i < first.TypeParameters.Length; i++)
@@ -270,13 +317,19 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             var firstConstraints = first.TypeParameters[i].ConstraintTypes;
             var secondConstraints = second.TypeParameters[i].ConstraintTypes;
             for (var j = 0; j < firstConstraints.Length; j++)
+            {
                 if (!SymbolEqualityComparer.Default.Equals(firstConstraints[j], secondConstraints[j]))
+                {
                     return false;
+                }
+            }
         }
 
         // Convert any type arguments in second to use the types of first
         if (second.IsGenericMethod)
+        {
             second = second.Construct(first.TypeArguments, first.TypeArgumentNullableAnnotations);
+        }
 
         // Filter out any optional parameters
         var firstParams = first.Parameters.Where(p => !p.IsOptional).ToArray();
@@ -284,7 +337,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 
         // A different number of parameters means no match
         if (firstParams.Length != secondParams.Length)
+        {
             return false;
+        }
 
         for (var i = 0; i < firstParams.Length; i++)
         {
@@ -293,7 +348,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             {
                 // If the compared parameter also is a generic type symbol, consider that a match
                 if (secondParams[i].Type is INamedTypeSymbol namedTypeSecond && namedTypeSecond.IsGenericType)
+                {
                     continue;
+                }
 
                 // Otherwise, no match
                 return false;
@@ -301,7 +358,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 
             // Make sure the Types match
             if (!SymbolEqualityComparer.IncludeNullability.Equals(firstParams[i].Type, secondParams[i].Type))
+            {
                 return false;
+            }
         }
 
         return true;

@@ -2,6 +2,8 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Client.Input;
 
+// TODO: This is a very basic interface and will likely need to be expanded and improved.
+
 /// <summary>Samples player input each fixed tick. Subclass for SDL, gamepad, or other backends.</summary>
 public abstract class InputCollector
 {

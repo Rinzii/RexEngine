@@ -33,47 +33,46 @@ internal sealed class CommandLineArgs
         while (enumerator.MoveNext())
         {
             var arg = enumerator.Current;
-            if (arg == "--headless")
+            switch (arg)
             {
-                headless = true;
-            }
-            else if (arg == "--listen")
-            {
-                listenServer = true;
-            }
-            else if (arg == "--standalone")
-            {
-                standalone = true;
-            }
-            else if (arg == "--connect")
-            {
-                if (!enumerator.MoveNext())
-                {
+                case "--headless":
+                    headless = true;
+                    break;
+                case "--listen":
+                    listenServer = true;
+                    break;
+                case "--standalone":
+                    standalone = true;
+                    break;
+                case "--connect" when !enumerator.MoveNext():
                     Console.WriteLine("Missing connect address!");
                     return false;
-                }
-
-                connectAddress = enumerator.Current;
-            }
-            else if (arg == "--port")
-            {
-                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
-                {
+                case "--connect":
+                    connectAddress = enumerator.Current;
+                    break;
+                case "--port" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port):
                     Console.WriteLine("Missing or invalid port!");
                     return false;
-                }
             }
         }
 
         NetMode mode;
         if (standalone)
+        {
             mode = NetMode.Standalone;
+        }
         else if (connectAddress != null)
+        {
             mode = NetMode.Client;
+        }
         else if (listenServer)
+        {
             mode = NetMode.ListenServer;
+        }
         else
+        {
             mode = NetMode.Standalone;
+        }
 
         parsed = new CommandLineArgs(headless, mode, connectAddress, port);
         return true;

@@ -85,11 +85,17 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        if (this.array is not T[] array) return 0;
+        if (this.array is not T[] array)
+        {
+            return 0;
+        }
 
         HashCode hashCode = default;
 
-        foreach (var item in array) hashCode.Add(item);
+        foreach (var item in array)
+        {
+            hashCode.Add(item);
+        }
 
         return hashCode.ToHashCode();
     }

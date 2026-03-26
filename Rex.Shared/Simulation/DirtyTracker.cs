@@ -29,11 +29,15 @@ public sealed class DirtyTracker
     public HashSet<int>? GetDirtyEntities(uint fromTick, uint toTick)
     {
         if (toTick <= fromTick)
+        {
             return new HashSet<int>();
+        }
 
         var range = toTick - fromTick;
         if (range >= (uint)_dirtyBuffer.Capacity)
+        {
             return null;
+        }
 
         var result = new HashSet<int>();
         // Walk each tick in the ack gap. Skip empty or stale ring slots (wrong tick means reused bucket).
@@ -41,10 +45,14 @@ public sealed class DirtyTracker
         {
             var slot = _dirtyBuffer.GetSlot(tick);
             if (!slot.IsAssigned || slot.Tick != tick)
+            {
                 continue;
+            }
 
             foreach (var entityId in slot.Value)
+            {
                 result.Add(entityId);
+            }
         }
 
         return result;

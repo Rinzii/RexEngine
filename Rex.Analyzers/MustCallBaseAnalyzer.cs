@@ -37,21 +37,31 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeSymbol(SymbolAnalysisContext context)
     {
         if (context.Symbol is not IMethodSymbol { IsOverride: true } method)
+        {
             return;
+        }
 
         var attrSymbol = context.Compilation.GetTypeByMetadataName(Attribute);
         if (attrSymbol == null)
+        {
             return;
+        }
 
         if (DoesMethodOverriderHaveAttribute(method, attrSymbol) is not { } data)
+        {
             return;
+        }
 
         if (data is { onlyOverrides: true, depth: < 2 })
+        {
             return;
+        }
 
         var syntax = (MethodDeclarationSyntax)method.DeclaringSyntaxReferences[0].GetSyntax();
         if (HasBaseCall(syntax))
+        {
             return;
+        }
 
         var diag = Diagnostic.Create(Rule, syntax.Identifier.GetLocation());
         context.ReportDiagnostic(diag);
@@ -67,7 +77,9 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
             depth += 1;
             method = method.OverriddenMethod;
             if (GetAttribute(method, attributeSymbol) is not { } attribute)
+            {
                 continue;
+            }
 
             var onlyOverrides = attribute.ConstructorArguments is [{ Kind: TypedConstantKind.Primitive, Value: true }];
             return (depth, onlyOverrides);
@@ -99,10 +111,14 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
             foreach (var childNode in node.ChildNodes())
             {
                 if (childNode is not CSharpSyntaxNode cSharpSyntax)
+                {
                     continue;
+                }
 
                 if (cSharpSyntax.Accept(this))
+                {
                     return true;
+                }
             }
 
             return false;

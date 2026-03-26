@@ -9,7 +9,9 @@ internal static class Program
     internal static void Main(string[] args)
     {
         if (!CommandLineArgs.TryParse(args, out var parsed))
+        {
             return;
+        }
 
         using var loggerFactory = LoggerFactory.Create(builder =>
         {

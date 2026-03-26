@@ -48,9 +48,17 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 
     private bool Marked(INamedTypeSymbol namedTypeSymbol, INamedTypeSymbol attrSymbol)
     {
-        if (namedTypeSymbol == null) return false;
+        if (namedTypeSymbol == null)
+        {
+            return false;
+        }
+
         if (namedTypeSymbol.GetAttributes()
-            .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attrSymbol))) return true;
+            .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attrSymbol)))
+        {
+            return true;
+        }
+
         return Marked(namedTypeSymbol.BaseType, attrSymbol);
     }
 
@@ -59,7 +67,10 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
         var attrSymbol = context.Compilation.GetTypeByMetadataName(RequiresSerializableAttributeMetadataName);
         var classDecl = (ClassDeclarationSyntax)context.Node;
         var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
-        if (classSymbol == null) return;
+        if (classSymbol == null)
+        {
+            return;
+        }
 
         if (Marked(classSymbol, attrSymbol))
         {
@@ -74,8 +85,15 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
             if (!hasSerAttr || !hasNetSerAttr)
             {
                 var requiredAttributes = new List<string>();
-                if (!hasSerAttr) requiredAttributes.Add(SerializableAttributeMetadataName);
-                if (!hasNetSerAttr) requiredAttributes.Add(NetSerializableAttributeMetadataName);
+                if (!hasSerAttr)
+                {
+                    requiredAttributes.Add(SerializableAttributeMetadataName);
+                }
+
+                if (!hasNetSerAttr)
+                {
+                    requiredAttributes.Add(NetSerializableAttributeMetadataName);
+                }
 
                 context.ReportDiagnostic(
                     Diagnostic.Create(
@@ -107,7 +125,10 @@ public class SerializableCodeFixProvider : CodeFixProvider
             var classDecl = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<ClassDeclarationSyntax>()
                 .First();
 
-            if (!diagnostic.Properties.TryGetValue("requiredAttributes", out var requiredAttributes)) return;
+            if (!diagnostic.Properties.TryGetValue("requiredAttributes", out var requiredAttributes))
+            {
+                return;
+            }
 
             context.RegisterCodeFix(
                 CodeAction.Create(
@@ -140,7 +161,11 @@ public class SerializableCodeFixProvider : CodeFixProvider
 
         foreach (var ns in namespaces)
         {
-            if (root.Usings.Any(u => u.Name.ToString() == ns)) continue;
+            if (root.Usings.Any(u => u.Name.ToString() == ns))
+            {
+                continue;
+            }
+
             root = root.AddUsings(SyntaxFactory.UsingDirective(SyntaxFactory.ParseName(ns)));
         }
 

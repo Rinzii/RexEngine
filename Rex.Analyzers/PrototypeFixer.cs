@@ -21,11 +21,13 @@ public sealed class PrototypeFixer : CodeFixProvider
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         foreach (var diagnostic in context.Diagnostics)
+        {
             switch (diagnostic.Id)
             {
                 case IdPrototypeRedundantType:
                     return RegisterRemoveType(context, diagnostic);
             }
+        }
 
         return Task.CompletedTask;
     }
@@ -37,7 +39,9 @@ public sealed class PrototypeFixer : CodeFixProvider
         var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<AttributeArgumentSyntax>().First();
 
         if (token == null)
+        {
             return;
+        }
 
         context.RegisterCodeFix(CodeAction.Create(
             "Remove explicitly set type",
@@ -52,13 +56,17 @@ public sealed class PrototypeFixer : CodeFixProvider
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
 
         if (syntax.Parent is not AttributeArgumentListSyntax argListSyntax)
+        {
             return document;
+        }
 
         if (argListSyntax.Arguments.Count == 1)
         {
             // If this is the only argument, remove the whole argument list so we don't leave empty parentheses
             if (argListSyntax.Parent is not AttributeSyntax attributeSyntax)
+            {
                 return document;
+            }
 
             var newAttributeSyntax = attributeSyntax.RemoveNode(argListSyntax, SyntaxRemoveOptions.KeepNoTrivia);
             root = root!.ReplaceNode(attributeSyntax, newAttributeSyntax!);

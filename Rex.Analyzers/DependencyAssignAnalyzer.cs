@@ -31,19 +31,27 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
     private static void CheckAssignment(OperationAnalysisContext context)
     {
         if (context.Operation is not ISimpleAssignmentOperation assignment)
+        {
             return;
+        }
 
         if (assignment.Target is not IFieldReferenceOperation fieldRef)
+        {
             return;
+        }
 
         var field = fieldRef.Field;
         var attributes = field.GetAttributes();
         if (attributes.Length == 0)
+        {
             return;
+        }
 
         var depAttribute = context.Compilation.GetTypeByMetadataName(DependencyAttributeType);
         if (!HasAttribute(attributes, depAttribute))
+        {
             return;
+        }
 
         context.ReportDiagnostic(Diagnostic.Create(Rule, assignment.Syntax.GetLocation(), field.Name));
     }
@@ -51,8 +59,12 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
     private static bool HasAttribute(ImmutableArray<AttributeData> attributes, ISymbol symbol)
     {
         foreach (var attribute in attributes)
+        {
             if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, symbol))
+            {
                 return true;
+            }
+        }
 
         return false;
     }

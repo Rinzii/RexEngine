@@ -120,7 +120,10 @@ public struct HashCode
         }
         else
         {
-            if (previousLength == 3) Initialize(out v1, out v2, out v3, out v4);
+            if (previousLength == 3)
+            {
+                Initialize(out v1, out v2, out v3, out v4);
+            }
 
             v1 = Round(v1, queue1);
             v2 = Round(v2, queue2);
@@ -149,7 +152,10 @@ public struct HashCode
             {
                 hash = QueueRound(hash, queue2);
 
-                if (position > 2) hash = QueueRound(hash, queue3);
+                if (position > 2)
+                {
+                    hash = QueueRound(hash, queue3);
+                }
             }
         }
 

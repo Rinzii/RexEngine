@@ -36,27 +36,36 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
     private void AnalyzeOperation(OperationAnalysisContext context)
     {
         if (context.Operation is not IInvocationOperation invocationOperation)
+        {
             return;
+        }
 
         // Check each parameter of the method invocation
         foreach (var argumentOperation in invocationOperation.Arguments)
         {
             // Check for our attribute on the parameter
             if (!AttributeHelper.HasAttribute(argumentOperation.Parameter, ForbidLiteralType, out _))
+            {
                 continue;
+            }
 
             // Handle parameters using the params keyword
             if (argumentOperation.Syntax is InvocationExpressionSyntax subExpressionSyntax)
             {
                 // Check each param value
                 foreach (var subArgument in subExpressionSyntax.ArgumentList.Arguments)
+                {
                     CheckArgumentSyntax(context, argumentOperation, subArgument);
+                }
+
                 continue;
             }
 
             // Not params, so just check the single parameter
             if (argumentOperation.Syntax is not ArgumentSyntax argumentSyntax)
+            {
                 continue;
+            }
 
             CheckArgumentSyntax(context, argumentOperation, argumentSyntax);
         }
@@ -72,11 +81,15 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
             foreach (var elementSyntax in collectionExpressionSyntax.Elements)
             {
                 if (elementSyntax is not ExpressionElementSyntax expressionSyntax)
+                {
                     continue;
+                }
 
                 // Check if a literal was passed in
                 if (expressionSyntax.Expression is not LiteralExpressionSyntax)
+                {
                     continue;
+                }
 
                 context.ReportDiagnostic(Diagnostic.Create(ForbidLiteralRule,
                     expressionSyntax.GetLocation(),
@@ -91,7 +104,9 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         // Not a collection, just a single value to check
         // Check if it's a literal
         if (argumentSyntax.Expression is not LiteralExpressionSyntax)
+        {
             return;
+        }
 
         context.ReportDiagnostic(Diagnostic.Create(ForbidLiteralRule,
             argumentSyntax.GetLocation(),

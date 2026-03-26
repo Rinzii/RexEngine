@@ -70,10 +70,14 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
                 .Cast<IMethodSymbol>();
 
             if (raiseMethods == null)
+            {
                 return;
+            }
 
             if (busRaiseMethods != null)
+            {
                 raiseMethods = raiseMethods.Concat(busRaiseMethods);
+            }
 
             var raiseMethodsArray = raiseMethods.ToArray();
 
@@ -88,10 +92,14 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         IReadOnlyCollection<IMethodSymbol> raiseMethods)
     {
         if (context.Operation is not IInvocationOperation operation)
+        {
             return;
+        }
 
         if (!operation.TargetMethod.Name.Contains("RaiseLocalEvent"))
+        {
             return;
+        }
 
         if (!raiseMethods.Any(m => m.Equals(operation.TargetMethod.OriginalDefinition, Default)))
         {
@@ -100,7 +108,9 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
             // I don't know man
             const string directedBusMethod = "Rex.Shared.GameObjects.IDirectedEventBus.RaiseLocalEvent";
             if (!operation.TargetMethod.ToString().StartsWith(directedBusMethod))
+            {
                 return;
+            }
         }
 
         var arguments = operation.Arguments;
@@ -123,11 +133,15 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         if (eventParameter == null ||
             eventParameter.Type.SpecialType == SpecialType.System_Object ||
             eventParameter.Type.TypeKind == TypeKind.TypeParameter)
+        {
             return;
+        }
 
         var byRefAttribute = context.Compilation.GetTypeByMetadataName(ByRefAttribute);
         if (byRefAttribute == null)
+        {
             return;
+        }
 
         var isByRefEventType = eventParameter.Type
             .GetAttributes()

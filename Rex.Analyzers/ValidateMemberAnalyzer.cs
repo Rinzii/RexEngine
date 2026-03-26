@@ -34,52 +34,68 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
     private void AnalyzeOperation(OperationAnalysisContext context)
     {
         if (context.Operation is not IInvocationOperation node)
+        {
             return;
+        }
 
         var methodSymbol = node.TargetMethod;
 
         // We need at least one type argument for context
         if (methodSymbol.TypeArguments.Length < 1)
+        {
             return;
+        }
 
         // We'll be checking members of the first type argument
         if (methodSymbol.TypeArguments[0] is not INamedTypeSymbol targetType)
+        {
             return;
+        }
 
         // Check each parameter of the method
         foreach (var op in node.Arguments)
         {
             if (op.Parameter is null)
+            {
                 continue;
+            }
 
             var parameterSymbol = op.Parameter.OriginalDefinition;
 
             // Make sure the parameter has the ValidateMember attribute
             if (!AttributeHelper.HasAttribute(parameterSymbol, ValidateMemberType, out _))
+            {
                 continue;
+            }
 
             // Find the value passed for this parameter.
             // We use GetConstantValue to resolve compile-time values - i.e. the result of nameof()
             if (op.Value.ConstantValue is not { HasValue: true, Value: string fieldName })
+            {
                 continue;
+            }
 
             // Check each member of the target type to see if it matches our passed in value
             var found = false;
             foreach (var member in targetType.GetMembers())
+            {
                 if (member.Name == fieldName)
                 {
                     found = true;
                     break;
                 }
+            }
 
             // If we didn't find it, report the violation
             if (!found)
+            {
                 context.ReportDiagnostic(Diagnostic.Create(
                     ValidateMemberDescriptor,
                     op.Syntax.GetLocation(),
                     fieldName,
                     targetType.Name
                 ));
+            }
         }
     }
 }

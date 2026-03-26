@@ -45,7 +45,9 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
             var netSerializableAttribute = ctx.Compilation.GetTypeByMetadataName(NetSerializableAttributeType);
 
             if (prototypeInterface == null || netSerializableAttribute == null)
+            {
                 return;
+            }
 
             ctx.RegisterSymbolAction(
                 symbolContext => CheckClass(prototypeInterface, netSerializableAttribute, symbolContext),
@@ -59,17 +61,25 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
         SymbolAnalysisContext symbolContext)
     {
         if (symbolContext.Symbol is not INamedTypeSymbol symbol)
+        {
             return;
+        }
 
         if (!TypeSymbolHelper.ImplementsInterface(symbol, prototypeInterface))
+        {
             return;
+        }
 
         if (AttributeHelper.HasAttribute(symbol, netSerializableAttribute, out _))
+        {
             symbolContext.ReportDiagnostic(
                 Diagnostic.Create(RuleNetSerializable, symbol.Locations[0], symbol.ToDisplayString()));
+        }
 
         if (symbol.IsSerializable)
+        {
             symbolContext.ReportDiagnostic(
                 Diagnostic.Create(RuleSerializable, symbol.Locations[0], symbol.ToDisplayString()));
+        }
     }
 }

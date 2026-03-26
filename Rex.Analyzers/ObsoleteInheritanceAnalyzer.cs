@@ -39,32 +39,44 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
     private static void CheckClass(SymbolAnalysisContext context)
     {
         if (context.Symbol is not INamedTypeSymbol typeSymbol)
+        {
             return;
+        }
 
         if (typeSymbol.IsValueType || typeSymbol.BaseType is not { } baseType)
+        {
             return;
+        }
 
         if (!AttributeHelper.HasAttribute(baseType, Attribute, out var data))
+        {
             return;
+        }
 
         var location = context.Symbol.Locations[0];
 
         if (GetMessageFromAttributeData(data) is { } message)
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 RuleWithMessage,
                 location,
                 [typeSymbol.Name, baseType.Name, message]));
+        }
         else
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 location,
                 [typeSymbol.Name, baseType.Name]));
+        }
     }
 
     private static string? GetMessageFromAttributeData(AttributeData data)
     {
         if (data.ConstructorArguments is not [var message, ..])
+        {
             return null;
+        }
 
         return message.Value as string;
     }

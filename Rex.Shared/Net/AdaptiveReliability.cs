@@ -13,7 +13,9 @@ public static class AdaptiveReliability
     public static (byte Channel, DeliveryMethod Delivery) GetAdaptiveDelivery(INetMessage message)
     {
         if (message.Group != MessageGroup.Entity)
+        {
             return message.Group.GetDeliveryInfo();
+        }
 
         // Measure serialized size without sending (same bytes as on the wire after the header).
         var writer = new NetDataWriter();

@@ -16,18 +16,26 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
         var implAttr = context.Compilation.GetTypeByMetadataName(MeansImplicitAssignmentAttribute);
         foreach (var reportedDiagnostic in context.ReportedDiagnostics)
         {
-            if (reportedDiagnostic.Id != Diagnostics.MeansImplicitAssignment.SuppressedDiagnosticId) continue;
+            if (reportedDiagnostic.Id != Diagnostics.MeansImplicitAssignment.SuppressedDiagnosticId)
+            {
+                continue;
+            }
 
             var node = reportedDiagnostic.Location.SourceTree?.GetRoot(context.CancellationToken)
                 .FindNode(reportedDiagnostic.Location.SourceSpan);
-            if (node == null) continue;
+            if (node == null)
+            {
+                continue;
+            }
 
             var symbol = context.GetSemanticModel(reportedDiagnostic.Location.SourceTree).GetDeclaredSymbol(node);
 
             if (symbol == null || !symbol.GetAttributes().Any(a =>
                     a.AttributeClass?.GetAttributes().Any(attr =>
                         SymbolEqualityComparer.Default.Equals(attr.AttributeClass, implAttr)) == true))
+            {
                 continue;
+            }
 
             context.ReportSuppression(Suppression.Create(
                 Diagnostics.MeansImplicitAssignment,

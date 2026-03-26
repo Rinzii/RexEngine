@@ -116,10 +116,14 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         context.RegisterSymbolStartAction(symbolContext =>
         {
             if (symbolContext.Symbol is not INamedTypeSymbol typeSymbol)
+            {
                 return;
+            }
 
             if (!IsDataDefinition(typeSymbol))
+            {
                 return;
+            }
 
             symbolContext.RegisterSyntaxNodeAction(AnalyzeDataDefinition, SyntaxKind.ClassDeclaration);
             symbolContext.RegisterSyntaxNodeAction(AnalyzeDataDefinition, SyntaxKind.StructDeclaration);
@@ -135,14 +139,20 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeDataDefinition(SyntaxNodeAnalysisContext context)
     {
         if (context.Node is not TypeDeclarationSyntax declaration)
+        {
             return;
+        }
 
         if (context.ContainingSymbol is not INamedTypeSymbol type)
+        {
             return;
+        }
 
         if (!IsPartial(declaration))
+        {
             context.ReportDiagnostic(Diagnostic.Create(DataDefinitionPartialRule, declaration.Keyword.GetLocation(),
                 type.Name));
+        }
 
         var containingType = type.ContainingType;
         while (containingType != null)
@@ -150,8 +160,10 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             var containingTypeDeclaration =
                 (TypeDeclarationSyntax)containingType.DeclaringSyntaxReferences[0].GetSyntax();
             if (!IsPartial(containingTypeDeclaration))
+            {
                 context.ReportDiagnostic(Diagnostic.Create(NestedDataDefinitionPartialRule,
                     containingTypeDeclaration.Keyword.GetLocation(), containingType.Name, type.Name));
+            }
 
             containingType = containingType.ContainingType;
         }
@@ -160,20 +172,28 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeDataField(SyntaxNodeAnalysisContext context)
     {
         if (context.Node is not FieldDeclarationSyntax field)
+        {
             return;
+        }
 
         if (context.ContainingSymbol?.ContainingType is not INamedTypeSymbol type)
+        {
             return;
+        }
 
         foreach (var variable in field.Declaration.Variables)
         {
             var fieldSymbol = context.SemanticModel.GetDeclaredSymbol(variable);
 
             if (fieldSymbol == null)
+            {
                 continue;
+            }
 
             if (!IsDataField(fieldSymbol, out _, out var datafieldAttribute))
+            {
                 continue;
+            }
 
             if (IsReadOnlyDataField(type, fieldSymbol))
             {
@@ -197,39 +217,55 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             }
 
             if (context.SemanticModel.GetSymbolInfo(field.Declaration.Type).Symbol is not ITypeSymbol fieldTypeSymbol)
+            {
                 continue;
+            }
 
             fieldTypeSymbol = TypeSymbolHelper.GetNullableUnderlyingTypeOrSelf(fieldTypeSymbol);
 
             if (IsNotYamlSerializable(fieldSymbol, fieldTypeSymbol))
+            {
                 context.ReportDiagnostic(Diagnostic.Create(DataFieldYamlSerializableRule,
                     (context.Node as FieldDeclarationSyntax)?.Declaration.Type.GetLocation(),
                     fieldSymbol.Name,
                     type.Name,
                     fieldTypeSymbol.MetadataName
                 ));
+            }
         }
     }
 
     private static void AnalyzeDataFieldProperty(SyntaxNodeAnalysisContext context)
     {
         if (context.Node is not PropertyDeclarationSyntax property)
+        {
             return;
+        }
 
         if (context.ContainingSymbol is not IPropertySymbol propertySymbol)
+        {
             return;
+        }
 
         if (propertySymbol.ContainingType is not INamedTypeSymbol type)
+        {
             return;
+        }
 
         if (type.IsRecord || type.IsValueType)
+        {
             return;
+        }
 
         if (propertySymbol == null)
+        {
             return;
+        }
 
         if (!IsDataField(propertySymbol, out _, out var datafieldAttribute))
+        {
             return;
+        }
 
         if (IsReadOnlyDataField(type, propertySymbol))
         {
@@ -253,17 +289,21 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         }
 
         if (context.SemanticModel.GetSymbolInfo(property.Type).Symbol is not ITypeSymbol propertyTypeSymbol)
+        {
             return;
+        }
 
         propertyTypeSymbol = TypeSymbolHelper.GetNullableUnderlyingTypeOrSelf(propertyTypeSymbol);
 
         if (IsNotYamlSerializable(propertySymbol, propertyTypeSymbol))
+        {
             context.ReportDiagnostic(Diagnostic.Create(DataFieldYamlSerializableRule,
                 (context.Node as PropertyDeclarationSyntax)?.Type.GetLocation(),
                 propertySymbol.Name,
                 type.Name,
                 propertyTypeSymbol.Name
             ));
+        }
     }
 
     private static bool IsReadOnlyDataField(ITypeSymbol type, ISymbol field)
@@ -279,7 +319,9 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool IsDataDefinition(ITypeSymbol? type)
     {
         if (type == null)
+        {
             return false;
+        }
 
         return HasAttribute(type, DataDefinitionNamespace) ||
                MeansDataDefinition(type) ||
@@ -292,22 +334,26 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         if (member is IFieldSymbol field)
         {
             foreach (var attr in field.GetAttributes())
+            {
                 if (attr.AttributeClass != null && Inherits(attr.AttributeClass, DataFieldBaseNamespace))
                 {
                     type = field.Type;
                     attribute = attr;
                     return true;
                 }
+            }
         }
         else if (member is IPropertySymbol property)
         {
             foreach (var attr in property.GetAttributes())
+            {
                 if (attr.AttributeClass != null && Inherits(attr.AttributeClass, DataFieldBaseNamespace))
                 {
                     type = property.Type;
                     attribute = attr;
                     return true;
                 }
+            }
         }
 
         type = null!;
@@ -318,8 +364,12 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool Inherits(ITypeSymbol type, string parent)
     {
         foreach (var baseType in GetBaseTypes(type))
+        {
             if (baseType.ToDisplayString() == parent)
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -328,13 +378,17 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         out Location location)
     {
         foreach (var attributeList in syntax.AttributeLists)
-        foreach (var attribute in attributeList.Attributes)
         {
-            if (attribute.Name.ToString() != attributeName)
-                continue;
+            foreach (var attribute in attributeList.Attributes)
+            {
+                if (attribute.Name.ToString() != attributeName)
+                {
+                    continue;
+                }
 
-            location = attribute.GetLocation();
-            return true;
+                location = attribute.GetLocation();
+                return true;
+            }
         }
 
         // Default to the declaration syntax's location
@@ -346,11 +400,13 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         out Location location)
     {
         foreach (var modifier in syntax.Modifiers)
+        {
             if (modifier.IsKind(modifierKind))
             {
                 location = modifier.GetLocation();
                 return true;
             }
+        }
 
         location = syntax.GetLocation();
         return false;
@@ -365,10 +421,14 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         else if (member is IPropertySymbol property)
         {
             if (property.SetMethod == null)
+            {
                 return true;
+            }
 
             if (property.SetMethod.IsInitOnly)
+            {
                 return type.IsReferenceType;
+            }
 
             return false;
         }
@@ -379,8 +439,12 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool HasAttribute(ITypeSymbol type, string attributeName)
     {
         foreach (var attribute in type.GetAttributes())
+        {
             if (attribute.AttributeClass?.ToDisplayString() == attributeName)
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -389,14 +453,18 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     {
         // No args, no problem
         if (datafieldAttribute.ConstructorArguments.Length == 0)
+        {
             return false;
+        }
 
         // If a tag is explicitly specified, it will be the first argument...
         var tagArgument = datafieldAttribute.ConstructorArguments[0];
         // ...but the first arg could also be something else, since tag is optional
         // so we make sure that it's a string
         if (tagArgument.Value is not string explicitName)
+        {
             return false;
+        }
 
         // Get the name that sourcegen would provide
         var automaticName = DataDefinitionUtility.AutoGenerateTag(symbol.Name);
@@ -410,19 +478,29 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         // Make sure it has ViewVariablesAttribute
         AttributeData? viewVariablesAttribute = null;
         foreach (var attr in symbol.GetAttributes())
+        {
             if (attr.AttributeClass?.ToDisplayString() == ViewVariablesNamespace)
+            {
                 viewVariablesAttribute = attr;
+            }
+        }
 
         if (viewVariablesAttribute == null)
+        {
             return false;
+        }
 
         // Default is ReadOnly, which is fine
         if (viewVariablesAttribute.ConstructorArguments.Length == 0)
+        {
             return false;
+        }
 
         var accessArgument = viewVariablesAttribute.ConstructorArguments[0];
         if (accessArgument.Value is not byte accessByte)
+        {
             return false;
+        }
 
         return (VVAccess)accessByte == VVAccess.ReadWrite;
     }
@@ -432,10 +510,14 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         foreach (var attribute in type.GetAttributes())
         {
             if (attribute.AttributeClass is null)
+            {
                 continue;
+            }
 
             if (HasAttribute(attribute.AttributeClass, MeansDataDefinitionNamespace))
+            {
                 return true;
+            }
         }
 
         return false;
@@ -449,15 +531,25 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool IsImplicitDataDefinition(ITypeSymbol type)
     {
         if (HasAttribute(type, ImplicitDataDefinitionNamespace))
+        {
             return true;
+        }
 
         foreach (var baseType in GetBaseTypes(type))
+        {
             if (HasAttribute(baseType, ImplicitDataDefinitionNamespace))
+            {
                 return true;
+            }
+        }
 
         foreach (var @interface in type.AllInterfaces)
+        {
             if (IsImplicitDataDefinitionInterface(@interface))
+            {
                 return true;
+            }
+        }
 
         return false;
     }
@@ -465,11 +557,17 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private static bool IsImplicitDataDefinitionInterface(ITypeSymbol @interface)
     {
         if (HasAttribute(@interface, ImplicitDataDefinitionNamespace))
+        {
             return true;
+        }
 
         foreach (var subInterface in @interface.AllInterfaces)
+        {
             if (HasAttribute(subInterface, ImplicitDataDefinitionNamespace))
+            {
                 return true;
+            }
+        }
 
         return false;
     }
