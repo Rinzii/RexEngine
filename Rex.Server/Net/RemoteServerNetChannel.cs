@@ -11,14 +11,14 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     private readonly NetPeer _peer;
     private readonly NetDataWriter _writer = new();
 
-    public int ClientId { get; }
+    public Guid ClientId { get; }
     public bool IsLocal => false;
     public ConnectionState State { get; set; }
     public int RoundTripTimeMs => _peer.Ping;
 
     /// <param name="peer">LiteNetLib peer for this client after accept.</param>
-    /// <param name="clientId">Same id the host uses in sessions and simulation.</param>
-    public RemoteServerNetChannel(NetPeer peer, int clientId)
+    /// <param name="clientId">Same id the host uses in sessions.</param>
+    public RemoteServerNetChannel(NetPeer peer, Guid clientId)
     {
         _peer = peer;
         ClientId = clientId;

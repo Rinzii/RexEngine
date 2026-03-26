@@ -22,13 +22,13 @@ internal static class Program
 
         if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
         {
-            Logging.ClientProgramLog.CliParseFailed(logger, parseError ?? "Invalid arguments.");
+            logger.CliParseFailed(parseError ?? "Invalid arguments.");
             return;
         }
 
         foreach (var arg in parsed.UnrecognizedArguments)
         {
-            Logging.ClientProgramLog.UnrecognizedCliArgument(logger, arg);
+            logger.UnrecognizedCliArgument(arg);
         }
 
         if (parsed.Mode == NetMode.ListenServer)
@@ -52,7 +52,8 @@ internal static class Program
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
-            Logging.ClientProgramLog.ShutdownSignalReceived(logger);
+            logger.ShutdownSignalReceived();
+            // ReSharper disable once AccessToDisposedClosure
             cts.Cancel();
             // ReSharper disable once AccessToDisposedClosure
             app.Stop();
@@ -65,7 +66,7 @@ internal static class Program
         {
             if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out var parsedHost, out var parsedPort))
             {
-                Logging.ClientProgramLog.InvalidConnectAddress(logger, args.ConnectAddress);
+                logger.InvalidConnectAddress(args.ConnectAddress);
                 return;
             }
 
@@ -106,7 +107,7 @@ internal static class Program
         var serverAssemblyPath = ResolveServerAssemblyPath();
         if (serverAssemblyPath == null)
         {
-            Logging.ClientProgramLog.ListenServerAssemblyNotFound(logger);
+            logger.ListenServerAssemblyNotFound();
             return null;
         }
 
@@ -136,7 +137,7 @@ internal static class Program
                 return;
             }
 
-            Logging.ClientProgramLog.ListenServerOutput(logger, e.Data);
+            logger.ListenServerOutput(e.Data);
 
             if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
             {
@@ -148,13 +149,13 @@ internal static class Program
         {
             if (!string.IsNullOrWhiteSpace(e.Data))
             {
-                Logging.ClientProgramLog.ListenServerError(logger, e.Data);
+                logger.ListenServerError(e.Data);
             }
         };
 
         if (!process.Start())
         {
-            Logging.ClientProgramLog.ListenServerStartFailed(logger);
+            logger.ListenServerStartFailed();
             process.Dispose();
             return null;
         }
@@ -169,11 +170,11 @@ internal static class Program
 
         if (process.HasExited)
         {
-            Logging.ClientProgramLog.ListenServerExitedEarly(logger);
+            logger.ListenServerExitedEarly();
         }
         else
         {
-            Logging.ClientProgramLog.ListenServerStartupTimeout(logger);
+            logger.ListenServerStartupTimeout();
         }
 
         StopListenServerProcess(process, logger);
@@ -188,7 +189,7 @@ internal static class Program
             return;
         }
 
-        Logging.ClientProgramLog.StoppingListenServer(logger);
+        logger.StoppingListenServer();
         process.Kill(true);
         process.WaitForExit(5000);
     }

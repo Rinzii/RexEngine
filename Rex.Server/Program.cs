@@ -20,13 +20,13 @@ internal static class Program
 
         if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
         {
-            Logging.ServerProgramLog.CliParseFailed(bootstrapLogger, parseError ?? "Invalid arguments.");
+            bootstrapLogger.CliParseFailed(parseError ?? "Invalid arguments.");
             return;
         }
 
         foreach (var arg in parsed.UnrecognizedArguments)
         {
-            Logging.ServerProgramLog.UnrecognizedCliArgument(bootstrapLogger, arg);
+            bootstrapLogger.UnrecognizedCliArgument(arg);
         }
 
         var config = new GameServerConfig
@@ -53,7 +53,7 @@ internal static class Program
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already in use", StringComparison.Ordinal))
         {
-            Logging.ServerProgramLog.PortAlreadyInUse(bootstrapLogger, ex.Message);
+            bootstrapLogger.PortAlreadyInUse(ex.Message);
             Environment.Exit(1);
         }
     }

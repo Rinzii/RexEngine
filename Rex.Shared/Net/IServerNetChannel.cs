@@ -5,7 +5,7 @@ namespace Rex.Shared.Net;
 /// <summary>One client's link from server-side game code. Pair with <see cref="ClientSession"/>.</summary>
 public interface IServerNetChannel
 {
-    int ClientId { get; }
+    Guid ClientId { get; }
 
     /// <summary>True for in-process channels (no real latency).</summary>
     bool IsLocal { get; }

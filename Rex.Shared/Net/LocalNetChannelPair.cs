@@ -6,7 +6,7 @@ namespace Rex.Shared.Net;
 public static class LocalNetChannelPair
 {
     /// <summary>Client and server share queues: what the client enqueues is read by the server, and the other way around.</summary>
-    public static (LocalClientNetChannel Client, LocalServerNetChannel Server) Create(int clientId)
+    public static (LocalClientNetChannel Client, LocalServerNetChannel Server) Create(Guid clientId)
     {
         var serverToClient = new Queue<INetMessage>();
         var clientToServer = new Queue<INetMessage>();
@@ -76,12 +76,12 @@ public sealed class LocalServerNetChannel : IServerNetChannel
     private readonly Queue<INetMessage> _inbound;
     private readonly Queue<INetMessage> _outbound;
 
-    public int ClientId { get; }
+    public Guid ClientId { get; }
     public bool IsLocal => true;
     public ConnectionState State { get; set; }
     public int RoundTripTimeMs => 0;
 
-    internal LocalServerNetChannel(int clientId, Queue<INetMessage> inbound, Queue<INetMessage> outbound)
+    internal LocalServerNetChannel(Guid clientId, Queue<INetMessage> inbound, Queue<INetMessage> outbound)
     {
         ClientId = clientId;
         _inbound = inbound;

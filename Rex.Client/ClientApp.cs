@@ -230,7 +230,7 @@ public sealed partial class ClientApp : IDisposable
     private void SetupStandalone()
     {
         _world = new GameWorld();
-        _localEntityId = _world.SpawnEntity(0, EntityTypeIds.Player, 0f, 0f, 0f);
+        _localEntityId = _world.SpawnEntity(Guid.Empty, EntityTypeIds.Player, 0f, 0f, 0f);
 
         LogStandaloneWorldInitialized();
     }

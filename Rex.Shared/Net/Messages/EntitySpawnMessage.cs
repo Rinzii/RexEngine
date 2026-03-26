@@ -1,6 +1,7 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Analyzers;
+using Rex.Shared.Net;
 
 namespace Rex.Shared.Net.Messages;
 
@@ -23,9 +24,9 @@ public sealed class EntitySpawnMessage : INetMessage
     public int EntityId { get; }
 
     /// <summary>
-    /// Gets the owning client ID for the entity.
+    /// Gets the owning client session id for the entity.
     /// </summary>
-    public int OwnerClientId { get; }
+    public Guid OwnerClientId { get; }
 
     /// <summary>
     /// Gets the entity type name.
@@ -50,7 +51,7 @@ public sealed class EntitySpawnMessage : INetMessage
     /// <summary>
     /// Creates an entity spawn payload.
     /// </summary>
-    public EntitySpawnMessage(int entityId, int ownerClientId, [ForbidLiteral] string entityType, float x, float y,
+    public EntitySpawnMessage(int entityId, Guid ownerClientId, [ForbidLiteral] string entityType, float x, float y,
         float z)
     {
         EntityId = entityId;
@@ -66,7 +67,7 @@ public sealed class EntitySpawnMessage : INetMessage
     {
         NetMessageRegistry.WriteHeader(writer, Id);
         writer.Put(EntityId);
-        writer.Put(OwnerClientId);
+        writer.PutGuid(OwnerClientId);
         writer.Put(EntityType);
         writer.Put(X);
         writer.Put(Y);
@@ -76,7 +77,7 @@ public sealed class EntitySpawnMessage : INetMessage
     public static EntitySpawnMessage Deserialize(NetPacketReader reader)
     {
         var entityId = reader.GetInt();
-        var ownerClientId = reader.GetInt();
+        var ownerClientId = reader.ReadGuid();
         var entityType = reader.GetString();
         var x = reader.GetFloat();
         var y = reader.GetFloat();

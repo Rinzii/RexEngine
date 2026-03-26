@@ -28,11 +28,11 @@ public sealed partial class GameClient
 
     [LoggerMessage(EventId = LogEventIds.GameClient.ConnectionAccepted, Level = LogLevel.Information,
         Message = "Accepted. ClientId: {ClientId}, TickRate: {TickRate}")]
-    private partial void LogConnectionAccepted(int clientId, int tickRate);
+    private partial void LogConnectionAccepted(Guid clientId, int tickRate);
 
     [LoggerMessage(EventId = LogEventIds.GameClient.ClientBulkTransferComplete, Level = LogLevel.Information,
         Message = "Bulk transfer {TransferId} complete: {DataType} ({Size} bytes)")]
-    private partial void LogClientBulkTransferComplete(int transferId, BulkDataType dataType, int size);
+    private partial void LogClientBulkTransferComplete(Guid transferId, BulkDataType dataType, int size);
 
     [LoggerMessage(EventId = LogEventIds.GameClient.UnhandledNetMessage, Level = LogLevel.Debug,
         Message = "Unhandled inbound message: Id {MessageId} ({MessageType})")]

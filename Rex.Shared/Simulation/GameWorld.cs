@@ -22,9 +22,9 @@ public sealed class GameWorld
         _dirtyTracker = dirtyTracker;
     }
 
-    public int SpawnEntity(int ownerClientId, [ForbidLiteral] string entityType, float x, float y, float z)
+    public int SpawnEntity(Guid ownerClientId, [ForbidLiteral] string entityType, float x, float y, float z)
     {
-        // IDs are monotonic for now. ownerClientId and entityType reserved for replication rules later.
+        // Entity ids stay monotonic ints. ownerClientId and entityType are reserved for replication rules later.
         var entityId = _nextEntityId++;
         _entities[entityId] = new EntityState(entityId, x, y, z, 0f);
         _dirtyTracker?.MarkDirty(entityId, _currentTick);

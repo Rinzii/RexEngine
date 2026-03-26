@@ -10,7 +10,10 @@ public sealed class ClientSession
     public IServerNetChannel Channel { get; }
 
     /// <summary>Same id as <see cref="IServerNetChannel.ClientId"/>.</summary>
-    public int ClientId => Channel.ClientId;
+    public Guid ClientId => Channel.ClientId;
+
+    /// <summary>Simulation entity id for this client after spawn. Zero until connect completes.</summary>
+    public int PlayerEntityId { get; set; }
 
     /// <summary>Display name after the client authenticates.</summary>
     public string PlayerName { get; set; } = string.Empty;

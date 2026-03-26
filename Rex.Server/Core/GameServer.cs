@@ -12,7 +12,7 @@ public sealed partial class GameServer
 {
     private readonly GameServerHost _host;
     private readonly ILogger _logger;
-    private readonly Dictionary<NetPeer, int> _peerToClientId = new();
+    private readonly Dictionary<NetPeer, Guid> _peerToClientId = new();
 
     private EventBasedNetListener? _listener;
     private NetManager? _netManager;
@@ -81,7 +81,7 @@ public sealed partial class GameServer
     private void OnPeerConnected(NetPeer peer)
     {
         // One ClientSession and id for the lifetime of this peer.
-        var clientId = _host.AllocateClientId();
+        var clientId = GameServerHost.AllocateClientId();
         var channel = new RemoteServerNetChannel(peer, clientId);
         var session = new ClientSession(channel);
         _host.AddSession(session);

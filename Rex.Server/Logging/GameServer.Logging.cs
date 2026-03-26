@@ -26,13 +26,13 @@ public sealed partial class GameServer
 
     [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerConnected, Level = LogLevel.Information,
         Message = "Peer connected: {Address} -> ClientId {ClientId}")]
-    private partial void LogPeerConnected(IPAddress address, int clientId);
+    private partial void LogPeerConnected(IPAddress address, Guid clientId);
 
     [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerDisconnected, Level = LogLevel.Information,
         Message = "Peer disconnected: ClientId {ClientId} ({Reason})")]
-    private partial void LogPeerDisconnected(int clientId, DisconnectReason reason);
+    private partial void LogPeerDisconnected(Guid clientId, DisconnectReason reason);
 
     [LoggerMessage(EventId = LogEventIds.GameServerNet.DeserializeMessageFailed, Level = LogLevel.Warning,
         Message = "Failed to deserialize inbound message for ClientId {ClientId}.")]
-    private partial void LogDeserializeMessageFailed(int clientId, Exception ex);
+    private partial void LogDeserializeMessageFailed(Guid clientId, Exception ex);
 }

@@ -16,13 +16,12 @@ public sealed partial class GameServerHost
     private readonly GameServerConfig _config;
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly Dictionary<int, ClientSession> _sessions = new();
+    private readonly Dictionary<Guid, ClientSession> _sessions = new();
     private readonly GameWorld _world;
     private readonly DirtyTracker _dirtyTracker = new();
     private readonly RexNetStatistics _statistics = new();
 
     private BulkTransferManager? _transferManager;
-    private int _nextClientId = 1;
     private uint _currentTick;
     private bool _isRunning;
 
@@ -33,7 +32,7 @@ public sealed partial class GameServerHost
     public bool IsFull => _sessions.Count >= _config.MaxPlayers;
     public RexNetStatistics Statistics => _statistics;
     public BulkTransferManager? TransferManager => _transferManager;
-    public IReadOnlyDictionary<int, ClientSession> Sessions => _sessions;
+    public IReadOnlyDictionary<Guid, ClientSession> Sessions => _sessions;
 
     public GameServerHost(GameServerConfig config, ILoggerFactory loggerFactory)
     {
@@ -59,10 +58,10 @@ public sealed partial class GameServerHost
         LogServerHostStarted(_config.TickRate, _config.MaxPlayers);
     }
 
-    /// <summary>Allocates a new client ID for an incoming connection.</summary>
-    public int AllocateClientId()
+    /// <summary>Allocates a new client session id for an incoming connection.</summary>
+    public static Guid AllocateClientId()
     {
-        return _nextClientId++;
+        return Guid.CreateVersion7();
     }
 
     /// <summary>Registers a session created by the transport layer.</summary>
@@ -74,21 +73,24 @@ public sealed partial class GameServerHost
     }
 
     /// <summary>Removes a session and destroys its entities.</summary>
-    public void RemoveSession(int clientId)
+    public void RemoveSession(Guid clientId)
     {
-        if (!_sessions.Remove(clientId))
+        if (!_sessions.Remove(clientId, out var session))
         {
             return;
         }
 
-        _world.DestroyEntity(clientId);
-
-        var destroyMsg = new EntityDestroyMessage(clientId);
-        foreach (var other in _sessions.Values)
+        if (session.PlayerEntityId != 0)
         {
-            if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
+            _world.DestroyEntity(session.PlayerEntityId);
+
+            var destroyMsg = new EntityDestroyMessage(session.PlayerEntityId);
+            foreach (var other in _sessions.Values)
             {
-                other.Channel.Send(destroyMsg);
+                if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
+                {
+                    other.Channel.Send(destroyMsg);
+                }
             }
         }
 
@@ -96,7 +98,7 @@ public sealed partial class GameServerHost
     }
 
     /// <summary>Routes an inbound message to the appropriate handler.</summary>
-    public void HandleMessage(int clientId, INetMessage message)
+    public void HandleMessage(Guid clientId, INetMessage message)
     {
         if (!_sessions.TryGetValue(clientId, out var session))
         {
@@ -128,7 +130,7 @@ public sealed partial class GameServerHost
         }
     }
 
-    public void SendBulkData<T>(int clientId, BulkDataType dataType, T data)
+    public void SendBulkData<T>(Guid clientId, BulkDataType dataType, T data)
     {
         if (_transferManager == null || !_sessions.TryGetValue(clientId, out var session))
         {
@@ -168,9 +170,9 @@ public sealed partial class GameServerHost
         {
             while (session.TryDequeueInput(out var input))
             {
-                if (input != null)
+                if (input != null && session.PlayerEntityId != 0)
                 {
-                    _world.ProcessInput(session.ClientId, input);
+                    _world.ProcessInput(session.PlayerEntityId, input);
                     session.LastProcessedInputTick = input.Tick;
                 }
             }
@@ -233,7 +235,7 @@ public sealed partial class GameServerHost
     {
         if (request.ProtocolVersion != ProtocolConstants.ProtocolVersion)
         {
-            var reject = new ConnectResponseMessage(false, 0, 0, "Protocol version mismatch");
+            var reject = new ConnectResponseMessage(false, default, 0, 0, "Protocol version mismatch");
             session.Channel.Send(reject);
             session.Channel.Disconnect("Protocol version mismatch");
             return;
@@ -243,16 +245,17 @@ public sealed partial class GameServerHost
         session.Channel.State = ConnectionState.Authenticated;
         LogClientAuthenticated(session.ClientId, request.PlayerName);
 
-        var response = new ConnectResponseMessage(true, session.ClientId, _config.TickRate);
-        session.Channel.Send(response);
+        var entityId = _world.SpawnEntity(session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
+        session.PlayerEntityId = entityId;
 
-        _world.SpawnEntity(session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
+        var response = new ConnectResponseMessage(true, session.ClientId, _config.TickRate, entityId);
+        session.Channel.Send(response);
 
         session.Channel.State = ConnectionState.InGame;
         var snapshot = _world.BuildSnapshot(_currentTick, 0);
         session.Channel.Send(snapshot, DeliveryChannel.Reliable, DeliveryChannel.ReliableMethod);
 
-        var spawnMsg = new EntitySpawnMessage(session.ClientId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
+        var spawnMsg = new EntitySpawnMessage(entityId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
         foreach (var other in _sessions.Values)
         {
             if (other.ClientId != session.ClientId && other.Channel.State == ConnectionState.InGame)

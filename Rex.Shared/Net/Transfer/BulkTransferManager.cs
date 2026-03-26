@@ -13,13 +13,12 @@ public sealed partial class BulkTransferManager
     public const int MaxChunkSize = 4096;
 
     private readonly ILogger _logger;
-    private int _nextTransferId;
-    private readonly Dictionary<int, IncomingTransfer> _incomingTransfers = new();
+    private readonly Dictionary<Guid, IncomingTransfer> _incomingTransfers = new();
 
     /// <summary>
     /// Raised when a transfer has been fully reassembled.
     /// </summary>
-    public event Action<int, BulkDataType, byte[]>? TransferCompleted;
+    public event Action<Guid, BulkDataType, byte[]>? TransferCompleted;
 
     /// <summary>
     /// Creates a bulk transfer manager with its own logger.
@@ -37,7 +36,7 @@ public sealed partial class BulkTransferManager
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
         var (payload, isCompressed) = NetCompression.Compress(raw);
-        var transferId = _nextTransferId++;
+        var transferId = Guid.CreateVersion7();
 
         var chunks = ChunkData(payload);
         var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
@@ -61,7 +60,7 @@ public sealed partial class BulkTransferManager
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
         var (payload, isCompressed) = NetCompression.Compress(raw);
-        var transferId = _nextTransferId++;
+        var transferId = Guid.CreateVersion7();
 
         var chunks = ChunkData(payload);
         var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
@@ -167,7 +166,7 @@ public sealed partial class BulkTransferManager
 
     private sealed class IncomingTransfer
     {
-        public int TransferId;
+        public Guid TransferId;
         public BulkDataType DataType;
         public int TotalSize;
         public int OriginalSize;

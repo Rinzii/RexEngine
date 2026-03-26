@@ -17,8 +17,11 @@ public sealed partial class GameClient
     private IClientNetChannel? _channel;
     private InputCollector? _inputCollector;
 
-    /// <summary>Assigned by the server after accept. Zero until then.</summary>
-    public int ClientId { get; private set; }
+    /// <summary>Assigned by the server after accept. Empty until then.</summary>
+    public Guid ClientId { get; private set; }
+
+    /// <summary>Server entity id for the local player after accept. Zero until then.</summary>
+    public int LocalPlayerEntityId { get; private set; }
 
     /// <summary>Last two snapshots for render interpolation.</summary>
     public ClientWorldState WorldState { get; } = new();
@@ -38,7 +41,7 @@ public sealed partial class GameClient
     public int RoundTripTimeMs => _channel?.RoundTripTimeMs ?? 0;
 
     /// <summary>Fired when a bulk transfer finishes reassembly on this client.</summary>
-    public event Action<int, BulkDataType, byte[]>? BulkDataReceived;
+    public event Action<Guid, BulkDataType, byte[]>? BulkDataReceived;
 
     public GameClient(ILoggerFactory loggerFactory)
     {
@@ -161,6 +164,7 @@ public sealed partial class GameClient
         }
 
         ClientId = response.ClientId;
+        LocalPlayerEntityId = response.LocalPlayerEntityId;
         _channel!.State = ConnectionState.InGame;
         LogConnectionAccepted(response.ClientId, response.TickRate);
     }
@@ -170,10 +174,9 @@ public sealed partial class GameClient
         WorldState.ApplySnapshot(snapshot);
         _channel?.Send(new StateAckMessage(snapshot.ServerTick));
 
-        // Client id doubles as controlled entity id on this prototype server.
         foreach (var entity in snapshot.Entities)
         {
-            if (entity.EntityId == ClientId)
+            if (entity.EntityId == LocalPlayerEntityId)
             {
                 Prediction.Reconcile(entity, snapshot.LastProcessedInputTick);
                 break;
@@ -181,7 +184,7 @@ public sealed partial class GameClient
         }
     }
 
-    private void OnTransferCompleted(int transferId, BulkDataType dataType, byte[] data)
+    private void OnTransferCompleted(Guid transferId, BulkDataType dataType, byte[] data)
     {
         LogClientBulkTransferComplete(transferId, dataType, data.Length);
 
