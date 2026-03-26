@@ -1,0 +1,25 @@
+# Normalize text files to LF in the repo and working tree (matches .editorconfig end_of_line).
+* text=auto eol=lf
+
+# Shell scripts run on Unix; keep LF explicit for tools that ignore text=auto heuristics.
+*.sh text eol=lf
+
+# Windows-only launchers
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binary assets and build outputs (never line-ending normalized)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.dll binary
+*.exe binary
+*.pdb binary
+*.snk binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

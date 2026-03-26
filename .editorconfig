@@ -1,0 +1,42 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.cmd]
+end_of_line = crlf
+
+[*.bat]
+end_of_line = crlf
+
+[*.cs]
+# Always use braces for if / else / for / foreach / while / do / using (when a block exists).
+# Applies in the IDE, dotnet format, and builds when EnforceCodeStyleInBuild is true.
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
+
+# Discourage Enumerable LINQ when a direct collection API is clearer or cheaper (IDE + build, fixable with dotnet format analyzers).
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+
+# CA1827 steers toward Any(). Prefer Count/Length checks instead when not using LINQ.
+dotnet_diagnostic.CA1827.severity = none
+
+# Roslyn-heavy projects rely on LINQ over symbols and syntax. Keep them exempt from the rules above.
+[Rex.Analyzers/**/*.cs]
+dotnet_diagnostic.CA1829.severity = none
+dotnet_diagnostic.CA1860.severity = none
+
+[Rex.Roslyn.Shared/**/*.cs]
+dotnet_diagnostic.CA1829.severity = none
+dotnet_diagnostic.CA1860.severity = none
+
+[**/obj/**]
+generated_code = true
+
+[**/bin/**]
+generated_code = true
