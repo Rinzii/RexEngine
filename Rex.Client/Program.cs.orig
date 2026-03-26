@@ -1,3 +1,19 @@
+<<<<<<< HEAD
+﻿using System.Drawing;
+using Silk.NET;
+using Silk.NET.Core.Contexts;
+using Silk.NET.SDL;
+namespace Rex.Client;
+
+internal static class Program {
+    
+    private static void Main(string[] args) {
+        using WindowManager manager = new( 800,600);
+        
+        manager.InitSDL();
+        manager.GameLoop();
+
+=======
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -5,7 +21,6 @@ using Microsoft.Extensions.Logging;
 using Rex.Client.Net;
 using Rex.Shared.Net;
 using Rex.Shared.Timing;
-using Silk.NET.SDL;
 
 namespace Rex.Client;
 
@@ -217,9 +232,10 @@ internal static class Program
     private static bool ShouldRender(CommandLineArgs args)
     {
         return !args.Headless;
+>>>>>>> origin/main
     }
 }
-
+<<<<<<< HEAD
 
 
 //TODO ARRANGE, FIX, REPLACE, ABSTRACT
@@ -301,4 +317,5 @@ internal sealed unsafe class WindowManager : IDisposable {
         _sdl.Quit();
     }
 }
-
+=======
+>>>>>>> origin/main

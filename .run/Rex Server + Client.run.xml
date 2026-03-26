@@ -1,0 +1,7 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Rex Server + Client" type="CompoundRunConfigurationType">
+    <toRun name="Rex Server" type="DotNetProject" />
+    <toRun name="Rex Client" type="DotNetProject" />
+    <method v="2" />
+  </configuration>
+</component>
