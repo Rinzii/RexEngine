@@ -118,7 +118,7 @@ internal sealed class CommandLineArgs
 
                 loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
             }
-            else if (arg.StartsWith("+"))
+            else if (arg.StartsWith('+'))
             {
                 execCommands.Add(arg[1..]);
             }
