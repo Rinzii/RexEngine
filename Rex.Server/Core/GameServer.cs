@@ -8,7 +8,7 @@ using Rex.Shared.Net.Messages;
 namespace Rex.Server.Core;
 
 /// <summary>LiteNetLib facade. Accepts peers and delegates simulation to <see cref="GameServerHost"/>.</summary>
- public sealed partial class GameServer
+public sealed partial class GameServer
 {
     private readonly GameServerHost _host;
     private readonly ILogger _logger;
