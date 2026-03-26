@@ -48,6 +48,7 @@ public sealed partial class GameServerHost
     {
         if (_isRunning)
         {
+            LogHostAlreadyRunning();
             throw new InvalidOperationException("Server host is already running.");
         }
 
@@ -120,6 +121,9 @@ public sealed partial class GameServerHost
                 LogClientDisconnecting(session.ClientId, disconnect.Reason);
 
                 session.Channel.Disconnect(disconnect.Reason);
+                break;
+            default:
+                LogUnhandledNetMessage(clientId, message.MessageId, message.GetType().Name);
                 break;
         }
     }

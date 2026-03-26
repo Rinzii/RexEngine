@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Threading;
 using Microsoft.Extensions.Logging;
 using Rex.Server.Core;
 using Rex.Server.Simulation;
@@ -47,7 +48,8 @@ public sealed partial class ServerApp : IDisposable
     }
 
     /// <summary>Starts networking and the game loop. Blocks until stopped.</summary>
-    public void Run()
+    /// <param name="cancellationToken">When canceled, the loop exits after the current frame.</param>
+    public void Run(CancellationToken cancellationToken = default)
     {
         _server = new GameServer(_config, _loggerFactory);
         _server.Start();
@@ -60,7 +62,7 @@ public sealed partial class ServerApp : IDisposable
         double accumulator = 0;
         ulong frameIndex = 0;
 
-        while (_isRunning)
+        while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             var currentTime = stopwatch.Elapsed.TotalSeconds;
             var frameTime = currentTime - previousTime;
@@ -84,8 +86,7 @@ public sealed partial class ServerApp : IDisposable
                 frameIndex,
                 stopwatch.Elapsed.TotalSeconds);
 
-            OnUpdate?.Invoke(ctx);
-            OnLateUpdate?.Invoke(ctx);
+            InvokeUpdateCallbacks(ctx);
 
             Thread.Yield();
         }
@@ -94,6 +95,33 @@ public sealed partial class ServerApp : IDisposable
 
         _server.Shutdown();
         _server = null;
+    }
+
+    private void InvokeUpdateCallbacks(FrameContext ctx)
+    {
+        if (OnUpdate != null)
+        {
+            try
+            {
+                OnUpdate(ctx);
+            }
+            catch (Exception ex)
+            {
+                LogOnUpdateFailed(ex);
+            }
+        }
+
+        if (OnLateUpdate != null)
+        {
+            try
+            {
+                OnLateUpdate(ctx);
+            }
+            catch (Exception ex)
+            {
+                LogOnLateUpdateFailed(ex);
+            }
+        }
     }
 
     /// <summary>Signals the game loop to exit after the current frame.</summary>

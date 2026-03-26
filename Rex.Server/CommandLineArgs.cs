@@ -1,11 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Rex.Shared.Net;
 using Rex.Shared.Utility;
-using C = System.Console;
 
 namespace Rex.Server;
 
-/// <summary>Server CLI. Unknown tokens are logged and ignored. Parsing still succeeds.</summary>
+/// <summary>Server CLI. Unknown tokens are collected; the host logs them after bootstrap logging is available.</summary>
 internal sealed class CommandLineArgs
 {
     public string? ConfigFile { get; }
@@ -16,15 +15,21 @@ internal sealed class CommandLineArgs
     public int Port { get; }
     public int MaxPlayers { get; }
     public int TickRate { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
 
-    public static bool TryParse(IReadOnlyList<string> args, [NotNullWhen(true)] out CommandLineArgs? parsed)
+    public static bool TryParse(
+        IReadOnlyList<string> args,
+        [NotNullWhen(true)] out CommandLineArgs? parsed,
+        [NotNullWhen(false)] out string? error)
     {
         parsed = null;
+        error = null;
         string? configFile = null;
         string? dataDir = null;
         var cvars = new List<(string, string)>();
         var loglevels = new List<(string, string)>();
         var execCommands = new List<string>();
+        var unrecognized = new List<string>();
         var port = ProtocolConstants.DefaultPort;
         var maxPlayers = ProtocolConstants.DefaultMaxPlayers;
         var tickRate = ProtocolConstants.DefaultTickRate;
@@ -38,7 +43,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext())
                 {
-                    C.WriteLine("Missing config file!");
+                    error = "Missing value for --config-file.";
                     return false;
                 }
 
@@ -48,7 +53,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext())
                 {
-                    C.WriteLine("Missing data directory!");
+                    error = "Missing value for --data-dir.";
                     return false;
                 }
 
@@ -58,7 +63,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
                 {
-                    C.WriteLine("Missing or invalid port!");
+                    error = "Missing or invalid value for --port.";
                     return false;
                 }
             }
@@ -66,7 +71,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
                 {
-                    C.WriteLine("Missing or invalid max players!");
+                    error = "Missing or invalid value for --max-players.";
                     return false;
                 }
             }
@@ -74,7 +79,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
                 {
-                    C.WriteLine("Missing or invalid tick rate!");
+                    error = "Missing or invalid value for --tick-rate.";
                     return false;
                 }
             }
@@ -82,7 +87,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext())
                 {
-                    C.WriteLine("Missing cvar value!");
+                    error = "Missing value for --cvar.";
                     return false;
                 }
 
@@ -92,7 +97,7 @@ internal sealed class CommandLineArgs
 
                 if (pos == -1)
                 {
-                    C.WriteLine("Expected = in cvar!");
+                    error = "Expected key=value after --cvar.";
                     return false;
                 }
 
@@ -102,7 +107,7 @@ internal sealed class CommandLineArgs
             {
                 if (!enumerator.MoveNext())
                 {
-                    C.WriteLine("Missing cvar value!");
+                    error = "Missing value for --logLevel.";
                     return false;
                 }
 
@@ -112,7 +117,7 @@ internal sealed class CommandLineArgs
 
                 if (pos == -1)
                 {
-                    C.WriteLine("Expected = in cvar!");
+                    error = "Expected key=value after --logLevel.";
                     return false;
                 }
 
@@ -124,11 +129,20 @@ internal sealed class CommandLineArgs
             }
             else
             {
-                C.WriteLine("Unknown argument: {0}", arg);
+                unrecognized.Add(arg);
             }
         }
 
-        parsed = new CommandLineArgs(configFile, dataDir, cvars, loglevels, execCommands, port, maxPlayers, tickRate);
+        parsed = new CommandLineArgs(
+            configFile,
+            dataDir,
+            cvars,
+            loglevels,
+            execCommands,
+            port,
+            maxPlayers,
+            tickRate,
+            unrecognized);
 
         return true;
     }
@@ -141,7 +155,8 @@ internal sealed class CommandLineArgs
         IReadOnlyList<string> execCommands,
         int port,
         int maxPlayers,
-        int tickRate
+        int tickRate,
+        IReadOnlyList<string> unrecognizedArguments
     )
     {
         ConfigFile = configFile;
@@ -152,5 +167,6 @@ internal sealed class CommandLineArgs
         Port = port;
         MaxPlayers = maxPlayers;
         TickRate = tickRate;
+        UnrecognizedArguments = unrecognizedArguments;
     }
 }

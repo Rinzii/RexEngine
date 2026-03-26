@@ -48,6 +48,7 @@ public sealed partial class GameServer
         _host.Start();
 
         LogServerListening(_host.Config.Port);
+        Console.Out.WriteLine(ProtocolConstants.ListenProcessReadyLine);
     }
 
     public void Tick()
@@ -113,8 +114,16 @@ public sealed partial class GameServer
 
         // Byte count only here. Message id can be counted after deserialize if you extend stats.
         _host.Statistics.RecordReceived(0, reader.AvailableBytes);
-        var message = NetMessageRegistry.Deserialize(reader);
-        reader.Recycle();
-        _host.HandleMessage(clientId, message);
+        try
+        {
+            var message = NetMessageRegistry.Deserialize(reader);
+            reader.Recycle();
+            _host.HandleMessage(clientId, message);
+        }
+        catch (Exception ex)
+        {
+            LogDeserializeMessageFailed(clientId, ex);
+            reader.Recycle();
+        }
     }
 }
