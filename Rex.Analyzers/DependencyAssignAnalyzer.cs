@@ -2,7 +2,8 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -12,7 +13,7 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
     private const string DependencyAttributeType = "Rex.Shared.IoC.DependencyAttribute";
 
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdDependencyFieldAssigned,
+        IdDependencyFieldAssigned,
         "Assignment to dependency field",
         "Tried to assign to [Dependency] field '{0}'. Remove [Dependency] or inject it via field injection instead.",
         "Usage",

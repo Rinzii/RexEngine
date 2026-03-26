@@ -6,6 +6,7 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static Microsoft.CodeAnalysis.CSharp.SyntaxKind;
+
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;

@@ -3,7 +3,9 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -13,7 +15,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
     private const string ValidateMemberType = "Rex.Shared.Analyzers.ValidateMemberAttribute";
 
     private static readonly DiagnosticDescriptor ValidateMemberDescriptor = new(
-        Diagnostics.IdValidateMember,
+        IdValidateMember,
         "Invalid member name",
         "{0} is not a member of {1}",
         "Usage",

@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -12,7 +14,7 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
     private const string NetSerializableAttributeType = "Rex.Shared.Serialization.NetSerializableAttribute";
 
     public static readonly DiagnosticDescriptor RuleNetSerializable = new(
-        Diagnostics.IdPrototypeNetSerializable,
+        IdPrototypeNetSerializable,
         "Prototypes should not be [NetSerializable]",
         "Type {0} is a prototype and marked as [NetSerializable]. Prototypes should not be directly sent over the network, send their IDs instead.",
         "Usage",
@@ -21,7 +23,7 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
 
 
     public static readonly DiagnosticDescriptor RuleSerializable = new(
-        Diagnostics.IdPrototypeSerializable,
+        IdPrototypeSerializable,
         "Prototypes should not be [Serializable]",
         "Type {0} is a prototype and marked as [Serializable]. Prototypes should not be directly sent over the network, send their IDs instead.",
         "Usage",

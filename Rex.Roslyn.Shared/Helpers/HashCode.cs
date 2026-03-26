@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 
 #pragma warning disable CS0809
 
-namespace System;
+namespace Rex.Roslyn.Shared.Helpers;
 
 #nullable enable
 

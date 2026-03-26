@@ -10,8 +10,9 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
 using Document = Microsoft.CodeAnalysis.Document;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -27,7 +28,7 @@ public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
 
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdExplicitInterface,
+        IdExplicitInterface,
         "No explicit interface specified",
         "No explicit interface specified",
         "Usage",

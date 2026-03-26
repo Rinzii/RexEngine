@@ -4,7 +4,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -14,7 +16,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
     private const string ForbidLiteralType = "Rex.Shared.Analyzers.ForbidLiteralAttribute";
 
     public static DiagnosticDescriptor ForbidLiteralRule = new(
-        Diagnostics.IdForbidLiteral,
+        IdForbidLiteral,
         "Parameter forbids literal values",
         "The {0} parameter of {1} forbids literal values",
         "Usage",

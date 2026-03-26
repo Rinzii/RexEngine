@@ -5,7 +5,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -17,7 +19,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     public static readonly string ProxyMethodName = "proxy";
 
     public static readonly DiagnosticDescriptor PreferProxyDescriptor = new(
-        Diagnostics.IdPreferProxy,
+        IdPreferProxy,
         "Use the proxy method",
         "Use the proxy method {0} instead of calling {1} directly",
         "Usage",
@@ -27,7 +29,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     );
 
     public static readonly DiagnosticDescriptor RedundantMethodNameDescriptor = new(
-        Diagnostics.IdProxyForRedundantMethodName,
+        IdProxyForRedundantMethodName,
         "Method name is redundant",
         "Set method name matches the proxy method name and can be omitted",
         "Usage",
@@ -37,7 +39,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     );
 
     public static readonly DiagnosticDescriptor TargetMethodNotFoundDescriptor = new(
-        Diagnostics.IdProxyForTargetMethodNotFound,
+        IdProxyForTargetMethodNotFound,
         "Target method not found",
         "Unable to find target method {0}",
         "Usage",

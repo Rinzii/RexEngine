@@ -2,7 +2,8 @@ using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -16,7 +17,7 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
         var implAttr = context.Compilation.GetTypeByMetadataName(MeansImplicitAssignmentAttribute);
         foreach (var reportedDiagnostic in context.ReportedDiagnostics)
         {
-            if (reportedDiagnostic.Id != Diagnostics.MeansImplicitAssignment.SuppressedDiagnosticId)
+            if (reportedDiagnostic.Id != MeansImplicitAssignment.SuppressedDiagnosticId)
             {
                 continue;
             }
@@ -38,11 +39,11 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
             }
 
             context.ReportSuppression(Suppression.Create(
-                Diagnostics.MeansImplicitAssignment,
+                MeansImplicitAssignment,
                 reportedDiagnostic));
         }
     }
 
     public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions =>
-        ImmutableArray.Create(Diagnostics.MeansImplicitAssignment);
+        ImmutableArray.Create(MeansImplicitAssignment);
 }

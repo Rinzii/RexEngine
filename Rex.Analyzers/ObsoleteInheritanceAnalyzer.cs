@@ -2,7 +2,9 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -12,7 +14,7 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
     private const string Attribute = "Rex.Shared.Analyzers.ObsoleteInheritanceAttribute";
 
     public static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdObsoleteInheritance,
+        IdObsoleteInheritance,
         "Parent type has obsoleted inheritance",
         "Type '{0}' inherits from '{1}', which has obsoleted inheriting from itself",
         "Usage",
@@ -20,7 +22,7 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
         true);
 
     public static readonly DiagnosticDescriptor RuleWithMessage = new(
-        Diagnostics.IdObsoleteInheritanceWithMessage,
+        IdObsoleteInheritanceWithMessage,
         "Parent type has obsoleted inheritance",
         "Type '{0}' inherits from '{1}', which has obsoleted inheriting from itself: \"{2}\"",
         "Usage",

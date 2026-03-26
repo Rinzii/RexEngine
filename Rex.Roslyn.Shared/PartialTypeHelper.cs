@@ -42,7 +42,7 @@ public sealed record PartialTypeInfo(
             symbol.ContainingNamespace.IsGlobalNamespace ? null : symbol.ContainingNamespace.ToDisplayString(),
             symbol.Name,
             symbol.ToDisplayString(),
-            typeParameters,
+            typeParameters.AsEquatableArray(),
             syntax.Modifiers.Any(x => x.IsKind(SyntaxKind.PartialKeyword)),
             syntax.Keyword.GetLocation(),
             symbol.DeclaredAccessibility,

@@ -3,7 +3,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -18,7 +19,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
     private const string DependencyAttributeType = "Rex.Shared.IoC.DependencyAttribute";
 
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdDuplicateDependency,
+        IdDuplicateDependency,
         "Duplicate dependency field",
         "Another [Dependency] field of type '{0}' already exists in this type with field '{1}'",
         "Usage",

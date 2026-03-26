@@ -2,7 +2,8 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -16,7 +17,7 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
     );
 
     private static readonly DiagnosticDescriptor UseNonGenericVariantDescriptor = new(
-        Diagnostics.IdUseNonGenericVariant,
+        IdUseNonGenericVariant,
         "Consider using the non-generic variant of this method",
         "Use the non-generic variant of this method for type {0}",
         "Usage",

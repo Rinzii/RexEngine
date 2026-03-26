@@ -5,8 +5,9 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
 using Rex.Shared.Analyzers.Implementation;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -19,7 +20,7 @@ public class AccessAnalyzer : DiagnosticAnalyzer
 
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor AccessRule = new(
-        Diagnostics.IdAccess,
+        IdAccess,
         "Invalid access",
         "Tried to perform {0} access to member '{1}' in type '{2}', despite {3} access. {4}.",
         "Usage",

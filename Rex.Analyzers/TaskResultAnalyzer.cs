@@ -3,7 +3,8 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -12,7 +13,7 @@ public sealed class TaskResultAnalyzer : DiagnosticAnalyzer
 {
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor ResultRule = new(
-        Diagnostics.IdTaskResult,
+        IdTaskResult,
         "Risk of deadlock from accessing Task<T>.Result",
         "Accessing Task<T>.Result is dangerous and can cause deadlocks in some contexts. If you understand how this works and are certain that you aren't causing a deadlock here, mute this error with #pragma.",
         "Usage",

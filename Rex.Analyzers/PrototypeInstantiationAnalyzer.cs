@@ -2,7 +2,9 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
+
 using Rex.Roslyn.Shared;
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -12,7 +14,7 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
     private const string PrototypeInterfaceType = "Rex.Shared.Prototypes.IPrototype";
 
     public static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdPrototypeInstantiation,
+        IdPrototypeInstantiation,
         "Do not instantiate prototypes directly",
         "Do not instantiate prototypes directly. Prototypes should always be instantiated by the prototype manager.",
         "Usage",

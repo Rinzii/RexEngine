@@ -11,7 +11,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -25,7 +26,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         UseGenericVariantAttributeValueErrorDescriptor);
 
     private static readonly DiagnosticDescriptor UseGenericVariantDescriptor = new(
-        Diagnostics.IdUseGenericVariant,
+        IdUseGenericVariant,
         "Consider using the generic variant of this method",
         "Consider using the generic variant of this method to avoid potential allocations",
         "Usage",
@@ -34,7 +35,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         "Consider using the generic variant of this method to avoid potential allocations.");
 
     private static readonly DiagnosticDescriptor UseGenericVariantInvalidUsageDescriptor = new(
-        Diagnostics.IdUseGenericVariantInvalidUsage,
+        IdUseGenericVariantInvalidUsage,
         "Invalid generic variant provided",
         "Generic variant provided mismatches the amount of type parameters of non-generic variant",
         "Usage",
@@ -43,7 +44,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         "The non-generic variant should have at least as many type parameter at the beginning of the method as there are generic type parameters on the generic variant.");
 
     private static readonly DiagnosticDescriptor UseGenericVariantAttributeValueErrorDescriptor = new(
-        Diagnostics.IdUseGenericVariantAttributeValueError,
+        IdUseGenericVariantAttributeValueError,
         "Failed resolving generic variant value",
         "Failed resolving generic variant value: {0}",
         "Usage",
@@ -272,5 +273,5 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
     }
 
     public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(Diagnostics.IdUseGenericVariant);
+        ImmutableArray.Create(IdUseGenericVariant);
 }

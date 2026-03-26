@@ -3,7 +3,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -18,7 +19,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
     private const string Attribute = "Rex.Shared.Analyzers.MustCallBaseAttribute";
 
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdMustCallBase,
+        IdMustCallBase,
         "No base call in overriden function",
         "Overriders of this function must always call the base function",
         "Usage",

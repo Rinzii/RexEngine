@@ -5,7 +5,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -16,7 +17,7 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
 
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdExplicitVirtual,
+        IdExplicitVirtual,
         "Class must be explicitly marked as [Virtual], abstract, static or sealed",
         "Class must be explicitly marked as [Virtual], abstract, static or sealed",
         "Usage",
@@ -178,6 +179,6 @@ public sealed class ExplicitVirtualCodeFixProvider : CodeFixProvider
     }
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
-    public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(Diagnostics.IdExplicitVirtual);
+    public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(IdExplicitVirtual);
 }
 */

@@ -2,7 +2,8 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -13,7 +14,7 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
     private const string RegexType = $"System.Text.RegularExpressions.{RegexTypeName}";
 
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdUncachedRegex,
+        IdUncachedRegex,
         "Use of uncached static Regex function",
         "Usage of a static Regex function that takes in a pattern string. This can cause constant re-parsing of the pattern.",
         "Usage",

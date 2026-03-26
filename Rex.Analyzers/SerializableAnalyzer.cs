@@ -10,7 +10,8 @@ using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -29,7 +30,7 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor Rule = new(
-        Diagnostics.IdSerializable,
+        IdSerializable,
         "Class not marked as (Net)Serializable",
         "Class not marked as (Net)Serializable",
         "Usage",
@@ -173,7 +174,7 @@ public class SerializableCodeFixProvider : CodeFixProvider
     }
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds
-        => ImmutableArray.Create(Diagnostics.IdSerializable);
+        => ImmutableArray.Create(IdSerializable);
 
     public override FixAllProvider GetFixAllProvider()
     {

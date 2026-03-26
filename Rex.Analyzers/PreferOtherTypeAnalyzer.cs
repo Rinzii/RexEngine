@@ -4,7 +4,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Roslyn.Shared;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -14,7 +15,7 @@ public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
     private const string AttributeType = "Rex.Shared.Analyzers.PreferOtherTypeAttribute";
 
     private static readonly DiagnosticDescriptor PreferOtherTypeDescriptor = new(
-        Diagnostics.IdPreferOtherType,
+        IdPreferOtherType,
         "Use the specific type",
         "Use the specific type {0} instead of {1} when the type argument is {2}",
         "Usage",

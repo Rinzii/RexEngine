@@ -4,8 +4,9 @@ using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-using Rex.Roslyn.Shared;
 using static Microsoft.CodeAnalysis.SymbolEqualityComparer;
+
+using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
@@ -15,7 +16,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
     private const string ByRefAttribute = "Rex.Shared.GameObjects.ByRefEventAttribute";
 
     private static readonly DiagnosticDescriptor ByRefEventSubscribedByValueRule = new(
-        Diagnostics.IdByRefEventSubscribedByValue,
+        IdByRefEventSubscribedByValue,
         "By-ref event subscribed to by value",
         "Tried to subscribe to a by-ref event '{0}' by value",
         "Usage",
@@ -25,7 +26,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
     );
 
     public static readonly DiagnosticDescriptor ByRefEventRaisedByValueRule = new(
-        Diagnostics.IdByRefEventRaisedByValue,
+        IdByRefEventRaisedByValue,
         "By-ref event raised by value",
         "Tried to raise a by-ref event '{0}' by value",
         "Usage",
@@ -35,7 +36,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
     );
 
     public static readonly DiagnosticDescriptor ByValueEventRaisedByRefRule = new(
-        Diagnostics.IdValueEventRaisedByRef,
+        IdValueEventRaisedByRef,
         "Value event raised by-ref",
         "Tried to raise a value event '{0}' by-ref",
         "Usage",
