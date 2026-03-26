@@ -7,29 +7,31 @@ namespace Rex.Client;
 internal static class Program {
     
     private static void Main(string[] args) {
-       Windows.InitSDL();
-       Windows.GameLoop();
-       
-       
+        using WindowManager manager = new( 800,600);
+        
+        manager.InitSDL();
+        manager.GameLoop();
+
     }
     
 }
 
-unsafe class App {
-    internal Renderer* renderer;
-    internal Window* window;
-    
-}
 
-internal unsafe class Windows {
+//TODO ARRANGE, FIX, REPLACE, ABSTRACT
+internal sealed unsafe class WindowManager : IDisposable {
     
     private static readonly Sdl _sdl = Sdl.GetApi();
-    private static App app = new App();
+    private static Renderer* _renderer;
+    private static Window* _window;
 
-    private const int SCREEN_WIDTH = 800;
-    private const int SCREEN_HEIGHT = 600;
+    private readonly int _screenWidth;
+    private readonly int _screenHeight;
 
-    public static void InitSDL() {
+    public WindowManager( int screenWidth, int screenHeight) {
+        _screenWidth = screenWidth;
+        _screenHeight = screenHeight;
+    }
+    public void InitSDL() {
         int rendererFlags = (int)RendererFlags.Accelerated;
         int windowFlags = 0;
 
@@ -37,38 +39,38 @@ internal unsafe class Windows {
             Kill($"Couldn't initialize SDL: {_sdl.GetErrorS()}");
             
         }
-        app.window = _sdl.CreateWindow(
+        _window = _sdl.CreateWindow(
             "Hello, World",
             Sdl.WindowposUndefined,
             Sdl.WindowposUndefined,
-            SCREEN_WIDTH,
-            SCREEN_HEIGHT,
+            _screenWidth,
+            _screenHeight,
             (uint)windowFlags);
-        if (app.window == null) {
-            Kill($"Failed to open {SCREEN_WIDTH} x {SCREEN_HEIGHT} window: {_sdl.GetErrorS()}");
+        if (_window == null) {
+            Kill($"Failed to open {_screenWidth} x {_screenHeight} window: {_sdl.GetErrorS()}");
         }
 
         _sdl.SetHint(Sdl.HintRenderScaleQuality, "linear");
-        app.renderer = _sdl.CreateRenderer(app.window, -1, (uint)rendererFlags);
+        _renderer = _sdl.CreateRenderer(_window, -1, (uint)rendererFlags);
 
-        if (app.renderer == null) {
+        if (_renderer == null) {
             Kill($"Failed to create renderer: {_sdl.GetErrorS()}");
         }
     }
 
-    static  void Draw() {
+    static void Draw() {
         // ---- filled rectangle (red) ----
-        _sdl.SetRenderDrawColor(app.renderer, 255, 0, 0, 255);
+        _sdl.SetRenderDrawColor(_renderer, 255, 0, 0, 255);
         FRect redBox = new FRect { X = 50, Y = 50, H = 300, W = 400 };
-        _sdl.RenderFillRectF(app.renderer, in redBox);
+        _sdl.RenderFillRectF(_renderer, in redBox);
     }
 
     static void Kill(string msg) {
         Console.WriteLine(msg);
-        Environment.Exit(1);
+        _sdl.Quit();
     }
 
-    public static void GameLoop() {
+    public void GameLoop() {
         bool running = true;
 
         Event e;
@@ -79,14 +81,18 @@ internal unsafe class Windows {
                     running = false;
                 }
             }
-            _sdl.SetRenderDrawColor(app.renderer, 30, 30, 30, 255);
-            _sdl.RenderClear(app.renderer);
+            _sdl.SetRenderDrawColor(_renderer, 30, 30, 30, 255);
+            _sdl.RenderClear(_renderer);
             
             Draw();
-            _sdl.RenderPresent(app.renderer);
+            _sdl.RenderPresent(_renderer);
         }
-        _sdl.DestroyRenderer(app.renderer);
-        _sdl.DestroyWindow(app.window);
+        
+    }
+
+    public void Dispose() {
+        _sdl.DestroyRenderer(_renderer);
+        _sdl.DestroyWindow(_window);
         _sdl.Quit();
     }
 }
