@@ -13,4 +13,9 @@ public static class ProtocolConstants
     public const int DefaultPort = 27015;
     public const int DefaultTickRate = 60;
     public const int DefaultMaxPlayers = 16;
+
+    /// <summary>
+    /// Written to stdout once when the dedicated server is listening. The listen-server child process watches for this line.
+    /// </summary>
+    public const string ListenProcessReadyLine = "RexEngine listen-ready v1";
 }
