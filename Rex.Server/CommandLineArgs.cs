@@ -5,6 +5,7 @@ using C = System.Console;
 
 namespace Rex.Server;
 
+/// <summary>Server CLI. Unknown tokens are logged and ignored. Parsing still succeeds.</summary>
 internal sealed class CommandLineArgs
 {
     public string? ConfigFile { get; }

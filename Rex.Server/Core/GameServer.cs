@@ -1,230 +1,88 @@
 using LiteNetLib;
 using Microsoft.Extensions.Logging;
 using Rex.Server.Net;
+using Rex.Server.Simulation;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
-using Rex.Shared.Net.Transfer;
 
 namespace Rex.Server.Core;
 
 /// <summary>
-/// Server-side networking controller that accepts clients, buffers inputs, and broadcasts snapshots.
+/// LiteNetLib network layer. Accepts remote peers and delegates
+/// simulation to GameServerHost.
 /// </summary>
 public sealed class GameServer
 {
-    private readonly GameServerConfig _config;
+    private readonly GameServerHost _host;
     private readonly ILogger _logger;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly Dictionary<int, ClientSession> _sessions = new();
     private readonly Dictionary<NetPeer, int> _peerToClientId = new();
-    private readonly GameWorld _world;
-    private readonly DirtyTracker _dirtyTracker = new();
-    private readonly RexNetStatistics _statistics = new();
 
     private EventBasedNetListener? _listener;
     private NetManager? _netManager;
-    private BulkTransferManager? _transferManager;
-    private int _nextClientId = 1;
-    private uint _currentTick;
-    private bool _isRunning;
 
-    /// <summary>
-    /// Gets the active server config.
-    /// </summary>
-    public GameServerConfig Config => _config;
+    public GameServerHost Host => _host;
 
-    /// <summary>
-    /// Gets the current server tick.
-    /// </summary>
-    public uint CurrentTick => _currentTick;
-
-    /// <summary>
-    /// Gets the game world owned by this server.
-    /// </summary>
-    public GameWorld World => _world;
-
-    /// <summary>
-    /// Gets a value that indicates whether the server is running.
-    /// </summary>
-    public bool IsRunning => _isRunning;
-
-    /// <summary>
-    /// Gets the network statistics sampler.
-    /// </summary>
-    public RexNetStatistics Statistics => _statistics;
-
-    /// <summary>
-    /// Gets the bulk transfer manager while the server is running.
-    /// </summary>
-    public BulkTransferManager? TransferManager => _transferManager;
-
-    /// <summary>
-    /// Creates the server networking controller.
-    /// </summary>
     public GameServer(GameServerConfig config, ILoggerFactory loggerFactory)
     {
-        _config = config;
-        _loggerFactory = loggerFactory;
+        _host = new GameServerHost(config, loggerFactory);
         _logger = loggerFactory.CreateLogger<GameServer>();
-        _world = new GameWorld(_dirtyTracker);
     }
 
-    /// <summary>
-    /// Starts the remote networking transport and begins accepting clients.
-    /// </summary>
     public void Start()
     {
-        if (_isRunning)
-            throw new InvalidOperationException("Server is already running.");
-
-        NetMessages.RegisterAll();
+        _host.Start();
 
         _listener = new EventBasedNetListener();
         _netManager = new NetManager(_listener);
-        _transferManager = new BulkTransferManager(_loggerFactory);
 
         _listener.ConnectionRequestEvent += OnConnectionRequest;
         _listener.PeerConnectedEvent += OnPeerConnected;
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
 
-        if (!_netManager.Start(_config.Port))
-            throw new InvalidOperationException($"Failed to start server transport on port {_config.Port}.");
+        if (!_netManager.Start(_host.Config.Port))
+            throw new InvalidOperationException($"Failed to start server transport on port {_host.Config.Port}.");
 
-        _isRunning = true;
-        _logger.LogInformation("Server started on port {Port} (tick rate: {TickRate}, max players: {MaxPlayers})",
-            _config.Port, _config.TickRate, _config.MaxPlayers);
+        _logger.LogInformation("Server listening on port {Port}", _host.Config.Port);
     }
 
-    /// <summary>
-    /// Sends one bulk payload to a specific client if that client is active.
-    /// </summary>
-    public void SendBulkData<T>(int clientId, BulkDataType dataType, T data)
-    {
-        if (_transferManager == null || !_sessions.TryGetValue(clientId, out var session))
-            return;
-
-        _transferManager.SendBulkData(session.Channel, dataType, data);
-    }
-
-    /// <summary>
-    /// Sends one bulk payload to every in-game client.
-    /// </summary>
-    public void BroadcastBulkData<T>(BulkDataType dataType, T data)
-    {
-        if (_transferManager == null)
-            return;
-
-        foreach (var session in _sessions.Values)
-        {
-            if (session.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
-            {
-                _transferManager.SendBulkData(session.Channel, dataType, data);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Pumps transport events, runs one simulation tick, and broadcasts snapshots.
-    /// </summary>
     public void Tick()
     {
-        if (!_isRunning)
-            return;
-
-        _dirtyTracker.ClearTick(_currentTick);
         _netManager?.PollEvents();
-
-        foreach (var session in _sessions.Values)
-        {
-            while (session.TryDequeueInput(out var input))
-            {
-                if (input != null)
-                {
-                    _world.ProcessInput(session.ClientId, input);
-                    session.LastProcessedInputTick = input.Tick;
-                }
-            }
-        }
-
-        var deltaTime = 1.0f / _config.TickRate;
-        _world.Tick(deltaTime);
-        _currentTick++;
-        BroadcastSnapshots();
+        _host.Tick();
     }
 
-    /// <summary>
-    /// Disconnects clients and stops the remote transport.
-    /// </summary>
     public void Shutdown()
     {
-        if (!_isRunning)
-            return;
-
-        _logger.LogInformation("Server shutting down...");
-
-        foreach (var session in _sessions.Values)
-        {
-            session.Channel.Disconnect("Server shutting down");
-        }
-
-        _sessions.Clear();
+        _host.Shutdown();
         _peerToClientId.Clear();
         _netManager?.Stop();
-        _isRunning = false;
-
-        _logger.LogInformation("Server stopped.");
-    }
-
-    /// <summary>
-    /// Builds a snapshot for each client based on its latest ack and sends it with adaptive delivery.
-    /// </summary>
-    private void BroadcastSnapshots()
-    {
-        foreach (var session in _sessions.Values)
-        {
-            if (session.Channel.State != Rex.Shared.Net.ConnectionState.InGame)
-                continue;
-
-            var dirtyEntities = _dirtyTracker.GetDirtyEntities(session.LastAcknowledgedTick, _currentTick);
-            WorldSnapshotMessage snapshot;
-
-            if (dirtyEntities == null)
-            {
-                snapshot = _world.BuildSnapshot(_currentTick, session.LastProcessedInputTick);
-            }
-            else
-            {
-                snapshot = _world.BuildDeltaSnapshot(_currentTick, session.LastProcessedInputTick, dirtyEntities);
-            }
-
-            var (channel, delivery) = AdaptiveReliability.GetAdaptiveDelivery(snapshot);
-            session.Channel.Send(snapshot, channel, delivery);
-        }
+        _logger.LogInformation("Server network layer stopped.");
     }
 
     private void OnConnectionRequest(ConnectionRequest request)
     {
-        if (_sessions.Count >= _config.MaxPlayers)
+        // Reject before accept if we are at max players.
+        if (_host.IsFull)
         {
             request.Reject();
             _logger.LogWarning("Connection rejected: server full.");
             return;
         }
 
-        request.AcceptIfKey(_config.ConnectionKey);
+        request.AcceptIfKey(_host.Config.ConnectionKey);
     }
 
     private void OnPeerConnected(NetPeer peer)
     {
-        var clientId = _nextClientId++;
-        var channel = new Rex.Server.Net.RemoteServerNetChannel(peer, clientId);
+        // One ClientSession and id for the lifetime of this peer.
+        var clientId = _host.AllocateClientId();
+        var channel = new RemoteServerNetChannel(peer, clientId);
         var session = new ClientSession(channel);
-        _sessions[clientId] = session;
+        _host.AddSession(session);
         _peerToClientId[peer] = clientId;
 
-        _logger.LogInformation("Remote peer connected: {EndPoint} assigned ClientId {ClientId}",
-            peer.Address, clientId);
+        _logger.LogInformation("Peer connected: {EndPoint} -> ClientId {ClientId}", peer.Address, clientId);
     }
 
     private void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
@@ -232,21 +90,9 @@ public sealed class GameServer
         if (!_peerToClientId.TryGetValue(peer, out var clientId))
             return;
 
-        _logger.LogInformation("Remote peer disconnected: ClientId {ClientId} ({Reason})",
-            clientId, disconnectInfo.Reason);
-
-        _world.DestroyEntity(clientId);
-
-        var destroyMsg = new EntityDestroyMessage(clientId);
-        foreach (var other in _sessions.Values)
-        {
-            if (other.ClientId != clientId && other.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
-            {
-                other.Channel.Send(destroyMsg);
-            }
-        }
-
-        _sessions.Remove(clientId);
+        // Tear down sim and notify other clients via host.
+        _logger.LogInformation("Peer disconnected: ClientId {ClientId} ({Reason})", clientId, disconnectInfo.Reason);
+        _host.RemoveSession(clientId);
         _peerToClientId.Remove(peer);
     }
 
@@ -258,74 +104,10 @@ public sealed class GameServer
             return;
         }
 
-        if (!_sessions.TryGetValue(clientId, out var session))
-        {
-            reader.Recycle();
-            return;
-        }
-
-        _statistics.RecordReceived(0, reader.AvailableBytes);
+        // Byte count only here. Message id can be counted after deserialize if you extend stats.
+        _host.Statistics.RecordReceived(0, reader.AvailableBytes);
         var message = NetMessageRegistry.Deserialize(reader);
         reader.Recycle();
-        HandleMessage(session, message);
-    }
-
-    private void HandleMessage(ClientSession session, INetMessage message)
-    {
-        switch (message)
-        {
-            case ConnectRequestMessage connectRequest:
-                HandleConnectRequest(session, connectRequest);
-                break;
-            case PlayerInputMessage playerInput:
-                session.EnqueueInput(playerInput);
-                break;
-            case StateAckMessage stateAck:
-                session.LastAcknowledgedTick = stateAck.AcknowledgedTick;
-                break;
-            case BulkTransferAckMessage transferAck:
-                _logger.LogDebug("Client {ClientId} acknowledged transfer {TransferId}: {Success}",
-                    session.ClientId, transferAck.TransferId, transferAck.Success);
-                break;
-            case DisconnectMessage disconnect:
-                _logger.LogInformation("Client {ClientId} disconnecting: {Reason}",
-                    session.ClientId, disconnect.Reason);
-                session.Channel.Disconnect(disconnect.Reason);
-                break;
-        }
-    }
-
-    private void HandleConnectRequest(ClientSession session, ConnectRequestMessage request)
-    {
-        if (request.ProtocolVersion != ProtocolConstants.ProtocolVersion)
-        {
-            var reject = new ConnectResponseMessage(false, 0, 0, "Protocol version mismatch");
-            session.Channel.Send(reject);
-            session.Channel.Disconnect("Protocol version mismatch");
-            return;
-        }
-
-        session.PlayerName = request.PlayerName;
-        session.Channel.State = Rex.Shared.Net.ConnectionState.Authenticated;
-        _logger.LogInformation("Client {ClientId} authenticated as '{PlayerName}'",
-            session.ClientId, request.PlayerName);
-
-        var response = new ConnectResponseMessage(true, session.ClientId, _config.TickRate);
-        session.Channel.Send(response);
-
-        _world.SpawnEntity(session.ClientId, "player", 0f, 0f, 0f);
-
-        session.Channel.State = Rex.Shared.Net.ConnectionState.InGame;
-        var snapshot = _world.BuildSnapshot(_currentTick, 0);
-        session.Channel.Send(snapshot, DeliveryChannel.Reliable, DeliveryChannel.ReliableMethod);
-
-        var spawnMsg = new EntitySpawnMessage(session.ClientId, session.ClientId, "player", 0f, 0f, 0f);
-        foreach (var other in _sessions.Values)
-        {
-            if (other.ClientId != session.ClientId && other.Channel.State == Rex.Shared.Net.ConnectionState.InGame)
-            {
-                other.Channel.Send(spawnMsg);
-            }
-        }
+        _host.HandleMessage(clientId, message);
     }
 }

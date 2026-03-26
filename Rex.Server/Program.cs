@@ -1,73 +1,38 @@
 using Microsoft.Extensions.Logging;
-using Rex.Server.Core;
-using Rex.Shared.Timing;
+using Rex.Server.Simulation;
 
 namespace Rex.Server;
 
+/// <summary>Headless dedicated server: CLI args, <see cref="GameServerConfig"/>, then <see cref="ServerApp"/>.</summary>
 internal static class Program
 {
-    private static bool _hasStarted;
-
     internal static void Main(string[] args)
     {
-        Start(args);
-    }
-
-    private static void Start(string[] args)
-    {
-        if (_hasStarted)
-        {
-            throw new InvalidOperationException("Server attempted to start again!");
-        }
-
-        _hasStarted = true;
-
         if (!CommandLineArgs.TryParse(args, out var parsed))
-        {
             return;
-        }
 
-        ParsedMain(parsed);
-    }
-
-    private static void ParsedMain(CommandLineArgs args)
-    {
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
-        var logger = loggerFactory.CreateLogger("Rex.Server");
-
         var config = new GameServerConfig
         {
-            Port = args.Port,
-            MaxPlayers = args.MaxPlayers,
-            TickRate = args.TickRate,
+            Port = parsed.Port,
+            MaxPlayers = parsed.MaxPlayers,
+            TickRate = parsed.TickRate,
             ServerName = "Rex Dedicated Server"
         };
 
-        var server = new GameServer(config, loggerFactory);
-        var gameLoop = new GameLoop(config.TickRate)
-        {
-            YieldBetweenFrames = true
-        };
+        using var app = new ServerApp(config, loggerFactory);
 
-        // Handle graceful shutdown.
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
-            logger.LogInformation("Shutdown signal received.");
-            gameLoop.Stop();
+            app.Stop();
         };
 
-        server.Start();
-
-        gameLoop.OnTick = server.Tick;
-        logger.LogInformation("Dedicated server running. Press Ctrl+C to stop.");
-        gameLoop.Run();
-
-        server.Shutdown();
+        app.Run();
     }
 }
