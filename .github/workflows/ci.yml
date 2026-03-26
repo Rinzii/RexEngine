@@ -1,14 +1,26 @@
-name: ci
+name: CI
 
 on:
   push:
   pull_request:
   workflow_dispatch:
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+permissions:
+  contents: read
+
+env:
+  DOTNET_NO_LOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  format:
+    name: Format
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -21,5 +33,43 @@ jobs:
       - name: Restore
         run: dotnet restore Rex.sln
 
+      - name: Verify formatting
+        run: dotnet format Rex.sln --verify-no-changes --no-restore
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: format
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Rex.sln
+
       - name: Build
-        run: dotnet build Rex.sln --configuration Release --no-restore
+        run: >
+          dotnet build Rex.sln
+          --configuration Release
+          --no-restore
+          -warnaserror
+          /p:ContinuousIntegrationBuild=true
