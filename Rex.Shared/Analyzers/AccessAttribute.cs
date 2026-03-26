@@ -20,6 +20,7 @@ namespace Rex.Shared.Analyzers;
 /// </summary>
 /// <example>
 /// <code>
+/// <![CDATA[
 ///     [RegisterComponent]
 ///     // Allow the system with utility functions for this component to modify it.
 ///     [Access(typeof(MySystem))]
@@ -27,24 +28,25 @@ namespace Rex.Shared.Analyzers;
 ///     {
 ///         public int Counter;
 ///     }
-///     <br/>
+///
 ///     public sealed class MySystem : EntitySystem
 ///     {
-///         public void AddToCounter(Entity&lt;MyComponent&gt; entity)
+///         public void AddToCounter(Entity<MyComponent> entity)
 ///         {
 ///             // Works, we're a friend of the other type.
 ///             entity.Comp.Counter += 1;
 ///         }
 ///     }
-///     <br/>
+///
 ///     public sealed class OtherSystem : EntitySystem
 ///     {
-///         public void AddToCounter(Entity&lt;MyComponent&gt; entity)
+///         public void AddToCounter(Entity<MyComponent> entity)
 ///         {
 ///             // Error RS2008: Tried to perform write access to member 'Counter' in type 'MyComponent', despite read access.
 ///             entity.Comp.Counter += 1;
 ///         }
 ///     }
+/// ]]>
 /// </code>
 /// </example>
 /// <seealso cref="AccessPermissions"/>

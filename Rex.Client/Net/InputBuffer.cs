@@ -23,13 +23,13 @@ public sealed class InputBuffer
         slot.Value = input;
     }
 
-    /// <summary>Clears inputs the server has definitely applied (tick &lt;= ack).</summary>
+    /// <summary>Clears inputs the server has definitely applied (tick ≤ ack).</summary>
     public void AcknowledgeUpTo(uint tick)
     {
         for (var i = 0; i < _buffer.Capacity; i++)
         {
             var slot = _buffer.GetSlotAt(i);
-            if (slot.IsAssigned && slot.Value != null && slot.Tick <= tick)
+            if (slot is { IsAssigned: true, Value: not null } && slot.Tick <= tick)
             {
                 slot.IsAssigned = false;
                 slot.Value = null;
@@ -45,7 +45,7 @@ public sealed class InputBuffer
         for (var i = 0; i < _buffer.Capacity; i++)
         {
             var slot = _buffer.GetSlotAt(i);
-            if (slot.IsAssigned && slot.Value != null && slot.Tick > tick)
+            if (slot is { IsAssigned: true, Value: not null } && slot.Tick > tick)
                 result.Add(slot.Value);
         }
 

@@ -11,18 +11,20 @@ namespace Rex.Shared.Analyzers;
 /// </summary>
 /// <example>
 /// <code>
+/// <![CDATA[
 ///     public sealed MyClass
 ///     {
 ///         [PreferNonGenericVariantFor(typeof(Cupcake))]
-///         public static string DescribeFood&lt;T&gt;(T food);
+///         public static string DescribeFood<T>(T food);
 ///         public static string DescribeCupcake(Cupcake food);
 ///     }
-///     <br/>
+///
 ///     // Warning RA0020: Use the non-generic variant of this method for type Cupcake.
-///     MyClass.DescribeFood&lt;Cupcake&gt;(new Cupcake());
-///     <br/>
+///     MyClass.DescribeFood<Cupcake>(new Cupcake());
+///
 ///     // No warning
 ///     MyClass.DescribeCupcake(new Cupcake());
+/// ]]>
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Method)]

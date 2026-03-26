@@ -14,16 +14,18 @@ namespace Rex.Shared.Analyzers;
 /// <param name="replacementType">The type that you should replace the usage with.</param>
 /// <example>
 /// <code>
+/// <![CDATA[
 ///     [PreferOtherTypeAttribute(typeof(int), typeof(MySpecializedType))]
-///     public sealed record MyGeneralType&lt;T&gt;(T Field);
-///     <br/>
+///     public sealed record MyGeneralType<T>(T Field);
+///
 ///     public sealed record MySpecializedType(int Field);
-///     <br/>
+///
 ///     // Warning RA0021: Use the specific type MySpecializedType instead of MyGeneralType when the type argument is int.
-///     var obj = new MyGeneralType&lt;int&gt;(42);
-///     <br/>
+///     var obj = new MyGeneralType<int>(42);
+///
 ///     // No warning.
 ///     var obj = new MySpecializedType(42);
+/// ]]>
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]

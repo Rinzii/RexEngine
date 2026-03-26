@@ -12,15 +12,17 @@ namespace Rex.Shared.Analyzers;
 /// </summary>
 /// <example>
 /// <code>
+/// <![CDATA[
 ///     public sealed MyClass
 ///     {
 ///         [PreferGenericVariant]
 ///         public static bool IsPastry(Type t);
-///         public static bool IsPastry&lt;T&gt;();
+///         public static bool IsPastry<T>();
 ///     }
-///     <br/>
+///
 ///     // Warning RA0005: Consider using the generic variant of this method to avoid potential allocations.
 ///     MyClass.IsPastry(typeof(Cupcake));
+/// ]]>
 /// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Method)]

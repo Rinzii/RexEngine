@@ -393,7 +393,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
 
         // If a tag is explicitly specified, it will be the first argument...
         var tagArgument = datafieldAttribute.ConstructorArguments[0];
-        // ...but the first arg could also something else, since tag is optional
+        // ...but the first arg could also be something else, since tag is optional
         // so we make sure that it's a string
         if (tagArgument.Value is not string explicitName)
             return false;

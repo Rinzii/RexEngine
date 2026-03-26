@@ -38,7 +38,7 @@ public readonly struct FrameContext
     /// <summary>Wall-frame duration in seconds before <see cref="TimeScale"/> (clamped max frame already applied by the loop).</summary>
     public float UnscaledDeltaTime { get; }
 
-    /// <summary>Multiplier for <see cref="ScaledDeltaTime"/>; use 0 for pause, &lt; 1 for slow-mo.</summary>
+    /// <summary>Multiplier for <see cref="ScaledDeltaTime"/>; use 0 for pause, or a value below 1 for slow-mo.</summary>
     public float TimeScale { get; }
 
     /// <summary><see cref="UnscaledDeltaTime"/> × <see cref="TimeScale"/>.</summary>
