@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>disable</Nullable>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>latest</LangVersion>
         <DefineConstants>$(DefineConstants);REX_ANALYZERS_IMPL</DefineConstants>
         <PolySharpIncludeGeneratedTypes>System.Index;System.Range;System.Runtime.CompilerServices.IsExternalInit;System.Diagnostics.CodeAnalysis.NotNullWhenAttribute;System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute</PolySharpIncludeGeneratedTypes>
@@ -22,8 +23,10 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" PrivateAssets="all" />
     </ItemGroup>
 
+    <!-- Compile shared helpers into this assembly so consumers only load one analyzer DLL (Roslyn does not resolve satellite refs). -->
     <ItemGroup>
-        <ProjectReference Include="..\Rex.Roslyn.Shared\Rex.Roslyn.Shared.csproj" />
+        <Compile Include="..\Rex.Roslyn.Shared\**\*.cs" Link="Rex.Roslyn.Shared\%(RecursiveDir)%(Filename)%(Extension)" />
+        <Compile Remove="..\Rex.Roslyn.Shared\obj\**\*.cs" />
     </ItemGroup>
 
     <!-- Types compiled into the analyzer assembly for analyzer logic (mirrors RobustToolbox pattern). -->
