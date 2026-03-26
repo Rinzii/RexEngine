@@ -14,6 +14,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".run", ".run", "{F8A29059-9
 		.run\Rex Listen Server.run.xml = .run\Rex Listen Server.run.xml
 		.run\Rex Server + Client.run.xml = .run\Rex Server + Client.run.xml
 		.run\Rex Server.run.xml = .run\Rex Server.run.xml
+		.run\Rex Standalone.run.xml = .run\Rex Standalone.run.xml
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Analyzers", "Rex.Analyzers\Rex.Analyzers.csproj", "{103ACDE9-720F-407A-B9B3-80849773739F}"
