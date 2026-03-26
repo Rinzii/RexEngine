@@ -16,6 +16,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".run", ".run", "{F8A29059-9
 		.run\Rex Server.run.xml = .run\Rex Server.run.xml
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Analyzers", "Rex.Analyzers\Rex.Analyzers.csproj", "{103ACDE9-720F-407A-B9B3-80849773739F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Roslyn.Shared", "Rex.Roslyn.Shared\Rex.Roslyn.Shared.csproj", "{F57B4233-CA36-4A18-A8FC-32611A959FED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,5 +42,13 @@ Global
 		{D2F20706-68F8-4C43-9558-50C11DEF7D88}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2F20706-68F8-4C43-9558-50C11DEF7D88}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2F20706-68F8-4C43-9558-50C11DEF7D88}.Release|Any CPU.Build.0 = Release|Any CPU
+		{103ACDE9-720F-407A-B9B3-80849773739F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{103ACDE9-720F-407A-B9B3-80849773739F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{103ACDE9-720F-407A-B9B3-80849773739F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{103ACDE9-720F-407A-B9B3-80849773739F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F57B4233-CA36-4A18-A8FC-32611A959FED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F57B4233-CA36-4A18-A8FC-32611A959FED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F57B4233-CA36-4A18-A8FC-32611A959FED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F57B4233-CA36-4A18-A8FC-32611A959FED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
