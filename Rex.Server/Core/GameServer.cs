@@ -30,8 +30,6 @@ public sealed class GameServer
 
     public void Start()
     {
-        _host.Start();
-
         _listener = new EventBasedNetListener();
         _netManager = new NetManager(_listener);
 
@@ -40,8 +38,19 @@ public sealed class GameServer
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
 
+        // Bind before GameServerHost.Start so we do not run the sim if the port is taken.
         if (!_netManager.Start(_host.Config.Port))
-            throw new InvalidOperationException($"Failed to start server transport on port {_host.Config.Port}.");
+        {
+            _logger.LogError(
+                "Cannot listen on port {Port}. It is probably already in use. Stop the other process or use --port with a different value.",
+                _host.Config.Port);
+            _netManager.Stop();
+            _netManager = null;
+            _listener = null;
+            throw new InvalidOperationException($"Port {_host.Config.Port} is already in use.");
+        }
+
+        _host.Start();
 
         _logger.LogInformation("Server listening on port {Port}", _host.Config.Port);
     }

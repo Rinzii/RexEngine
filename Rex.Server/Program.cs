@@ -33,6 +33,13 @@ internal static class Program
             app.Stop();
         };
 
-        app.Run();
+        try
+        {
+            app.Run();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already in use", StringComparison.Ordinal))
+        {
+            Environment.Exit(1);
+        }
     }
 }
