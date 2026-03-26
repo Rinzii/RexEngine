@@ -6,6 +6,9 @@
 *.user
 *.sln.docstates
 
+# Git specific
+*.orig
+
 # Build results
 
 [Dd]ebug/
