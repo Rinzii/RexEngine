@@ -1,0 +1,68 @@
+@startuml 03-messages-and-registry
+
+title 03 Wire messages and registry
+
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+
+left to right direction
+
+interface INetMessage {
+  MessageId
+  Group
+  Serialize(writer)
+}
+
+class NetMessageRegistry <<static>> {
+  Register(id, deserializer)
+  Deserialize(reader)
+  WriteHeader(writer, id)
+}
+
+class NetMessages <<static>> {
+  RegisterAll()
+}
+
+package "Handshake" {
+  class ConnectRequestMessage
+  class ConnectResponseMessage
+  class DisconnectMessage
+  class StateAckMessage
+}
+
+package "Simulation" {
+  class PlayerInputMessage
+  class WorldSnapshotMessage
+  class EntitySpawnMessage
+  class EntityDestroyMessage
+}
+
+package "Bulk" {
+  class BulkTransferInitMessage
+  class BulkTransferChunkMessage
+  class BulkTransferAckMessage
+}
+
+INetMessage <|.. ConnectRequestMessage
+INetMessage <|.. ConnectResponseMessage
+INetMessage <|.. DisconnectMessage
+INetMessage <|.. StateAckMessage
+INetMessage <|.. PlayerInputMessage
+INetMessage <|.. WorldSnapshotMessage
+INetMessage <|.. EntitySpawnMessage
+INetMessage <|.. EntityDestroyMessage
+INetMessage <|.. BulkTransferInitMessage
+INetMessage <|.. BulkTransferChunkMessage
+INetMessage <|.. BulkTransferAckMessage
+
+NetMessages ..> NetMessageRegistry
+NetMessageRegistry ..> INetMessage : dispatch by id
+
+note bottom of NetMessageRegistry
+  After LiteNetLib delivers the payload the first field is ushort message id.
+  The remaining bytes are the type-specific body.
+end note
+
+@enduml

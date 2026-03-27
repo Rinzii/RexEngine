@@ -1,0 +1,49 @@
+@startuml 06-activity-server-host-tick
+
+title 06 GameServerHost.Tick
+
+skinparam shadowing false
+skinparam ActivityBackgroundColor #F8F8F8
+skinparam ActivityBorderColor #666666
+skinparam ArrowColor #333333
+
+start
+
+:DirtyTracker.ClearTick(currentTick);
+
+partition "Inputs" {
+  note right
+    Outer foreach visits every ClientSession.
+  end note
+  :Move to next ClientSession;
+  note right
+    Inner while exists in code.
+    TryDequeueInput repeats until that session queue is empty.
+  end note
+  :TryDequeueInput;
+  if (input present and PlayerEntityId set?) then (yes)
+    :World.ProcessInput;
+    :LastProcessedInputTick = input.Tick;
+  endif
+}
+
+:World.Tick(deltaTime);
+:currentTick++;
+
+partition "Snapshots" {
+  note right
+    Outer foreach visits every InGame session.
+  end note
+  :Move to next InGame session;
+  if (delta from ack available?) then (yes)
+    :BuildDeltaSnapshot;
+  else (no)
+    :BuildSnapshot full;
+  endif
+  :GetAdaptiveDelivery(snapshot);
+  :Channel.Send(snapshot);
+}
+
+stop
+
+@enduml

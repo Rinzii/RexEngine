@@ -1,0 +1,51 @@
+@startuml 09-supporting-types
+
+title 09 Supporting net types
+
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+
+enum ConnectionState {
+  Connecting
+  Connected
+  Authenticated
+  InGame
+  Disconnecting
+  Disconnected
+}
+
+enum NetMode {
+  Standalone
+  Client
+  ListenServer
+  DedicatedServer
+}
+
+class ProtocolConstants <<static>> {
+  ProtocolVersion
+  ConnectionKey
+  DefaultPort
+  DefaultTickRate
+  DefaultMaxPlayers
+  ListenProcessReadyLine
+}
+
+class ConnectEndpointParser <<static>> {
+  TryParse(address, defaultPort)
+}
+
+class RexNetStatistics {
+  RecordSent
+  RecordReceived
+  Per-type aggregates
+}
+
+legend right
+  ConnectionState lives on channel implementations.
+  NetMode selects ClientApp wiring (Standalone has no channel).
+  GameServer records receive bytes before deserialize (id may be zero).
+end legend
+
+@enduml

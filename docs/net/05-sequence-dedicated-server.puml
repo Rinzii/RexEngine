@@ -1,0 +1,90 @@
+@startuml 05-sequence-dedicated-server
+
+title NetMode DedicatedServer (Rex.Server process only)
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.2
+skinparam maxMessageSize 220
+
+actor Operator
+
+participant "ServerApp\n<<control>>" as SA
+participant "GameServer\n<<control>>" as GS
+participant "NetManager\n<<boundary>>" as LNS
+participant "GameServerHost\n<<control>>" as Host
+participant "RemoteServerNetChannel\n<<boundary>>" as SCh
+
+note over Operator, SCh
+  Headless Rex.Server executable.
+  No GameClient and no rendering.
+  Open arrowhead only means one asynchronous signal or send (no reply drawn).
+end note
+
+== Startup ==
+
+Operator -> SA : Run(cancellationToken)
+activate SA
+SA -> GS : new GameServer(config, loggerFactory)
+SA -> GS : Start()
+activate GS
+GS -> LNS : NetManager.Start(port)
+LNS --> GS
+GS -> Host : Start()
+activate Host
+Host --> GS
+deactivate Host
+GS --> SA
+deactivate GS
+deactivate SA
+
+== Steady state ==
+
+loop [each outer frame while ServerApp running]
+  SA -> GS : Tick()
+  activate SA
+  activate GS
+  GS -> LNS : pollEvents()
+  activate LNS
+  LNS --> GS
+  deactivate LNS
+  opt [inbound packet during poll]
+    LNS ->> GS : networkReceive(...)
+    GS -> Host : handleMessage(clientId, message)
+    activate Host
+    Host --> GS
+    deactivate Host
+  end
+  GS -> Host : tick()
+  activate Host
+  loop [each ClientSession]
+    Host -> Host : dequeue PlayerInput from session
+  end
+  Host -> Host : World.Tick(deltaTime)
+  loop [each InGame session]
+    Host -> Host : build WorldSnapshotMessage
+    Host ->> SCh : send(WorldSnapshotMessage)
+  end
+  deactivate Host
+  GS --> SA
+  deactivate GS
+  SA -> SA : InvokeUpdateCallbacks
+  deactivate SA
+end
+
+== After loop exits ==
+
+activate SA
+SA -> GS : Shutdown()
+activate GS
+GS -> Host : Shutdown()
+activate Host
+Host --> GS
+deactivate Host
+GS -> LNS : stop NetManager
+LNS --> GS
+deactivate GS
+deactivate SA
+
+@enduml

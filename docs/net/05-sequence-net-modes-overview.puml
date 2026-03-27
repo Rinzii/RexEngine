@@ -1,0 +1,31 @@
+@startuml 05-sequence-net-modes-overview
+
+title NetMode sequence diagrams (index)
+
+skinparam shadowing false
+skinparam noteFontSize 12
+
+legend right
+  Standalone
+  File 05-sequence-standalone.puml
+  Local GameWorld only. No IClientNetChannel.
+  --
+  Client
+  File 05-sequence-client-remote.puml
+  GameClient plus remote GameServer over LiteNetLib.
+  --
+  ListenServer
+  File 05-sequence-listen-server.puml
+  Rex.Client spawns Rex.Server then uses Client mode to localhost.
+  --
+  DedicatedServer
+  File 05-sequence-dedicated-server.puml
+  Rex.Server ServerApp loop only.
+end legend
+
+note as N1
+  NetMode DedicatedServer is not started through ClientApp.Run.
+  Rex.Client Program rejects that mode on the client entry point.
+end note
+
+@enduml

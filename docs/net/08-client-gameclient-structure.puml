@@ -1,0 +1,39 @@
+@startuml 08-client-gameclient-structure
+
+title 08 GameClient (networked play)
+
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+
+class GameClient {
+  channel
+  transferManager
+  --
+  Connect(host, port)
+  Connect(IClientNetChannel)
+  Tick(tick)
+  OnMessageReceived
+}
+
+class ClientWorldState
+class InputBuffer
+class PredictionSystem
+
+interface IClientNetChannel
+class BulkTransferManager
+
+GameClient *-- ClientWorldState
+GameClient *-- InputBuffer
+GameClient *-- PredictionSystem
+GameClient ..> IClientNetChannel
+GameClient ..> BulkTransferManager
+
+note bottom of GameClient
+  RegisterAll on Connect.
+  ConnectResponse moves channel to InGame.
+  Each WorldSnapshot sends StateAck.
+end note
+
+@enduml
