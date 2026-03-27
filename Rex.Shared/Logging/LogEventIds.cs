@@ -10,8 +10,10 @@ public static class LogEventIds
     /// <summary>Ids for bulk transfer logging.</summary>
     public static class BulkTransfer
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1000;
         public const int RangeLast = 1099;
+        // ReSharper restore UnusedMember.Global
 
         public const int TransferStarted = 1000;
         public const int TransferReceiving = 1001;
@@ -22,8 +24,10 @@ public static class LogEventIds
     /// <summary>Ids for the networked game client.</summary>
     public static class GameClient
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1100;
         public const int RangeLast = 1199;
+        // ReSharper restore UnusedMember.Global
 
         public const int ConnectedToServer = 1100;
         public const int Disconnected = 1101;
@@ -38,8 +42,10 @@ public static class LogEventIds
     /// <summary>Ids for the remote client transport.</summary>
     public static class ClientTransport
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1200;
         public const int RangeLast = 1299;
+        // ReSharper restore UnusedMember.Global
 
         public const int TransportStartFailed = 1200;
         public const int DeserializeMessageFailed = 1201;
@@ -48,8 +54,10 @@ public static class LogEventIds
     /// <summary>Ids for the top-level client application.</summary>
     public static class ClientApp
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1300;
         public const int RangeLast = 1399;
+        // ReSharper restore UnusedMember.Global
 
         public const int InvalidNetMode = 1300;
         public const int ClientRunning = 1301;
@@ -62,8 +70,10 @@ public static class LogEventIds
     /// <summary>Ids for the client entry point and listen-server process wiring.</summary>
     public static class ClientHost
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1400;
         public const int RangeLast = 1599;
+        // ReSharper restore UnusedMember.Global
 
         public const int ShutdownSignal = 1400;
         public const int ListenServerStdout = 1401;
@@ -81,8 +91,10 @@ public static class LogEventIds
     /// <summary>Ids for the dedicated server entry point.</summary>
     public static class ServerHost
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1600;
         public const int RangeLast = 1699;
+        // ReSharper restore UnusedMember.Global
 
         public const int CliParseFailed = 1600;
         public const int UnrecognizedCliArgument = 1601;
@@ -92,8 +104,10 @@ public static class LogEventIds
     /// <summary>Ids for the server network layer.</summary>
     public static class GameServerNet
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1700;
         public const int RangeLast = 1799;
+        // ReSharper restore UnusedMember.Global
 
         public const int CannotListenOnPort = 1700;
         public const int ServerListening = 1701;
@@ -107,8 +121,10 @@ public static class LogEventIds
     /// <summary>Ids for the dedicated server application loop.</summary>
     public static class ServerApp
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1800;
         public const int RangeLast = 1899;
+        // ReSharper restore UnusedMember.Global
 
         public const int DedicatedServerRunning = 1800;
         public const int ShutdownSignal = 1801;
@@ -119,8 +135,10 @@ public static class LogEventIds
     /// <summary>Ids for the authoritative simulation host.</summary>
     public static class GameServerHost
     {
+        // ReSharper disable UnusedMember.Global
         public const int RangeFirst = 1900;
         public const int RangeLast = 2099;
+        // ReSharper restore UnusedMember.Global
 
         public const int HostStarted = 1900;
         public const int SessionAdded = 1901;

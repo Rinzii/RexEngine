@@ -3,6 +3,7 @@ using LiteNetLib;
 using Microsoft.Extensions.Logging;
 using Rex.Shared.Logging;
 
+// ReSharper disable once CheckNamespace
 namespace Rex.Server.Core;
 
 public sealed partial class GameServer

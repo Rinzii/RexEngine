@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Rex.Shared.Logging;
 
+// ReSharper disable once CheckNamespace
 namespace Rex.Server.Simulation;
 
 public sealed partial class GameServerHost
