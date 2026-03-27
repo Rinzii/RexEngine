@@ -60,6 +60,7 @@ public sealed class GameLoop
 
             if (YieldBetweenFrames)
             {
+                //TODO Replace With Non Thread Blocking Approach
                 Thread.Sleep(1);
             }
         }
