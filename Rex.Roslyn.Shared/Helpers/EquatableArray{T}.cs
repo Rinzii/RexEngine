@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 
 namespace Rex.Roslyn.Shared.Helpers;
 
+// ReSharper disable once RedundantNullableDirective
 #nullable enable
 
 /// <summary>

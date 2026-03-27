@@ -7,6 +7,7 @@ using Rex.Roslyn.Shared.Helpers;
 
 namespace Rex.Roslyn.Shared;
 
+// ReSharper disable once RedundantNullableDirective
 #nullable enable
 
 /// <summary>

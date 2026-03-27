@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 
 namespace Rex.Roslyn.Shared.Helpers;
 
+// ReSharper disable once RedundantNullableDirective
 #nullable enable
 
 /// <summary>
@@ -23,17 +24,17 @@ public struct HashCode
     private const uint Prime4 = 668265263U;
     private const uint Prime5 = 374761393U;
 
-    private static readonly uint seed = GenerateGlobalSeed();
+    private static readonly uint Seed = GenerateGlobalSeed();
 
-    private uint v1, v2, v3, v4;
-    private uint queue1, queue2, queue3;
-    private uint length;
+    private uint _v1, _v2, _v3, _v4;
+    private uint _queue1, _queue2, _queue3;
+    private uint _length;
 
     /// <summary>
     /// Initializes the default seed.
     /// </summary>
     /// <returns>A random seed.</returns>
-    private static unsafe uint GenerateGlobalSeed()
+    private static uint GenerateGlobalSeed()
     {
         var bytes = new byte[4];
 
@@ -58,10 +59,10 @@ public struct HashCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Initialize(out uint v1, out uint v2, out uint v3, out uint v4)
     {
-        v1 = seed + Prime1 + Prime2;
-        v2 = seed + Prime2;
-        v3 = seed;
-        v4 = seed - Prime1;
+        v1 = Seed + Prime1 + Prime2;
+        v2 = Seed + Prime2;
+        v3 = Seed;
+        v4 = Seed - Prime1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -85,7 +86,7 @@ public struct HashCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint MixEmptyState()
     {
-        return seed + Prime5;
+        return Seed + Prime5;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,32 +104,32 @@ public struct HashCode
     private void Add(int value)
     {
         var val = (uint)value;
-        var previousLength = length++;
+        var previousLength = _length++;
         var position = previousLength % 4;
 
         if (position == 0)
         {
-            queue1 = val;
+            _queue1 = val;
         }
         else if (position == 1)
         {
-            queue2 = val;
+            _queue2 = val;
         }
         else if (position == 2)
         {
-            queue3 = val;
+            _queue3 = val;
         }
         else
         {
             if (previousLength == 3)
             {
-                Initialize(out v1, out v2, out v3, out v4);
+                Initialize(out _v1, out _v2, out _v3, out _v4);
             }
 
-            v1 = Round(v1, queue1);
-            v2 = Round(v2, queue2);
-            v3 = Round(v3, queue3);
-            v4 = Round(v4, val);
+            _v1 = Round(_v1, _queue1);
+            _v2 = Round(_v2, _queue2);
+            _v3 = Round(_v3, _queue3);
+            _v4 = Round(_v4, val);
         }
     }
 
@@ -138,23 +139,23 @@ public struct HashCode
     /// <returns>The resulting hashcode from the current instance.</returns>
     public int ToHashCode()
     {
-        var length = this.length;
+        var length = _length;
         var position = length % 4;
-        var hash = length < 4 ? MixEmptyState() : MixState(v1, v2, v3, v4);
+        var hash = length < 4 ? MixEmptyState() : MixState(_v1, _v2, _v3, _v4);
 
         hash += length * 4;
 
         if (position > 0)
         {
-            hash = QueueRound(hash, queue1);
+            hash = QueueRound(hash, _queue1);
 
             if (position > 1)
             {
-                hash = QueueRound(hash, queue2);
+                hash = QueueRound(hash, _queue2);
 
                 if (position > 2)
                 {
-                    hash = QueueRound(hash, queue3);
+                    hash = QueueRound(hash, _queue3);
                 }
             }
         }

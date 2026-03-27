@@ -1,6 +1,10 @@
 using Microsoft.CodeAnalysis;
 
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
+
 namespace Rex.Roslyn.Shared;
+
 
 public static class Diagnostics
 {
@@ -23,6 +27,7 @@ public static class Diagnostics
     public const string IdUncachedRegex = "RA0016";
     public const string IdDataFieldRedundantTag = "RA0017";
     public const string IdMustCallBase = "RA0018";
+    // ReSharper disable once InconsistentNaming
     public const string IdDataFieldNoVVReadWrite = "RA0019";
     public const string IdUseNonGenericVariant = "RA0020";
     public const string IdPreferOtherType = "RA0021";

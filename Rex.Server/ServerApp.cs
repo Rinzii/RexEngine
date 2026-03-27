@@ -133,10 +133,7 @@ public sealed partial class ServerApp : IDisposable
 
     public void Dispose()
     {
-        if (_server != null)
-        {
-            _server.Shutdown();
-            _server = null;
-        }
+        _server?.Shutdown();
+        _server = null;
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.CodeAnalysis;
 
 namespace Rex.Roslyn.Shared;
 
+// ReSharper disable once RedundantNullableDirective
 #nullable enable
 
 public static class TypeSymbolHelper

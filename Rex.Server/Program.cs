@@ -20,7 +20,7 @@ internal static class Program
 
         if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
         {
-            bootstrapLogger.CliParseFailed(parseError ?? "Invalid arguments.");
+            bootstrapLogger.CliParseFailed(parseError);
             return;
         }
 
@@ -43,8 +43,10 @@ internal static class Program
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
+            // ReSharper disable AccessToDisposedClosure
             cts.Cancel();
             app.Stop();
+            // ReSharper restore AccessToDisposedClosure
         };
 
         try
