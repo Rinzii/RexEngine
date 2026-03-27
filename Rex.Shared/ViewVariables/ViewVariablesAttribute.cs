@@ -22,6 +22,7 @@ public sealed class ViewVariablesAttribute : Attribute
 
 [Serializable]
 [NetSerializable]
+// ReSharper disable once InconsistentNaming
 public enum VVAccess : byte
 {
     /// <summary>Inspect only.</summary>

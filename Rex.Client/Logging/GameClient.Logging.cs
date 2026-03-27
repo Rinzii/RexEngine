@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Rex.Shared.Logging;
 using Rex.Shared.Net.Transfer;
 
+// ReSharper disable once CheckNamespace
 namespace Rex.Client.Net;
 
 public sealed partial class GameClient

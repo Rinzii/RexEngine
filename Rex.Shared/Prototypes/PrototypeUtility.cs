@@ -16,6 +16,7 @@ public static class PrototypeUtility
     public static string CalculatePrototypeName(string type)
     {
         var name = type.AsSpan();
+        
         if (!type.EndsWith(PrototypeNameEnding))
         {
             return $"{char.ToLowerInvariant(name[0])}{name.Slice(1).ToString()}";

@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Rex.Server.Net;
 using Rex.Server.Simulation;
 using Rex.Shared.Net;
-using Rex.Shared.Net.Messages;
 
 namespace Rex.Server.Core;
 

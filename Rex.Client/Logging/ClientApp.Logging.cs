@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
 
+// ReSharper disable once CheckNamespace
 namespace Rex.Client;
 
 public sealed partial class ClientApp
