@@ -202,7 +202,7 @@ public sealed partial class ClientApp : IDisposable
 
         stopwatch.Stop();
     }
-    
+
     private void FixedStep()
     {
         if (_mode == NetMode.Standalone)
