@@ -32,9 +32,4 @@
         <Compile Remove="..\Rex.Roslyn.Shared\obj\**\*.cs"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <GlobalAnalyzerConfigFiles Include="..\.globalconfig" />
-    </ItemGroup>
-
-
 </Project>

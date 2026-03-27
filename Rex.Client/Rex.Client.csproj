@@ -26,8 +26,4 @@
         <PackageReference Include="Silk.NET.SDL" Version="2.23.0"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <GlobalAnalyzerConfigFiles Include="..\.globalconfig" />
-    </ItemGroup>
-
 </Project>

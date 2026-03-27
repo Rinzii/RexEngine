@@ -24,9 +24,4 @@
         <PackageReference Include="Silk.NET.Maths" Version="2.23.0"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <GlobalAnalyzerConfigFiles Include="..\.globalconfig" />
-    </ItemGroup>
-
-
 </Project>
