@@ -1,15 +1,16 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.Build.NoTargets/3.7.134">
 
+    <!-- Docs-only project. Surfaces docs/ in the solution without compiling an assembly. -->
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>Rex.Docs</RootNamespace>
-        <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\docs\**\*" Link="docs\%(RecursiveDir)%(Filename)%(Extension)" />
+        <None Include="$(MSBuildThisFileDirectory)..\docs\**\*"
+              Link="docs\%(RecursiveDir)%(Filename)%(Extension)" />
     </ItemGroup>
 
 </Project>
