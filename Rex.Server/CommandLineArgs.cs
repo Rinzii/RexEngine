@@ -54,84 +54,84 @@ internal sealed class CommandLineArgs
                     dataDir = enumerator.Current;
                     break;
                 case "--port":
-                {
-                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
                     {
-                        error = "Missing or invalid value for --port.";
-                        return false;
-                    }
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
+                        {
+                            error = "Missing or invalid value for --port.";
+                            return false;
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "--max-players":
-                {
-                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
                     {
-                        error = "Missing or invalid value for --max-players.";
-                        return false;
-                    }
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
+                        {
+                            error = "Missing or invalid value for --max-players.";
+                            return false;
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "--tick-rate":
-                {
-                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
                     {
-                        error = "Missing or invalid value for --tick-rate.";
-                        return false;
-                    }
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
+                        {
+                            error = "Missing or invalid value for --tick-rate.";
+                            return false;
+                        }
 
-                    break;
-                }
+                        break;
+                    }
                 case "--cvar" when !enumerator.MoveNext():
                     error = "Missing value for --cvar.";
                     return false;
                 case "--cvar":
-                {
-                    var cvar = enumerator.Current;
-                    DebugTools.AssertNotNull(cvar);
-                    var pos = cvar.IndexOf('=');
-
-                    if (pos == -1)
                     {
-                        error = "Expected key=value after --cvar.";
-                        return false;
-                    }
+                        var cvar = enumerator.Current;
+                        DebugTools.AssertNotNull(cvar);
+                        var pos = cvar.IndexOf('=');
 
-                    cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
-                    break;
-                }
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --cvar.";
+                            return false;
+                        }
+
+                        cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
+                        break;
+                    }
                 case "--logLevel" when !enumerator.MoveNext():
                     error = "Missing value for --logLevel.";
                     return false;
                 case "--logLevel":
-                {
-                    var logLevel = enumerator.Current;
-                    DebugTools.AssertNotNull(logLevel);
-                    var pos = logLevel.IndexOf('=');
-
-                    if (pos == -1)
                     {
-                        error = "Expected key=value after --logLevel.";
-                        return false;
-                    }
+                        var logLevel = enumerator.Current;
+                        DebugTools.AssertNotNull(logLevel);
+                        var pos = logLevel.IndexOf('=');
 
-                    loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
-                    break;
-                }
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --logLevel.";
+                            return false;
+                        }
+
+                        loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
+                        break;
+                    }
                 default:
-                {
-                    if (arg.StartsWith('+'))
                     {
-                        execCommands.Add(arg[1..]);
-                    }
-                    else
-                    {
-                        unrecognized.Add(arg);
-                    }
+                        if (arg.StartsWith('+'))
+                        {
+                            execCommands.Add(arg[1..]);
+                        }
+                        else
+                        {
+                            unrecognized.Add(arg);
+                        }
 
-                    break;
-                }
+                        break;
+                    }
             }
         }
 
