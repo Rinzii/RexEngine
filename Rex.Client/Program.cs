@@ -15,14 +15,22 @@ internal static class Program
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Information);
+            if (Environment.GetEnvironmentVariable("REX_CLIENT_LOG_LEVEL") is { } logLevelStr &&
+                Enum.TryParse<LogLevel>(logLevelStr, true, out var logLevel))
+            {
+                builder.SetMinimumLevel(logLevel);
+            }
+            else
+            {
+                builder.SetMinimumLevel(LogLevel.Warning);
+            }
         });
 
         var logger = loggerFactory.CreateLogger("Rex.Client");
 
         if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
         {
-            logger.CliParseFailed(parseError ?? "Invalid arguments.");
+            logger.CliParseFailed(parseError);
             return;
         }
 
@@ -92,7 +100,7 @@ internal static class Program
                 NetMode.Client,
                 "127.0.0.1",
                 args.Port,
-                Array.Empty<string>());
+                []);
 
             RunApp(clientArgs, loggerFactory, logger);
         }
@@ -111,6 +119,8 @@ internal static class Program
             return null;
         }
 
+        // Setup our signal to use a ManualResetEventSlim so we can wait for the server to signal it's ready
+        // Then create the process.
         var readySignal = new ManualResetEventSlim();
         var process = new Process
         {
@@ -126,6 +136,7 @@ internal static class Program
             EnableRaisingEvents = true
         };
 
+        // Add our arguments to the process start info
         process.StartInfo.ArgumentList.Add(serverAssemblyPath);
         process.StartInfo.ArgumentList.Add("--port");
         process.StartInfo.ArgumentList.Add(port.ToString());
@@ -139,6 +150,7 @@ internal static class Program
 
             logger.ListenServerOutput(e.Data);
 
+            // The server signals it's ready by writing a specific line to stdout, so watch for that line to know when we can connect.
             if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
             {
                 readySignal.Set();
@@ -163,11 +175,14 @@ internal static class Program
         process.BeginOutputReadLine();
         process.BeginErrorReadLine();
 
+        // Wait for the server to signal it's ready before returning
+        // Set a timeout of 10 seconds in case the server fails to start or signal
         if (readySignal.Wait(TimeSpan.FromSeconds(10)))
         {
             return process;
         }
 
+        // If we timed out, check if the process has exited to provide a more specific error message
         if (process.HasExited)
         {
             logger.ListenServerExitedEarly();
@@ -177,6 +192,7 @@ internal static class Program
             logger.ListenServerStartupTimeout();
         }
 
+        // Kill the process and dispose of it
         StopListenServerProcess(process, logger);
         process.Dispose();
         return null;
@@ -208,7 +224,8 @@ internal static class Program
         var tfm = outputDir.Name;
         var config = outputDir.Parent?.Name;
 
-        // bin/{Config}/{Tfm}/ then up to repo root for dev layout when DLL isn't copied next to client.
+        // Walk from bin/{Config}/{Tfm}/ back to the repo root in dev builds when the DLL is not copied next to the client.
+        // TODO: IanP: This might change later as there is a high likely hood we will later change the output location of builds.
         var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
 
         if (config == null || repoRoot == null)

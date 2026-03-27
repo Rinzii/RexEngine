@@ -6,16 +6,27 @@ using ConnectionState = Rex.Shared.Net.ConnectionState;
 
 namespace Rex.Client.Net;
 
-/// <summary>LiteNetLib-backed client transport for remote servers.</summary>
+/// <summary>
+/// LiteNetLib-backed client transport for remote servers.
+/// </summary>
+/// <remarks>
+/// Subscribes to <see cref="EventBasedNetListener"/> callbacks on construction.
+/// Call <see cref="PollEvents"/> on the same thread you use for gameplay so receives and connection events are delivered.
+/// </remarks>
 public sealed partial class RemoteClientNetChannel : IClientNetChannel
 {
     private readonly EventBasedNetListener _listener;
     private readonly NetManager _netManager;
+
+    // Shared buffer for outbound packets. Reset before each send.
     private readonly NetDataWriter _writer = new();
+
     private readonly string _host;
     private readonly int _port;
     private readonly string _connectionKey;
     private readonly ILogger _logger;
+
+    // Non-null only while the server peer is connected.
     private NetPeer? _serverPeer;
 
     public ConnectionState State { get; set; }
@@ -25,6 +36,13 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     public event Action? Connected;
     public event Action<string>? Disconnected;
 
+    /// <summary>
+    /// Creates a channel that will connect to the given host and port using the LiteNetLib connection key.
+    /// </summary>
+    /// <param name="host">Server host name or IP address.</param>
+    /// <param name="port">Server UDP port.</param>
+    /// <param name="connectionKey">Must match the server <see cref="ProtocolConstants.ConnectionKey"/>.</param>
+    /// <param name="logger">Logger for transport failures and deserialize errors.</param>
     public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
     {
         _host = host;
@@ -41,6 +59,13 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         State = ConnectionState.Disconnected;
     }
 
+    /// <summary>
+    /// Starts the client socket and begins the LiteNetLib connect handshake.
+    /// </summary>
+    /// <remarks>
+    /// On failure, sets <see cref="State"/> to disconnected and raises <see cref="Disconnected"/>.
+    /// On success, <see cref="Connected"/> fires when the server accepts (after future <see cref="PollEvents"/> calls).
+    /// </remarks>
     public void Connect()
     {
         State = ConnectionState.Connecting;
@@ -55,6 +80,13 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         _netManager.Connect(_host, _port, _connectionKey);
     }
 
+    /// <summary>
+    /// Serializes <paramref name="message"/> and sends it on the given LiteNetLib channel and delivery mode.
+    /// </summary>
+    /// <remarks>
+    /// Does nothing when there is no connected server peer.
+    /// The message id header is written by each <see cref="INetMessage"/> implementation as part of <see cref="INetMessage.Serialize"/>.
+    /// </remarks>
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
         if (_serverPeer == null)
@@ -67,12 +99,17 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         _serverPeer.Send(_writer, channel, delivery);
     }
 
+    /// <inheritdoc />
     public void Send(INetMessage message)
     {
         var (channel, delivery) = message.Group.GetDeliveryInfo();
         Send(message, channel, delivery);
     }
 
+    /// <summary>
+    /// Disconnects from the server and stops the client <see cref="NetManager"/>.
+    /// </summary>
+    /// <param name="reason">Reason string sent to the server when a peer is connected.</param>
     public void Disconnect(string reason)
     {
         State = ConnectionState.Disconnecting;
@@ -87,6 +124,9 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         State = ConnectionState.Disconnected;
     }
 
+    /// <summary>
+    /// Pumps LiteNetLib so connection and receive callbacks can run.
+    /// </summary>
     public void PollEvents()
     {
         _netManager.PollEvents();
@@ -111,7 +151,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         try
         {
             var message = NetMessageRegistry.Deserialize(reader);
-            reader.Recycle(); // pool backing buffer
+            reader.Recycle(); // Return pooled buffer to LiteNetLib.
             MessageReceived?.Invoke(message);
         }
         catch (Exception ex)
