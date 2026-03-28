@@ -235,7 +235,7 @@ public sealed partial class GameServerHost
     {
         if (request.ProtocolVersion != ProtocolConstants.ProtocolVersion)
         {
-            var reject = new ConnectResponseMessage(false, default, 0, 0, "Protocol version mismatch");
+            var reject = new ConnectResponseMessage(false, Guid.Empty, 0, 0, "Protocol version mismatch");
             session.Channel.Send(reject);
             session.Channel.Disconnect("Protocol version mismatch");
             return;

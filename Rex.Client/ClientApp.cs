@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Graphics;
 using Rex.Client.Input;
@@ -149,18 +148,6 @@ public sealed partial class ClientApp : IDisposable
         double accumulator = 0;
         ulong frameIndex = 0;
 
-        void FixedStep()
-        {
-            if (_mode == NetMode.Standalone)
-            {
-                TickStandalone();
-            }
-            else
-            {
-                TickNetworked();
-            }
-        }
-
         while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             var currentTime = stopwatch.Elapsed.TotalSeconds;
@@ -214,6 +201,18 @@ public sealed partial class ClientApp : IDisposable
         }
 
         stopwatch.Stop();
+    }
+
+    private void FixedStep()
+    {
+        if (_mode == NetMode.Standalone)
+        {
+            TickStandalone();
+        }
+        else
+        {
+            TickNetworked();
+        }
     }
 
     private void InitializeWindow()

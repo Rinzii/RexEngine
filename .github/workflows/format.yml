@@ -1,28 +1,22 @@
-# Applies dotnet format (EditorConfig + analyzers) and pushes a commit only when something changed.
-# Same check as the Format job in ci.yml, but mutating instead of --verify-no-changes.
+# Standalone formatting. Runs separately from CI. Applies dotnet format then verifies that nothing
+# remains that the tool cannot fix. Pushes a commit only when auto-fixes changed files (same-repo only).
 
-name: Format autofix
+name: Format
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
   workflow_dispatch:
 
 concurrency:
-  group: format-autofix-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: format-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
-  apply-format:
+  format:
     runs-on: ubuntu-latest
     # Fork PRs cannot receive pushes from this repo's GITHUB_TOKEN.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -42,10 +36,13 @@ jobs:
       - name: Restore
         run: dotnet restore Rex.sln
 
-      - name: Apply formatting
+      - name: Apply auto-fixes
         run: dotnet format Rex.sln --no-restore
 
-      - name: Commit and push when fixes exist
+      - name: Verify no remaining fixable or manual issues
+        run: dotnet format Rex.sln --verify-no-changes --no-restore
+
+      - name: Commit and push when auto-fixes changed files
         shell: bash
         env:
           BRANCH: ${{ github.head_ref || github.ref_name }}
@@ -55,7 +52,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -u
           if git diff --cached --quiet; then
-            echo "No formatting changes. Working tree matches EditorConfig and analyzer fixes."
+            echo "No file changes from dotnet format."
             exit 0
           fi
           git commit -m "Apply dotnet format"

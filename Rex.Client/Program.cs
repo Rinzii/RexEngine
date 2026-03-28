@@ -63,10 +63,10 @@ internal static class Program
         {
             e.Cancel = true;
             logger.ShutdownSignalReceived();
-            // ReSharper disable once AccessToDisposedClosure
+            // ReSharper disable AccessToDisposedClosure
             cts.Cancel();
-            // ReSharper disable once AccessToDisposedClosure
             app.Stop();
+            // ReSharper restore AccessToDisposedClosure
         };
 
         string? host = null;

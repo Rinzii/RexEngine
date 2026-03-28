@@ -7,36 +7,45 @@ insert_final_newline = true
 indent_style = space
 indent_size = 4
 
-[*.cmd]
-end_of_line = crlf
-
-[*.bat]
+[*.{cmd,bat}]
 end_of_line = crlf
 
 [*.cs]
-# Always use braces for if / else / for / foreach / while / do / using (when a block exists).
-# Applies in the IDE, dotnet format, and builds when EnforceCodeStyleInBuild is true.
+# Always use braces for control-flow blocks.
 csharp_prefer_braces = true:warning
-dotnet_diagnostic.IDE0011.severity = warning
 
-# Discourage Enumerable LINQ when a direct collection API is clearer or cheaper (IDE + build, fixable with dotnet format analyzers).
+# Rider and ReSharper LINQ conversion suggestions.
+resharper_loop_can_be_converted_to_query_highlighting = none
+resharper_loop_can_be_partly_converted_to_query_highlighting = none
+resharper_foreach_can_be_partly_converted_to_query_using_another_get_enumerator_highlighting = none
+resharper_convert_to_primary_constructor_highlighting = none
+resharper_convert_conditional_ternary_expression_to_switch_expression_highlighting = none
+csharp_place_linq_into_on_new_line = false
+csharp_indent_primary_constructor_decl_pars = none
+
+# This SHOULD still work according to MS docs and just rider gets confused.
+dotnet_diagnostic.IDE0011.severity = warning
+dotnet_diagnostic.IDE0290.severity = none
 dotnet_diagnostic.CA1829.severity = warning
 dotnet_diagnostic.CA1860.severity = warning
-
-# CA1827 steers toward Any(). Prefer Count/Length checks instead when not using LINQ.
 dotnet_diagnostic.CA1827.severity = none
+dotnet_diagnostic.RS0030.severity = warning
 
-# Roslyn-heavy projects rely on LINQ over symbols and syntax. Keep them exempt from the rules above.
+[**/{bin,obj}/**]
+generated_code = true
+
+
+
+[*.{cs,vb}]
+
+
+# Roslyn-heavy projects
 [Rex.Analyzers/**/*.cs]
 dotnet_diagnostic.CA1829.severity = none
 dotnet_diagnostic.CA1860.severity = none
+dotnet_diagnostic.RS0030.severity = none
 
 [Rex.Roslyn.Shared/**/*.cs]
 dotnet_diagnostic.CA1829.severity = none
 dotnet_diagnostic.CA1860.severity = none
-
-[**/obj/**]
-generated_code = true
-
-[**/bin/**]
-generated_code = true
+dotnet_diagnostic.RS0030.severity = none
