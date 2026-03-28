@@ -10,8 +10,9 @@ namespace Rex.Client;
 /// <summary>Parses command-line args and runs <see cref="ClientApp"/>. May start a listen-server child process.</summary>
 internal static class Program
 {
-    private static void Main(string[] args) {
-       
+    private static void Main(string[] args)
+    {
+
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
@@ -47,8 +48,8 @@ internal static class Program
         {
             RunApp(parsed, loggerFactory, logger);
         }
-        
-        
+
+
     }
 
     private static void RunApp(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
