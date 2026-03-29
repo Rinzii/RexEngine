@@ -52,7 +52,7 @@ public sealed class ConnectResponseMessage : INetMessage
         writer.Put(RejectReason ?? string.Empty);
     }
 
-    public static ConnectResponseMessage Deserialize(NetPacketReader reader)
+    public static ConnectResponseMessage Deserialize(NetDataReader reader)
     {
         var accepted = reader.GetBool();
         var clientId = reader.ReadGuid();

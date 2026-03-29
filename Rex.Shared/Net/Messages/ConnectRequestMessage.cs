@@ -43,7 +43,7 @@ public sealed class ConnectRequestMessage : INetMessage
         writer.Put(PlayerName);
     }
 
-    public static ConnectRequestMessage Deserialize(NetPacketReader reader)
+    public static ConnectRequestMessage Deserialize(NetDataReader reader)
     {
         var protocolVersion = reader.GetUShort();
         var playerName = reader.GetString();

@@ -8,6 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="Rex.Server.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\Rex.Shared\Rex.Shared.csproj"/>
         <ProjectReference Include="..\Rex.Analyzers\Rex.Analyzers.csproj"
                           OutputItemType="Analyzer"

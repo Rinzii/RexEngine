@@ -53,7 +53,7 @@ public sealed class WorldSnapshotMessage : INetMessage
         }
     }
 
-    public static WorldSnapshotMessage Deserialize(NetPacketReader reader)
+    public static WorldSnapshotMessage Deserialize(NetDataReader reader)
     {
         var serverTick = reader.GetUInt();
         var lastProcessedInputTick = reader.GetUInt();
@@ -126,7 +126,7 @@ public sealed class EntityState
     /// <summary>
     /// Reads one entity state from the packet.
     /// </summary>
-    public static EntityState Deserialize(NetPacketReader reader)
+    public static EntityState Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
         var x = reader.GetFloat();

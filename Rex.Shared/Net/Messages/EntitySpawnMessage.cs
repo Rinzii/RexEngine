@@ -74,7 +74,7 @@ public sealed class EntitySpawnMessage : INetMessage
         writer.Put(Z);
     }
 
-    public static EntitySpawnMessage Deserialize(NetPacketReader reader)
+    public static EntitySpawnMessage Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
         var ownerClientId = reader.ReadGuid();

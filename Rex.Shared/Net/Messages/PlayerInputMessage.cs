@@ -67,7 +67,7 @@ public sealed class PlayerInputMessage : INetMessage
         writer.Put(ActionFlags);
     }
 
-    public static PlayerInputMessage Deserialize(NetPacketReader reader)
+    public static PlayerInputMessage Deserialize(NetDataReader reader)
     {
         var tick = reader.GetUInt();
         var moveX = reader.GetFloat();

@@ -54,3 +54,10 @@ jobs:
           --no-restore
           -warnaserror
           /p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: >
+          dotnet test Rex.sln
+          --configuration Release
+          --no-build
+          --verbosity minimal

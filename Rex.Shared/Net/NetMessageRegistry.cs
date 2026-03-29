@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Analyzers;
 
@@ -10,14 +9,14 @@ namespace Rex.Shared.Net;
 /// </summary>
 public static class NetMessageRegistry
 {
-    private static readonly Dictionary<ushort, Func<NetPacketReader, INetMessage>> Deserializers = new();
+    private static readonly Dictionary<ushort, Func<NetDataReader, INetMessage>> Deserializers = new();
 
     /// <summary>
     /// Registers a deserializer for one message type.
     /// </summary>
     /// <param name="messageId">The ID written in the packet header.</param>
     /// <param name="deserializer">Factory that reads the remaining packet bytes and returns the message.</param>
-    public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetPacketReader, T> deserializer)
+    public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetDataReader, T> deserializer)
         where T : INetMessage
     {
         // Same id twice replaces the previous entry. Avoid duplicate ids in RegisterAll.
@@ -28,7 +27,7 @@ public static class NetMessageRegistry
     /// Reads the message ID from the front of the reader and dispatches to the matching deserializer.
     /// </summary>
     /// <exception cref="InvalidOperationException">Thrown when no deserializer is registered for the incoming ID.</exception>
-    public static INetMessage Deserialize(NetPacketReader reader)
+    public static INetMessage Deserialize(NetDataReader reader)
     {
         // Reader position is immediately after LiteNetLib peeled the packet. First field is our message id.
         var messageId = reader.GetUShort();

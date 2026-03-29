@@ -73,7 +73,7 @@ public sealed class BulkTransferInitMessage : INetMessage
         writer.Put(ChunkCount);
     }
 
-    public static BulkTransferInitMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferInitMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
         var dataType = (BulkDataType)reader.GetByte();
@@ -132,7 +132,7 @@ public sealed class BulkTransferChunkMessage : INetMessage
         writer.PutBytesWithLength(Data);
     }
 
-    public static BulkTransferChunkMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferChunkMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
         var chunkIndex = reader.GetInt();
@@ -181,7 +181,7 @@ public sealed class BulkTransferAckMessage : INetMessage
         writer.Put(Success);
     }
 
-    public static BulkTransferAckMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferAckMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
         var success = reader.GetBool();

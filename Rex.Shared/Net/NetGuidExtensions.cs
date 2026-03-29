@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net;
@@ -18,7 +17,7 @@ public static class NetGuidExtensions
     }
 
     /// <summary>Reads 16 bytes as a GUID.</summary>
-    public static Guid ReadGuid(this NetPacketReader reader)
+    public static Guid ReadGuid(this NetDataReader reader)
     {
         Span<byte> bytes = stackalloc byte[16];
         for (var i = 0; i < 16; i++)

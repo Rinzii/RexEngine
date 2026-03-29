@@ -36,7 +36,7 @@ public sealed class EntityDestroyMessage : INetMessage
         writer.Put(EntityId);
     }
 
-    public static EntityDestroyMessage Deserialize(NetPacketReader reader)
+    public static EntityDestroyMessage Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
         return new EntityDestroyMessage(entityId);
