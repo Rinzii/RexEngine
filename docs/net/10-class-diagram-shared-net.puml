@@ -1,0 +1,269 @@
+@startuml 10-class-diagram-shared-net
+
+title 10 Class diagram Rex.Shared.Net (core, wire messages, bulk transfer)
+
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+skinparam ArrowFontSize 9
+skinparam ArrowColor #374151
+skinparam linetype polyline
+skinparam nodesep 62
+skinparam ranksep 50
+skinparam wrapWidth 260
+skinparam packageBorderThickness 1.5
+skinparam packageFontStyle bold
+skinparam defaultFontName sans-serif
+skinparam circledInterface false
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+}
+skinparam interface {
+  BackgroundColor #EEF2FF
+  BorderColor #4338CA
+}
+skinparam enum {
+  BackgroundColor #ECFDF5
+  BorderColor #047857
+}
+
+legend top left
+  |= Line |= Meaning |
+  | <|.. | realizes INetMessage |
+  | ..> | uses |
+  | *-- | composition |
+end legend
+
+package "Rex.Shared.Net" #DBEAFE {
+  together {
+    interface "INetMessage" {
+      MessageId
+      Group
+      Serialize(writer)
+    }
+    interface "IClientNetChannel" {
+      State
+      RoundTripTimeMs
+      Send(...)
+      Connect / Disconnect / PollEvents
+      --
+      events
+    }
+    interface "IServerNetChannel" {
+      ClientId
+      IsLocal
+      State
+      RoundTripTimeMs
+      Send(...)
+      Disconnect(reason)
+    }
+  }
+
+  together {
+    enum ConnectionState {
+      Connecting
+      Connected
+      Authenticated
+      InGame
+      Disconnecting
+      Disconnected
+    }
+    enum "NetMode" {
+      Standalone
+      Client
+      ListenServer
+      DedicatedServer
+    }
+    enum MessageGroup {
+      Core
+      Entity
+      EntityEvent
+      Input
+      Command
+      Transfer
+    }
+  }
+
+  together {
+    class "DeliveryChannel" <<static>> {
+      Reliable
+      Snapshot
+      ReliableUnordered
+      Unreliable
+      Transfer
+    }
+    class "MessageGroupExtensions" <<static>> {
+      GetDeliveryInfo(group)
+    }
+    class "AdaptiveReliability" <<static>> {
+      ReliableThreshold
+      GetAdaptiveDelivery(message)
+    }
+    class "NetMessageRegistry" <<static>> {
+      Register / Deserialize / WriteHeader
+    }
+    class "ProtocolConstants" <<static>> {
+      ProtocolVersion
+      ConnectionKey
+      DefaultPort
+      DefaultTickRate
+      DefaultMaxPlayers
+      ListenProcessReadyLine
+    }
+    class "ConnectEndpointParser" <<static>> {
+      TryParse(address, defaultPort)
+    }
+    class "RexNetStatistics" {
+      RecordSent / RecordReceived
+    }
+    class "NetGuidExtensions" <<static>> {
+      PutGuid / ReadGuid
+    }
+  }
+
+  together {
+    class "LocalNetChannelPair" <<static>> {
+      Create(clientId)
+    }
+    class "LocalClientNetChannel" {
+      paired queues, PollEvents
+    }
+    class "LocalServerNetChannel" {
+      ClientId, DrainMessages
+    }
+  }
+
+  "IClientNetChannel" <|.. "LocalClientNetChannel"
+  "IServerNetChannel" <|.. "LocalServerNetChannel"
+  "LocalNetChannelPair" ..> "LocalClientNetChannel"
+  "LocalNetChannelPair" ..> "LocalServerNetChannel"
+
+  "INetMessage" ..> MessageGroup
+  "MessageGroupExtensions" ..> MessageGroup
+  "MessageGroupExtensions" ..> "DeliveryChannel"
+  "AdaptiveReliability" ..> "INetMessage"
+  "AdaptiveReliability" ..> MessageGroup
+}
+
+package "Rex.Shared.Net.Messages" #DCFCE7 {
+  class "NetMessages" <<static>> {
+    RegisterAll()
+  }
+
+  together {
+    class ConnectRequestMessage
+    class ConnectResponseMessage
+    class DisconnectMessage
+    class StateAckMessage
+  }
+  together {
+    class PlayerInputMessage
+    class WorldSnapshotMessage
+    class EntitySpawnMessage
+    class EntityDestroyMessage
+  }
+
+  class EntityState {
+    Serialize / Deserialize
+    entity snapshot row
+  }
+
+  "INetMessage" <|.. ConnectRequestMessage
+  "INetMessage" <|.. ConnectResponseMessage
+  "INetMessage" <|.. DisconnectMessage
+  "INetMessage" <|.. StateAckMessage
+  "INetMessage" <|.. PlayerInputMessage
+  "INetMessage" <|.. WorldSnapshotMessage
+  "INetMessage" <|.. EntitySpawnMessage
+  "INetMessage" <|.. EntityDestroyMessage
+
+  WorldSnapshotMessage *-- EntityState : Entities items
+
+  "NetMessages" ..> "NetMessageRegistry"
+  "NetMessageRegistry" ..> "INetMessage"
+}
+
+package "Rex.Shared.Net (Transfer)" #FEF3C7 {
+  enum BulkDataType {
+    MapData
+    AssetManifest
+    ServerConfig
+    EntityBulkState
+    ResourceFile
+  }
+
+  together {
+    class BulkTransferManager {
+      MaxChunkSize
+      SendBulkData(...)
+      HandleTransferInit
+      HandleTransferChunk
+      TransferCompleted
+    }
+    class BulkTransferInitMessage
+    class BulkTransferChunkMessage
+    class BulkTransferAckMessage
+  }
+
+  together {
+    class "ProtoSerializer" <<static>> {
+      Serialize / Deserialize
+    }
+    class "NetCompression" <<static>> {
+      CompressionThreshold
+      Compress / Decompress
+    }
+  }
+
+  together {
+    class MapData
+    class MapTile
+    class MapEntity
+  }
+  together {
+    class AssetManifest
+    class AssetEntry
+  }
+  together {
+    class ServerConfigData
+    class EntityBulkState
+    class BulkEntityData
+  }
+
+  "INetMessage" <|.. BulkTransferInitMessage
+  "INetMessage" <|.. BulkTransferChunkMessage
+  "INetMessage" <|.. BulkTransferAckMessage
+
+  BulkTransferManager ..> "IClientNetChannel"
+  BulkTransferManager ..> "IServerNetChannel"
+  BulkTransferManager ..> "ProtoSerializer"
+  BulkTransferManager ..> "NetCompression"
+  BulkTransferManager ..> BulkTransferInitMessage : send + HandleTransferInit
+  BulkTransferManager ..> BulkTransferChunkMessage : send + HandleTransferChunk
+
+  MapData *-- MapTile
+  MapData *-- MapEntity
+  AssetManifest *-- AssetEntry
+  EntityBulkState *-- BulkEntityData
+  BulkTransferManager ..> BulkDataType
+  BulkTransferInitMessage ..> BulkDataType
+}
+
+note bottom of "NetMessageRegistry"
+  After LiteNetLib delivers bytes, the reader still holds the full payload.\nDeserialize reads leading ushort id then type-specific body.\nSend paths call WriteHeader then Serialize on each INetMessage.
+end note
+
+note bottom of EntityState
+  EntityState is not an INetMessage. It is serialized inline inside WorldSnapshotMessage.
+end note
+
+note right of BulkTransferManager
+  NetMessages.RegisterAll also registers BulkTransferInit,\nBulkTransferChunk, and BulkTransferAck ids.
+end note
+
+@enduml

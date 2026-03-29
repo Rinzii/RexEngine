@@ -1,0 +1,278 @@
+@startuml 12-class-diagram-networking-full-map
+
+title 12 Networking class map (every public networking type)
+
+' Left to right keeps INetMessage and channels west of implementors and apps,\nso realization and dependency arrows read in one direction and cross less.
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+skinparam ArrowFontSize 9
+skinparam ArrowColor #374151
+skinparam linetype polyline
+skinparam nodesep 88
+skinparam ranksep 56
+skinparam wrapWidth 280
+skinparam packageStyle rectangle
+skinparam packageBorderThickness 1.5
+skinparam packageFontSize 12
+skinparam packageFontStyle bold
+skinparam classFontSize 10
+skinparam interfaceFontSize 11
+skinparam enumFontSize 10
+skinparam defaultFontName sans-serif
+skinparam legendBorderThickness 0.8
+skinparam legendBackgroundColor #FAFAFA
+skinparam circledInterface false
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+}
+skinparam interface {
+  BackgroundColor #EEF2FF
+  BorderColor #4338CA
+}
+skinparam enum {
+  BackgroundColor #ECFDF5
+  BorderColor #047857
+}
+
+legend top left
+  |= Marker |= Meaning |
+  | <|.. | realizes INetMessage |
+  | *-- / o-- | composition or aggregation |
+  | ..> | uses |
+end legend
+
+together {
+  package "Rex.Shared.Net" as pkgShared #DBEAFE {
+    together {
+      interface "IClientNetChannel" as ifcClientChan
+      interface "IServerNetChannel" as ifcServerChan
+    }
+    interface "INetMessage" as ifcNetMsg
+    together {
+      class "NetMessageRegistry" as clsMsgRegistry <<static>>
+      class "LocalNetChannelPair" as clsLocalPair <<static>>
+      class "LocalClientNetChannel" as clsLocalClient
+      class "LocalServerNetChannel" as clsLocalServer
+    }
+    together {
+      enum MessageGroup
+      enum ConnectionState
+      enum "NetMode"
+    }
+    together {
+      class "MessageGroupExtensions" as clsMsgGroupExt <<static>>
+      class "AdaptiveReliability" as clsAdaptRel <<static>>
+      class "DeliveryChannel" as clsDelivChan <<static>>
+      class "ProtocolConstants" as clsProtoConst <<static>>
+      class "ConnectEndpointParser" as clsConnParse <<static>>
+      class "RexNetStatistics" as clsRexNetStats
+      class "NetGuidExtensions" as clsNetGuidExt <<static>>
+    }
+    ifcClientChan -[hidden]down- ifcNetMsg
+    ifcNetMsg -[hidden]down- clsMsgRegistry
+    clsMsgRegistry -[hidden]down- MessageGroup
+  }
+}
+
+together {
+  package "Rex.Shared.Net.Messages" as pkgMsgs #DCFCE7 {
+    class "NetMessages" as clsNetMsgs <<static>>
+    together {
+      class "ConnectRequestMessage" as msgConnReq
+      class "ConnectResponseMessage" as msgConnResp
+      class "DisconnectMessage" as msgDisc
+      class "StateAckMessage" as msgStateAck
+    }
+    together {
+      class "PlayerInputMessage" as msgInput
+      class "WorldSnapshotMessage" as msgSnap
+      class "EntitySpawnMessage" as msgSpawn
+      class "EntityDestroyMessage" as msgDestroy
+    }
+    class "EntityState" as clsEntState
+    clsNetMsgs -[hidden]right- msgConnReq
+    msgConnResp -[hidden]down- msgInput
+    msgSnap -[hidden]down- clsEntState
+  }
+}
+
+together {
+  package "Rex.Shared.Net (Transfer)" as pkgXfer #FEF3C7 {
+    enum BulkDataType {
+      MapData
+      AssetManifest
+      ServerConfig
+      EntityBulkState
+      ResourceFile
+    }
+    class "BulkTransferManager" as clsBulkMgr
+    together {
+      class "BulkTransferInitMessage" as msgBulkInit
+      class "BulkTransferChunkMessage" as msgBulkChunk
+      class "BulkTransferAckMessage" as msgBulkAck
+    }
+    together {
+      class "ProtoSerializer" as clsProtoSer <<static>>
+      class "NetCompression" as clsNetCompress <<static>>
+    }
+    together {
+      class "MapData" as dtoMap
+      class "MapTile" as dtoMapTile
+      class "MapEntity" as dtoMapEnt
+    }
+    together {
+      class "AssetManifest" as dtoAstMan
+      class "AssetEntry" as dtoAstEnt
+    }
+    together {
+      class "ServerConfigData" as dtoSrvCfg
+      class "EntityBulkState" as dtoEntBulk
+      class "BulkEntityData" as dtoBulkEnt
+    }
+    BulkDataType -[hidden]down- clsBulkMgr
+    clsBulkMgr -[hidden]down- msgBulkInit
+    clsProtoSer -[hidden]down- dtoMap
+  }
+}
+
+together {
+  package "Rex.Client" as pkgRexClient #EDE9FE {
+    class "ClientApp" as clsClientApp
+  }
+  package "Rex.Client.Net" as pkgClientNet #DDD6FE {
+    class "GameClient" as clsGameClient
+    class "RemoteClientNetChannel" as clsRmtClient
+    together {
+      class "ClientWorldState" as clsWorldState
+      class "InputBuffer" as clsInputBuf
+      class "PredictionSystem" as clsPredSys
+    }
+    clsGameClient -[hidden]down- clsRmtClient
+    clsRmtClient -[hidden]down- clsWorldState
+  }
+  clsClientApp -[hidden]down- clsGameClient
+}
+
+together {
+  package "Rex.Server" as pkgDedicated #FED7AA {
+    class "ServerApp" as clsSrvApp
+  }
+  package "Rex.Server.Core" as pkgSrvCore #FECACA {
+    class "GameServer" as clsGameSrv
+  }
+  package "Rex.Server.Net" as pkgSrvNet #FCA5A5 {
+    class "RemoteServerNetChannel" as clsRmtServer
+  }
+  package "Rex.Server.Simulation" as pkgSim #F87171 {
+    class "GameServerHost" as clsGameHost
+    class "ClientSession" as clsCliSession
+    class "GameServerConfig" as clsSrvCfg
+    clsGameHost -[hidden]down- clsCliSession
+  }
+  clsSrvApp -[hidden]down- clsGameSrv
+  clsGameSrv -[hidden]down- clsRmtServer
+  clsRmtServer -[hidden]down- clsGameHost
+}
+
+pkgShared -[hidden]right- pkgMsgs
+pkgMsgs -[hidden]right- pkgXfer
+pkgXfer -[hidden]right- pkgRexClient
+pkgClientNet -[hidden]right- pkgDedicated
+
+' --- Transport realizations (short hops inside shared + app columns) ---
+ifcClientChan <|.. clsLocalClient
+ifcClientChan <|.. clsRmtClient
+ifcServerChan <|.. clsLocalServer
+ifcServerChan <|.. clsRmtServer
+
+clsLocalPair ..> clsLocalClient
+clsLocalPair ..> clsLocalServer
+
+' --- INetMessage family (horizontal fan from shared into Messages + Transfer) ---
+ifcNetMsg <|.. msgConnReq
+ifcNetMsg <|.. msgConnResp
+ifcNetMsg <|.. msgDisc
+ifcNetMsg <|.. msgStateAck
+ifcNetMsg <|.. msgInput
+ifcNetMsg <|.. msgSnap
+ifcNetMsg <|.. msgSpawn
+ifcNetMsg <|.. msgDestroy
+ifcNetMsg <|.. msgBulkInit
+ifcNetMsg <|.. msgBulkChunk
+ifcNetMsg <|.. msgBulkAck
+
+msgSnap *-- clsEntState
+
+clsNetMsgs ..> clsMsgRegistry
+clsMsgRegistry ..> ifcNetMsg
+
+clsMsgGroupExt ..> MessageGroup
+clsMsgGroupExt ..> clsDelivChan
+clsAdaptRel ..> ifcNetMsg
+
+clsBulkMgr ..> ifcClientChan
+clsBulkMgr ..> ifcServerChan
+clsBulkMgr ..> clsProtoSer
+clsBulkMgr ..> clsNetCompress
+clsBulkMgr ..> msgBulkInit
+clsBulkMgr ..> msgBulkChunk
+clsBulkMgr ..> BulkDataType
+msgBulkInit ..> BulkDataType
+
+dtoMap *-- dtoMapTile
+dtoMap *-- dtoMapEnt
+dtoAstMan *-- dtoAstEnt
+dtoEntBulk *-- dtoBulkEnt
+
+' --- Apps (dependencies mostly eastbound into Shared) ---
+clsClientApp ..> NetMode
+clsClientApp ..> clsProtoConst
+clsClientApp *-- clsGameClient
+clsGameClient ..> clsNetMsgs
+clsGameClient *-- clsWorldState
+clsGameClient *-- clsInputBuf
+clsGameClient *-- clsPredSys
+clsGameClient ..> ifcClientChan
+clsGameClient ..> clsBulkMgr
+clsGameClient ..> clsProtoConst
+
+clsSrvApp ..> clsSrvCfg
+clsSrvApp *-- clsGameSrv
+
+clsGameSrv *-- clsGameHost
+clsGameSrv ..> clsRmtServer
+clsGameSrv ..> clsCliSession
+clsGameHost *-- clsSrvCfg
+clsGameHost o-- clsCliSession
+clsCliSession ..> ifcServerChan
+clsGameHost ..> clsBulkMgr
+clsGameHost ..> clsRexNetStats
+clsGameHost ..> msgBulkAck
+
+note right of clsNetMsgs
+  RegisterAll registers every sim message id plus\nBulkTransferInit, BulkTransferChunk, BulkTransferAck.
+end note
+
+note bottom of pkgShared
+  Contracts and helpers used by both processes.\nConnectionState lives on channel implementations.
+end note
+
+note bottom of pkgXfer
+  DTO types are protobuf contracts reassembled after bulk transfer completes.
+end note
+
+note bottom of pkgClientNet
+  GameClient polls IClientNetChannel and hosts BulkTransferManager for inbound bulk.
+end note
+
+note bottom of pkgSim
+  GameServerHost logs BulkTransferAckMessage. Deserialize path matches GameClient.
+end note
+
+@enduml
