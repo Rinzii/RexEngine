@@ -10,11 +10,11 @@ skinparam maxMessageSize 220
 
 actor Operator
 
-participant "ServerApp\n<<control>>" as SA
-participant "GameServer\n<<control>>" as GS
-participant "NetManager\n<<boundary>>" as LNS
-participant "GameServerHost\n<<control>>" as Host
-participant "RemoteServerNetChannel\n<<boundary>>" as SCh
+participant ServerApp <<control>> as SA
+participant GameServer <<control>> as GS
+participant NetManager <<boundary>> as LNS
+participant GameServerHost <<control>> as Host
+participant RemoteServerNetChannel <<boundary>> as SCh
 
 note over Operator, SCh
   Headless Rex.Server executable.

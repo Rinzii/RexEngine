@@ -2,7 +2,8 @@
 
 title 12 Networking class map (every public networking type)
 
-' Left to right keeps INetMessage and channels west of implementors and apps,\nso realization and dependency arrows read in one direction and cross less.
+' Left to right keeps INetMessage and channels west of implementors and apps,
+' so realization and dependency arrows read in one direction and cross less.
 left to right direction
 
 skinparam shadowing false
@@ -256,11 +257,13 @@ clsGameHost ..> clsRexNetStats
 clsGameHost ..> msgBulkAck
 
 note right of clsNetMsgs
-  RegisterAll registers every sim message id plus\nBulkTransferInit, BulkTransferChunk, BulkTransferAck.
+  RegisterAll registers every sim message id plus
+  BulkTransferInit, BulkTransferChunk, BulkTransferAck.
 end note
 
 note bottom of pkgShared
-  Contracts and helpers used by both processes.\nConnectionState lives on channel implementations.
+  Contracts and helpers used by both processes.
+  ConnectionState lives on channel implementations.
 end note
 
 note bottom of pkgXfer

@@ -32,7 +32,7 @@ package "Rex.Shared.Net" {
 }
 
 package "LiteNetLib" {
-  component [NetManager\nUDP] as LNL
+  component [NetManager (UDP)] as LNL
 }
 
 CA --> GC : networked modes
@@ -55,6 +55,7 @@ legend right
   Remote path uses LiteNetLib.
   LocalNetChannelPair uses in-memory queues.
   Local path does not use UDP.
+  xUnit test projects live under tests/.
 end legend
 
 @enduml

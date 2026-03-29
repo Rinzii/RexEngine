@@ -61,8 +61,8 @@ NetMessages ..> NetMessageRegistry
 NetMessageRegistry ..> INetMessage : dispatch by id
 
 note bottom of NetMessageRegistry
-  After LiteNetLib delivers the payload the first field is ushort message id.
-  The remaining bytes are the type-specific body.
+  Deserialize takes NetDataReader.
+  First field is ushort message id. Remaining bytes are the type-specific body.
 end note
 
 @enduml

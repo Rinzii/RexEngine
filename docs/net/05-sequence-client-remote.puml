@@ -11,17 +11,17 @@ skinparam maxMessageSize 220
 actor User
 
 box "Client process" #E8F4FC
-  participant "GameClient\n<<control>>" as GC
-  participant "RemoteClientNetChannel\n<<boundary>>" as CCh
-  participant "NetManager\n<<boundary>>" as LNC
+  participant GameClient <<control>> as GC
+  participant RemoteClientNetChannel <<boundary>> as CCh
+  participant NetManager <<boundary>> as LNC
 end box
 
 box "Server process" #E8FCE8
-  participant "NetManager\n<<boundary>>" as LNS
-  participant "GameServer\n<<control>>" as GS
-  participant "RemoteServerNetChannel\n<<boundary>>" as SCh
-  participant "GameServerHost\n<<control>>" as Host
-  participant "ClientSession\n<<entity>>" as Sess
+  participant NetManager <<boundary>> as LNS
+  participant GameServer <<control>> as GS
+  participant RemoteServerNetChannel <<boundary>> as SCh
+  participant GameServerHost <<control>> as Host
+  participant ClientSession <<entity>> as Sess
 end box
 
 note over User, Sess

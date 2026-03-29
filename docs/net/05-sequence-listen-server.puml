@@ -11,11 +11,11 @@ skinparam maxMessageSize 220
 actor User
 
 box "Rex.Client process" #E8F4FC
-  participant "Program\n<<control>>" as Prog
-  participant "ClientApp\n<<control>>" as App
+  participant Program <<control>> as Prog
+  participant ClientApp <<control>> as App
 end box
 
-participant "Rex.Server\nchild process\n<<boundary>>" as Child
+participant "Rex.Server child process" <<boundary>> as Child
 
 note over User, Child
   ListenServer is not a NetMode value passed into ClientApp.

@@ -10,9 +10,9 @@ skinparam maxMessageSize 220
 
 actor User
 
-participant "ClientApp\n<<control>>" as App
-participant "GameWorld\n<<entity>>" as World
-participant "InputCollector\n<<boundary>>" as Input
+participant ClientApp <<control>> as App
+participant GameWorld <<entity>> as World
+participant InputCollector <<boundary>> as Input
 
 note over User, Input
   No IClientNetChannel.

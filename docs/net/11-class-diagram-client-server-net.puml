@@ -187,15 +187,20 @@ together {
 
 GameClient -[hidden]right- GameServer
 
-ClientApp ..> "LocalNetChannelPair" : Standalone wiring\n(see ClientApp)
-GameServerHost ..> "LocalServerNetChannel" : listen server\n(see GameServerHost)
+ClientApp ..> "LocalNetChannelPair" : Standalone wiring (see ClientApp)
+GameServerHost ..> "LocalServerNetChannel" : listen server (see GameServerHost)
 
 note right of "RemoteClientNetChannel"
-  RemoteClientNetChannel uses EventBasedNetListener.\nOutbound path resets NetDataWriter, calls INetMessage.Serialize,\nthen NetPeer.Send on the chosen channel and delivery mode.\nConcrete messages usually write the ushort id first inside Serialize\n(often via NetMessageRegistry.WriteHeader).
+  RemoteClientNetChannel uses EventBasedNetListener.
+  Outbound path resets NetDataWriter, calls INetMessage.Serialize,
+  then NetPeer.Send on the chosen channel and delivery mode.
+  Concrete messages usually write the ushort id first inside Serialize
+  (often via NetMessageRegistry.WriteHeader).
 end note
 
 note right of GameServer
-  GameServer owns NetManager, accepts peers, and constructs\nRemoteServerNetChannel plus ClientSession entries in GameServerHost.
+  GameServer owns NetManager, accepts peers, and constructs
+  RemoteServerNetChannel plus ClientSession entries in GameServerHost.
 end note
 
 @enduml

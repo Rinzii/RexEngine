@@ -255,7 +255,9 @@ package "Rex.Shared.Net (Transfer)" #FEF3C7 {
 }
 
 note bottom of "NetMessageRegistry"
-  After LiteNetLib delivers bytes, the reader still holds the full payload.\nDeserialize reads leading ushort id then type-specific body.\nSend paths call WriteHeader then Serialize on each INetMessage.
+  Deserialize takes NetDataReader over the full payload.
+  Reads leading ushort id then type-specific body.
+  Send paths call WriteHeader then Serialize on each INetMessage.
 end note
 
 note bottom of EntityState
@@ -263,7 +265,8 @@ note bottom of EntityState
 end note
 
 note right of BulkTransferManager
-  NetMessages.RegisterAll also registers BulkTransferInit,\nBulkTransferChunk, and BulkTransferAck ids.
+  NetMessages.RegisterAll also registers BulkTransferInit,
+  BulkTransferChunk, and BulkTransferAck ids.
 end note
 
 @enduml
