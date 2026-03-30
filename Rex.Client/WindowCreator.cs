@@ -35,7 +35,7 @@ public sealed class WindowCreator : IGameWindow
     {
         WindowHandle?.Dispose();
     }
-    
+
     public void Open(string title, int width, int height)
     {
         Title = title;
@@ -57,7 +57,7 @@ public sealed class WindowCreator : IGameWindow
         window.Run();
         IsOpen = true;
     }
-    
+
     public void Close()
     {
         WindowHandle?.Close();
