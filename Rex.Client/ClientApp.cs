@@ -6,6 +6,7 @@ using Rex.Client.Net;
 using Rex.Shared;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
+using Rex.Shared.Numerics;
 using Rex.Shared.Simulation;
 using Rex.Shared.Timing;
 
@@ -163,7 +164,7 @@ public sealed partial class ClientApp : IDisposable
             frameIndex++;
 
             // Same cap as the accumulator uses, so Update sees a consistent frame length.
-            var unscaledDt = (float)Math.Min(frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
             var smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
                 _clock,
@@ -316,11 +317,7 @@ public sealed partial class ClientApp : IDisposable
         {
             if (_standaloneInterpPrevious.TryGetValue(current.EntityId, out var previous))
             {
-                var x = previous.X + (current.X - previous.X) * alpha;
-                var y = previous.Y + (current.Y - previous.Y) * alpha;
-                var z = previous.Z + (current.Z - previous.Z) * alpha;
-                var rotY = previous.RotationY + (current.RotationY - previous.RotationY) * alpha;
-                _standaloneInterpolated.Add(new EntityState(current.EntityId, x, y, z, rotY));
+                _standaloneInterpolated.Add(EntityStateInterpolation.Lerp(previous, current, alpha));
             }
             else
             {

@@ -1,4 +1,5 @@
 using Rex.Shared.Net.Messages;
+using Rex.Shared.Simulation;
 
 namespace Rex.Client.Net;
 
@@ -46,9 +47,8 @@ public sealed class PredictionSystem
     /// </remarks>
     public void ApplyInputLocally(PlayerInputMessage input)
     {
-        const float moveSpeed = 5.0f;
-        PredictedX += input.MoveX * moveSpeed;
-        PredictedZ += input.MoveY * moveSpeed;
+        PredictedX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, PredictedX);
+        PredictedZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, PredictedZ);
         // Y stays at the last reconciled value until Reconcile runs again.
     }
 

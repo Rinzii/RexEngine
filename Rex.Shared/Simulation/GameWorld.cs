@@ -43,10 +43,9 @@ public sealed class GameWorld
             return;
         }
 
-        const float moveSpeed = 5.0f;
         // MoveXZ and yaw only. Y unchanged (no jump or fly yet).
-        var newX = current.X + input.MoveX * moveSpeed;
-        var newZ = current.Z + input.MoveY * moveSpeed;
+        var newX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, current.X);
+        var newZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, current.Z);
         var newRotY = input.LookY;
 
         _entities[entityId] = new EntityState(entityId, newX, current.Y, newZ, newRotY);
