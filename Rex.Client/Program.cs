@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.IO;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Logging;
 using Rex.Shared.Net;
@@ -12,10 +10,12 @@ internal static class Program
 {
     private static void Main(string[] args)
     {
-
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
+
+            // Allow an environment variable to override the default log level so
+            // dev and test runs can be made more or less verbose without recompiling.
             if (Environment.GetEnvironmentVariable("REX_CLIENT_LOG_LEVEL") is { } logLevelStr &&
                 Enum.TryParse<LogLevel>(logLevelStr, true, out var logLevel))
             {
@@ -40,6 +40,8 @@ internal static class Program
             logger.UnrecognizedCliArgument(arg);
         }
 
+        // Listen-server mode means this client process first launches a local server
+        // child process, then connects to it as a normal client.
         if (parsed.Mode == NetMode.ListenServer)
         {
             RunWithListenServer(parsed, loggerFactory, logger);
@@ -48,8 +50,6 @@ internal static class Program
         {
             RunApp(parsed, loggerFactory, logger);
         }
-
-
     }
 
     private static void RunApp(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
@@ -59,22 +59,21 @@ internal static class Program
             Headless = args.Headless
         };
 
+        // This token is passed into the app run loop so Ctrl+C can request a clean shutdown.
         using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            logger.ShutdownSignalReceived();
-            // ReSharper disable AccessToDisposedClosure
-            cts.Cancel();
-            app.Stop();
-            // ReSharper restore AccessToDisposedClosure
-        };
+
+        // This helper owns the Console.CancelKeyPress subscription.
+        // Keeping the event hookup inside a disposable object makes the subscription lifetime
+        // explicit and avoids event handlers outliving the objects they use.
+        using var shutdownHook = new ShutdownHook(logger, cts, app);
 
         string? host = null;
         var port = args.Port;
 
         if (args.ConnectAddress != null)
         {
+            // The connect argument may contain just a host or a host plus port.
+            // This parser resolves the final host and port pair that the client should use.
             if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out var parsedHost, out var parsedPort))
             {
                 logger.InvalidConnectAddress(args.ConnectAddress);
@@ -90,14 +89,18 @@ internal static class Program
 
     private static void RunWithListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
     {
-        using var serverProcess = StartListenServerProcess(args.Port, logger);
-        if (serverProcess == null)
+        // The bridge keeps the child process alive, keeps logging subscriptions attached,
+        // and exposes a wait point for the server ready signal.
+        using var serverProcessBridge = StartListenServerProcess(args.Port, logger);
+        if (serverProcessBridge == null)
         {
             return;
         }
 
         try
         {
+            // Once the local server is up, we launch the client side in normal client mode
+            // and point it at localhost on the requested port.
             var clientArgs = new CommandLineArgs(
                 args.Headless,
                 NetMode.Client,
@@ -109,11 +112,12 @@ internal static class Program
         }
         finally
         {
-            StopListenServerProcess(serverProcess, logger);
+            // Always stop the child server when the client side exits, even if the client run throws.
+            StopListenServerProcess(serverProcessBridge.Process, logger);
         }
     }
 
-    private static Process? StartListenServerProcess(int port, ILogger logger)
+    private static ListenServerProcessBridge? StartListenServerProcess(int port, ILogger logger)
     {
         var serverAssemblyPath = ResolveServerAssemblyPath();
         if (serverAssemblyPath == null)
@@ -122,83 +126,83 @@ internal static class Program
             return null;
         }
 
-        // Setup our signal to use a ManualResetEventSlim so we can wait for the server to signal it's ready
-        // Then create the process.
-        var readySignal = new ManualResetEventSlim();
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
+
+                // We want direct control over stdio so we can watch server output for logs
+                // and for the specific ready line that signals startup completion.
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
+
+                // This is a background helper process, not something that should spawn its own console window.
                 CreateNoWindow = true,
+
+                // Set the working directory to the server assembly directory so any relative paths
+                // used by the server resolve from its own output location.
                 WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
             },
+
+            // Required for some process event scenarios and generally appropriate
+            // when this Process instance is being used as a managed runtime wrapper.
             EnableRaisingEvents = true
         };
 
-        // Add our arguments to the process start info
         process.StartInfo.ArgumentList.Add(serverAssemblyPath);
         process.StartInfo.ArgumentList.Add("--port");
         process.StartInfo.ArgumentList.Add(port.ToString());
 
-        process.OutputDataReceived += (_, e) =>
+        ListenServerProcessBridge? bridge = null;
+
+        try
         {
-            if (string.IsNullOrWhiteSpace(e.Data))
+            // Create the bridge before starting the process so output handlers are already attached
+            // when the child begins writing startup logs.
+            bridge = new ListenServerProcessBridge(process, logger);
+
+            if (!process.Start())
             {
-                return;
+                logger.ListenServerStartFailed();
+                bridge.Dispose();
+                return null;
             }
 
-            logger.ListenServerOutput(e.Data);
+            // Begin async consumption of stdout and stderr.
+            // Without this, redirected output can fill buffers and potentially block the child process.
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
 
-            // The server signals it's ready by writing a specific line to stdout, so watch for that line to know when we can connect.
-            if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
+            // The server is expected to print a specific ready line once startup is complete.
+            // We wait up to 10 seconds before treating startup as failed.
+            if (bridge.WaitUntilReady(TimeSpan.FromSeconds(10)))
             {
-                readySignal.Set();
+                return bridge;
             }
-        };
 
-        process.ErrorDataReceived += (_, e) =>
-        {
-            if (!string.IsNullOrWhiteSpace(e.Data))
+            if (process.HasExited)
             {
-                logger.ListenServerError(e.Data);
+                logger.ListenServerExitedEarly();
             }
-        };
+            else
+            {
+                logger.ListenServerStartupTimeout();
+            }
 
-        if (!process.Start())
-        {
-            logger.ListenServerStartFailed();
-            process.Dispose();
+            StopListenServerProcess(process, logger);
+            bridge.Dispose();
             return null;
         }
-
-        process.BeginOutputReadLine();
-        process.BeginErrorReadLine();
-
-        // Wait for the server to signal it's ready before returning
-        // Set a timeout of 10 seconds in case the server fails to start or signal
-        if (readySignal.Wait(TimeSpan.FromSeconds(10)))
+        catch
         {
-            return process;
+            // Dispose the bridge if it exists so event handlers are detached and the process wrapper
+            // is cleaned up before the exception continues upward.
+            bridge?.Dispose();
+            process.Dispose();
+            throw;
         }
-
-        // If we timed out, check if the process has exited to provide a more specific error message
-        if (process.HasExited)
-        {
-            logger.ListenServerExitedEarly();
-        }
-        else
-        {
-            logger.ListenServerStartupTimeout();
-        }
-
-        // Kill the process and dispose of it
-        StopListenServerProcess(process, logger);
-        process.Dispose();
-        return null;
     }
 
     private static void StopListenServerProcess(Process process, ILogger logger)
@@ -209,7 +213,11 @@ internal static class Program
         }
 
         logger.StoppingListenServer();
+
+        // Kill the full process tree in case the child server spawned children of its own.
         process.Kill(true);
+
+        // Give the OS a short window to report final termination and release resources.
         process.WaitForExit(5000);
     }
 
@@ -227,7 +235,9 @@ internal static class Program
         var tfm = outputDir.Name;
         var config = outputDir.Parent?.Name;
 
-        // Walk from bin/{Config}/{Tfm}/ back to the repo root in dev builds when the DLL is not copied next to the client.
+        // In normal deployed layouts the server DLL may sit next to the client DLL.
+        // In local dev layouts it may instead be in its own project output directory, so
+        // this walks back from bin/{Config}/{Tfm}/ to the repo root and reconstructs the expected path.
         // TODO: IanP: This might change later as there is a high likely hood we will later change the output location of builds.
         var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
 
@@ -238,5 +248,121 @@ internal static class Program
 
         var repoPath = Path.Combine(repoRoot.FullName, "Rex.Server", "bin", config, tfm, "Rex.Server.dll");
         return File.Exists(repoPath) ? repoPath : null;
+    }
+
+    private sealed class ShutdownHook : IDisposable
+    {
+        private readonly ILogger _logger;
+        private readonly CancellationTokenSource _cts;
+        private readonly ClientApp _app;
+        private bool _disposed;
+
+        public ShutdownHook(ILogger logger, CancellationTokenSource cts, ClientApp app)
+        {
+            _logger = logger;
+            _cts = cts;
+            _app = app;
+
+            // Attach once during construction so this helper fully owns the subscription.
+            Console.CancelKeyPress += OnCancelKeyPress;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // Detach the handler before the captured objects go out of scope.
+            // This keeps the event subscription lifetime aligned with the object lifetime.
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            _disposed = true;
+        }
+
+        private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+        {
+            // Mark the signal as handled so the runtime does not immediately tear down the process.
+            // We want the app to shut down through its own controlled path instead.
+            e.Cancel = true;
+            _logger.ShutdownSignalReceived();
+
+            if (!_cts.IsCancellationRequested)
+            {
+                _cts.Cancel();
+            }
+
+            _app.Stop();
+        }
+    }
+
+    private sealed class ListenServerProcessBridge : IDisposable
+    {
+        private readonly ILogger _logger;
+        private readonly ManualResetEventSlim _readySignal;
+        private bool _disposed;
+
+        public ListenServerProcessBridge(Process process, ILogger logger)
+        {
+            Process = process;
+            _logger = logger;
+
+            // This is used only to block startup until the server announces readiness.
+            // Output logging continues after that for the full process lifetime.
+            _readySignal = new ManualResetEventSlim();
+
+            // These handlers stay attached for the full bridge lifetime so we keep receiving
+            // stdout and stderr from the child process until shutdown.
+            Process.OutputDataReceived += OnOutputDataReceived;
+            Process.ErrorDataReceived += OnErrorDataReceived;
+        }
+
+        public Process Process { get; }
+
+        public bool WaitUntilReady(TimeSpan timeout)
+        {
+            return _readySignal.Wait(timeout);
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // Remove event subscriptions before disposing owned resources so no callback can fire
+            // into an object that is already being torn down.
+            Process.OutputDataReceived -= OnOutputDataReceived;
+            Process.ErrorDataReceived -= OnErrorDataReceived;
+            _readySignal.Dispose();
+            Process.Dispose();
+            _disposed = true;
+        }
+
+        private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(e.Data))
+            {
+                return;
+            }
+
+            _logger.ListenServerOutput(e.Data);
+
+            // The server writes a sentinel line once startup is complete.
+            // Seeing that line releases the startup wait in StartListenServerProcess.
+            if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
+            {
+                _readySignal.Set();
+            }
+        }
+
+        private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (!string.IsNullOrWhiteSpace(e.Data))
+            {
+                _logger.ListenServerError(e.Data);
+            }
+        }
     }
 }
