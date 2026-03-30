@@ -1,6 +1,6 @@
 @startuml 12-class-diagram-networking-full-map
 
-title 12 Networking class map (every public networking type)
+title 12 Networking full class map (public API and wire contracts)
 
 ' Left to right keeps INetMessage and channels west of implementors and apps,
 ' so realization and dependency arrows read in one direction and cross less.
@@ -13,16 +13,16 @@ skinparam ArrowThickness 1.2
 skinparam ArrowFontSize 9
 skinparam ArrowColor #374151
 skinparam linetype polyline
-skinparam nodesep 88
-skinparam ranksep 56
-skinparam wrapWidth 280
+skinparam nodesep 72
+skinparam ranksep 48
+skinparam wrapWidth 300
 skinparam packageStyle rectangle
 skinparam packageBorderThickness 1.5
 skinparam packageFontSize 12
 skinparam packageFontStyle bold
-skinparam classFontSize 10
-skinparam interfaceFontSize 11
-skinparam enumFontSize 10
+skinparam classFontSize 9
+skinparam interfaceFontSize 10
+skinparam enumFontSize 9
 skinparam defaultFontName sans-serif
 skinparam legendBorderThickness 0.8
 skinparam legendBackgroundColor #FAFAFA
@@ -43,37 +43,146 @@ skinparam enum {
 
 legend top left
   |= Marker |= Meaning |
-  | <|.. | realizes INetMessage |
+  | <|.. | realizes interface |
   | *-- / o-- | composition or aggregation |
   | ..> | uses |
+  | + | public member in class boxes |
 end legend
 
 together {
   package "Rex.Shared.Net" as pkgShared #DBEAFE {
     together {
-      interface "IClientNetChannel" as ifcClientChan
-      interface "IServerNetChannel" as ifcServerChan
+      interface "IClientNetChannel" as ifcClientChan {
+        + State : ConnectionState
+        + RoundTripTimeMs : int
+        + Send(message, channel, delivery) : void
+        + Send(message) : void
+        + Connect() : void
+        + Disconnect(reason) : void
+        + PollEvents() : void
+        --
+        + MessageReceived : Action<INetMessage>
+        + Connected : Action
+        + Disconnected : Action<string>
+      }
+      interface "IServerNetChannel" as ifcServerChan {
+        + ClientId : Guid
+        + IsLocal : bool
+        + State : ConnectionState
+        + RoundTripTimeMs : int
+        + Send(message, channel, delivery) : void
+        + Send(message) : void
+        + Disconnect(reason) : void
+      }
     }
-    interface "INetMessage" as ifcNetMsg
-    together {
-      class "NetMessageRegistry" as clsMsgRegistry <<static>>
-      class "LocalNetChannelPair" as clsLocalPair <<static>>
-      class "LocalClientNetChannel" as clsLocalClient
-      class "LocalServerNetChannel" as clsLocalServer
+    interface "INetMessage" as ifcNetMsg {
+      + MessageId : ushort
+      + Group : MessageGroup
+      + Serialize(writer) : void
     }
     together {
-      enum MessageGroup
-      enum ConnectionState
-      enum "NetMode"
+      class "NetMessageRegistry" as clsMsgRegistry <<static>> {
+        + {static} Register<T>(messageId, deserializer) : void
+        + {static} Deserialize(reader) : INetMessage
+        + {static} WriteHeader(writer, messageId) : void
+      }
+      class "LocalNetChannelPair" as clsLocalPair <<static>> {
+        + {static} Create(clientId) : (LocalClientNetChannel, LocalServerNetChannel)
+      }
+      class "LocalClientNetChannel" as clsLocalClient {
+        + State : ConnectionState
+        + RoundTripTimeMs : int
+        + Connect() : void
+        + Send(message, channel, delivery) : void
+        + Send(message) : void
+        + Disconnect(reason) : void
+        + PollEvents() : void
+        --
+        + MessageReceived : Action<INetMessage>
+        + Connected : Action
+        + Disconnected : Action<string>
+      }
+      class "LocalServerNetChannel" as clsLocalServer {
+        + ClientId : Guid
+        + IsLocal : bool
+        + State : ConnectionState
+        + RoundTripTimeMs : int
+        + Send(message, channel, delivery) : void
+        + Send(message) : void
+        + Disconnect(reason) : void
+        + DrainMessages(handler) : void
+      }
     }
     together {
-      class "MessageGroupExtensions" as clsMsgGroupExt <<static>>
-      class "AdaptiveReliability" as clsAdaptRel <<static>>
-      class "DeliveryChannel" as clsDelivChan <<static>>
-      class "ProtocolConstants" as clsProtoConst <<static>>
-      class "ConnectEndpointParser" as clsConnParse <<static>>
-      class "RexNetStatistics" as clsRexNetStats
-      class "NetGuidExtensions" as clsNetGuidExt <<static>>
+      enum MessageGroup {
+        Core
+        Entity
+        EntityEvent
+        Input
+        Command
+        Transfer
+      }
+      enum ConnectionState {
+        Connecting
+        Connected
+        Authenticated
+        InGame
+        Disconnecting
+        Disconnected
+      }
+      enum "NetMode" {
+        Standalone
+        Client
+        ListenServer
+        DedicatedServer
+      }
+    }
+    together {
+      class "MessageGroupExtensions" as clsMsgGroupExt <<static>> {
+        + {static} GetDeliveryInfo(group) : (byte, DeliveryMethod)
+      }
+      class "AdaptiveReliability" as clsAdaptRel <<static>> {
+        + {static} ReliableThreshold : int
+        + {static} GetAdaptiveDelivery(message) : (byte, DeliveryMethod)
+      }
+      class "DeliveryChannel" as clsDelivChan <<static>> {
+        + {static} Reliable : byte
+        + {static} Snapshot : byte
+        + {static} ReliableUnordered : byte
+        + {static} Unreliable : byte
+        + {static} Transfer : byte
+        + {static} ReliableMethod : DeliveryMethod
+        + {static} SnapshotMethod : DeliveryMethod
+        + {static} ReliableUnorderedMethod : DeliveryMethod
+        + {static} UnreliableMethod : DeliveryMethod
+        + {static} TransferMethod : DeliveryMethod
+      }
+      class "ProtocolConstants" as clsProtoConst <<static>> {
+        + {static} ProtocolVersion : ushort
+        + {static} ConnectionKey : string
+        + {static} HandshakeTimeoutMs : int
+        + {static} DefaultPort : int
+        + {static} DefaultTickRate : int
+        + {static} DefaultMaxPlayers : int
+        + {static} ListenProcessReadyLine : string
+      }
+      class "ConnectEndpointParser" as clsConnParse <<static>> {
+        + {static} TryParse(connectAddress, defaultPort, host, port) : bool
+      }
+      class "RexNetStatistics" as clsRexNetStats {
+        + BytesSent : long
+        + BytesReceived : long
+        + MessagesSent : long
+        + MessagesReceived : long
+        + RecordSent(messageId, bytes) : void
+        + RecordReceived(messageId, bytes) : void
+        + GetPerTypeStats() : Dictionary<ushort, (long, long)>
+        + Reset() : void
+      }
+      class "NetGuidExtensions" as clsNetGuidExt <<static>> {
+        + {static} PutGuid(writer, value) : void
+        + {static} ReadGuid(reader) : Guid
+      }
     }
     ifcClientChan -[hidden]down- ifcNetMsg
     ifcNetMsg -[hidden]down- clsMsgRegistry
@@ -83,20 +192,103 @@ together {
 
 together {
   package "Rex.Shared.Net.Messages" as pkgMsgs #DCFCE7 {
-    class "NetMessages" as clsNetMsgs <<static>>
-    together {
-      class "ConnectRequestMessage" as msgConnReq
-      class "ConnectResponseMessage" as msgConnResp
-      class "DisconnectMessage" as msgDisc
-      class "StateAckMessage" as msgStateAck
+    class "NetMessages" as clsNetMsgs <<static>> {
+      + {static} RegisterAll() : void
     }
     together {
-      class "PlayerInputMessage" as msgInput
-      class "WorldSnapshotMessage" as msgSnap
-      class "EntitySpawnMessage" as msgSpawn
-      class "EntityDestroyMessage" as msgDestroy
+      class "ConnectRequestMessage" as msgConnReq {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + ProtocolVersion : ushort
+        + PlayerName : string
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : ConnectRequestMessage
+      }
+      class "ConnectResponseMessage" as msgConnResp {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + Accepted : bool
+        + ClientId : Guid
+        + TickRate : int
+        + LocalPlayerEntityId : int
+        + RejectReason : string
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : ConnectResponseMessage
+      }
+      class "DisconnectMessage" as msgDisc {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + Reason : string
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : DisconnectMessage
+      }
+      class "StateAckMessage" as msgStateAck {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + AcknowledgedTick : uint
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : StateAckMessage
+      }
     }
-    class "EntityState" as clsEntState
+    together {
+      class "PlayerInputMessage" as msgInput {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + Tick : uint
+        + MoveX : float
+        + MoveY : float
+        + LookX : float
+        + LookY : float
+        + ActionFlags : uint
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : PlayerInputMessage
+      }
+      class "WorldSnapshotMessage" as msgSnap {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + ServerTick : uint
+        + LastProcessedInputTick : uint
+        + Entities : IReadOnlyList<EntityState>
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : WorldSnapshotMessage
+      }
+      class "EntitySpawnMessage" as msgSpawn {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + EntityId : int
+        + OwnerClientId : Guid
+        + EntityType : string
+        + X : float
+        + Y : float
+        + Z : float
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : EntitySpawnMessage
+      }
+      class "EntityDestroyMessage" as msgDestroy {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + EntityId : int
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : EntityDestroyMessage
+      }
+    }
+    class "EntityState" as clsEntState {
+      + EntityId : int
+      + X : float
+      + Y : float
+      + Z : float
+      + RotationY : float
+      + Serialize(writer) : void
+      + {static} Deserialize(reader) : EntityState
+    }
     clsNetMsgs -[hidden]right- msgConnReq
     msgConnResp -[hidden]down- msgInput
     msgSnap -[hidden]down- clsEntState
@@ -112,29 +304,118 @@ together {
       EntityBulkState
       ResourceFile
     }
-    class "BulkTransferManager" as clsBulkMgr
-    together {
-      class "BulkTransferInitMessage" as msgBulkInit
-      class "BulkTransferChunkMessage" as msgBulkChunk
-      class "BulkTransferAckMessage" as msgBulkAck
+    class "BulkTransferManager" as clsBulkMgr {
+      + MaxChunkSize : int
+      + TransferCompleted : Action<Guid, BulkDataType, byte[]>
+      + BulkTransferManager(loggerFactory)
+      + SendBulkData<T>(channel, dataType, data) : void
+      + HandleTransferInit(init) : void
+      + HandleTransferChunk(chunk) : void
     }
     together {
-      class "ProtoSerializer" as clsProtoSer <<static>>
-      class "NetCompression" as clsNetCompress <<static>>
+      class "BulkTransferInitMessage" as msgBulkInit {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + TransferId : Guid
+        + DataType : BulkDataType
+        + TotalSize : int
+        + OriginalSize : int
+        + IsCompressed : bool
+        + ChunkCount : int
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : BulkTransferInitMessage
+      }
+      class "BulkTransferChunkMessage" as msgBulkChunk {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + TransferId : Guid
+        + ChunkIndex : int
+        + Data : byte[]
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : BulkTransferChunkMessage
+      }
+      class "BulkTransferAckMessage" as msgBulkAck {
+        + {static} Id : ushort
+        + MessageId : ushort
+        + Group : MessageGroup
+        + TransferId : Guid
+        + Success : bool
+        + Serialize(writer) : void
+        + {static} Deserialize(reader) : BulkTransferAckMessage
+      }
     }
     together {
-      class "MapData" as dtoMap
-      class "MapTile" as dtoMapTile
-      class "MapEntity" as dtoMapEnt
+      class "ProtoSerializer" as clsProtoSer <<static>> {
+        + {static} Serialize<T>(value) : byte[]
+        + {static} Deserialize<T>(byte[] data) : T
+        + {static} Deserialize<T>(ReadOnlyMemory~byte~ data) : T
+      }
+      class "NetCompression" as clsNetCompress <<static>> {
+        + {static} CompressionThreshold : int
+        + {static} Compress(data) : (byte[], bool)
+        + {static} Decompress(compressedData, originalLength) : byte[]
+      }
     }
     together {
-      class "AssetManifest" as dtoAstMan
-      class "AssetEntry" as dtoAstEnt
+      class "MapData" as dtoMap {
+        + MapName : string
+        + Width : int
+        + Height : int
+        + Tiles : List<MapTile>
+        + Entities : List<MapEntity>
+        + Properties : Dictionary<string, string>
+      }
+      class "MapTile" as dtoMapTile {
+        + X : int
+        + Y : int
+        + TileId : int
+        + Flags : byte
+      }
+      class "MapEntity" as dtoMapEnt {
+        + EntityId : int
+        + EntityType : string
+        + X : float
+        + Y : float
+        + Z : float
+        + RotationY : float
+        + ComponentData : Dictionary<string, byte[]>
+      }
     }
     together {
-      class "ServerConfigData" as dtoSrvCfg
-      class "EntityBulkState" as dtoEntBulk
-      class "BulkEntityData" as dtoBulkEnt
+      class "AssetManifest" as dtoAstMan {
+        + Version : int
+        + Assets : List<AssetEntry>
+      }
+      class "AssetEntry" as dtoAstEnt {
+        + Path : string
+        + Size : long
+        + Hash : string
+      }
+    }
+    together {
+      class "ServerConfigData" as dtoSrvCfg {
+        + ServerName : string
+        + TickRate : int
+        + MaxPlayers : int
+        + MapName : string
+        + CVars : Dictionary<string, string>
+      }
+      class "EntityBulkState" as dtoEntBulk {
+        + ServerTick : uint
+        + Entities : List<BulkEntityData>
+      }
+      class "BulkEntityData" as dtoBulkEnt {
+        + EntityId : int
+        + EntityType : string
+        + OwnerClientId : Guid
+        + X : float
+        + Y : float
+        + Z : float
+        + RotationY : float
+        + ComponentData : Dictionary<string, byte[]>
+      }
     }
     BulkDataType -[hidden]down- clsBulkMgr
     clsBulkMgr -[hidden]down- msgBulkInit
@@ -144,15 +425,79 @@ together {
 
 together {
   package "Rex.Client" as pkgRexClient #EDE9FE {
-    class "ClientApp" as clsClientApp
+    class "ClientApp" as clsClientApp {
+      + Mode : NetMode
+      + Clock : TickClock
+      + IsRunning : bool
+      + Headless : bool
+      + TimeScale : float
+      + OnUpdate : Action<FrameContext>
+      + OnLateUpdate : Action<FrameContext>
+      + Client : GameClient
+      + World : GameWorld
+      + Window : IGameWindow
+      + Renderer : IRenderer
+      + ClientApp(mode, loggerFactory, tickRate)
+      + SetInputCollector(collector) : void
+      + Run(host, port, cancellationToken) : void
+      + Stop() : void
+      + Dispose() : void
+    }
   }
   package "Rex.Client.Net" as pkgClientNet #DDD6FE {
-    class "GameClient" as clsGameClient
-    class "RemoteClientNetChannel" as clsRmtClient
+    class "GameClient" as clsGameClient {
+      + ClientId : Guid
+      + LocalPlayerEntityId : int
+      + WorldState : ClientWorldState
+      + InputBuffer : InputBuffer
+      + Prediction : PredictionSystem
+      + IsConnected : bool
+      + State : ConnectionState
+      + RoundTripTimeMs : int
+      + BulkDataReceived : Action<Guid, BulkDataType, byte[]>
+      + GameClient(loggerFactory)
+      + SetInputCollector(collector) : void
+      + {static} DeserializeBulkData<T>(data) : T
+      + Connect(host, port) : void
+      + Connect(channel) : void
+      + Tick(currentTick) : void
+      + Disconnect() : void
+    }
+    class "RemoteClientNetChannel" as clsRmtClient {
+      + State : ConnectionState
+      + RoundTripTimeMs : int
+      + RemoteClientNetChannel(host, port, connectionKey, logger)
+      + Connect() : void
+      + Send(message, channel, delivery) : void
+      + Send(message) : void
+      + Disconnect(reason) : void
+      + PollEvents() : void
+      --
+      + MessageReceived : Action<INetMessage>
+      + Connected : Action
+      + Disconnected : Action<string>
+    }
     together {
-      class "ClientWorldState" as clsWorldState
-      class "InputBuffer" as clsInputBuf
-      class "PredictionSystem" as clsPredSys
+      class "ClientWorldState" as clsWorldState {
+        + CurrentSnapshot : WorldSnapshotMessage
+        + LastServerTick : uint
+        + ApplySnapshot(snapshot) : void
+        + GetInterpolatedState(alpha) : IReadOnlyList<EntityState>
+      }
+      class "InputBuffer" as clsInputBuf {
+        + InputBuffer(capacity)
+        + Store(input) : void
+        + AcknowledgeUpTo(tick) : void
+        + GetInputsAfter(tick) : IReadOnlyList<PlayerInputMessage>
+      }
+      class "PredictionSystem" as clsPredSys {
+        + PredictedX : float
+        + PredictedY : float
+        + PredictedZ : float
+        + PredictionSystem(inputBuffer)
+        + ApplyInputLocally(input) : void
+        + Reconcile(serverState, lastProcessedInputTick) : void
+      }
     }
     clsGameClient -[hidden]down- clsRmtClient
     clsRmtClient -[hidden]down- clsWorldState
@@ -162,18 +507,80 @@ together {
 
 together {
   package "Rex.Server" as pkgDedicated #FED7AA {
-    class "ServerApp" as clsSrvApp
+    class "ServerApp" as clsSrvApp {
+      + Config : GameServerConfig
+      + Clock : TickClock
+      + Server : GameServer
+      + IsRunning : bool
+      + TimeScale : float
+      + OnUpdate : Action<FrameContext>
+      + OnLateUpdate : Action<FrameContext>
+      + ServerApp(config, loggerFactory)
+      + Run(cancellationToken) : void
+      + Stop() : void
+      + Dispose() : void
+    }
   }
   package "Rex.Server.Core" as pkgSrvCore #FECACA {
-    class "GameServer" as clsGameSrv
+    class "GameServer" as clsGameSrv {
+      + Host : GameServerHost
+      + GameServer(config, loggerFactory)
+      + Start() : void
+      + Tick() : void
+      + Shutdown() : void
+    }
   }
   package "Rex.Server.Net" as pkgSrvNet #FCA5A5 {
-    class "RemoteServerNetChannel" as clsRmtServer
+    class "RemoteServerNetChannel" as clsRmtServer {
+      + ClientId : Guid
+      + IsLocal : bool
+      + State : ConnectionState
+      + RoundTripTimeMs : int
+      + RemoteServerNetChannel(peer, clientId)
+      + Send(message, channel, delivery) : void
+      + Send(message) : void
+      + Disconnect(reason) : void
+    }
   }
   package "Rex.Server.Simulation" as pkgSim #F87171 {
-    class "GameServerHost" as clsGameHost
-    class "ClientSession" as clsCliSession
-    class "GameServerConfig" as clsSrvCfg
+    class "GameServerHost" as clsGameHost {
+      + Config : GameServerConfig
+      + CurrentTick : uint
+      + World : GameWorld
+      + IsRunning : bool
+      + IsFull : bool
+      + Statistics : RexNetStatistics
+      + TransferManager : BulkTransferManager
+      + Sessions : IReadOnlyDictionary<Guid, ClientSession>
+      + GameServerHost(config, loggerFactory)
+      + Start() : void
+      + {static} AllocateClientId() : Guid
+      + AddSession(session) : void
+      + RemoveSession(clientId) : void
+      + HandleMessage(clientId, message) : void
+      + SendBulkData<T>(clientId, dataType, data) : void
+      + BroadcastBulkData<T>(dataType, data) : void
+      + Tick() : void
+      + Shutdown() : void
+    }
+    class "ClientSession" as clsCliSession {
+      + Channel : IServerNetChannel
+      + ClientId : Guid
+      + PlayerEntityId : int
+      + PlayerName : string
+      + LastProcessedInputTick : uint
+      + LastAcknowledgedTick : uint
+      + ClientSession(channel)
+      + EnqueueInput(input) : void
+      + TryDequeueInput(out PlayerInputMessage input) : bool
+    }
+    class "GameServerConfig" as clsSrvCfg {
+      + TickRate : int
+      + MaxPlayers : int
+      + Port : int
+      + ServerName : string
+      + ConnectionKey : string
+    }
     clsGameHost -[hidden]down- clsCliSession
   }
   clsSrvApp -[hidden]down- clsGameSrv
