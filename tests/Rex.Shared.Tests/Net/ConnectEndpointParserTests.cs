@@ -2,6 +2,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
+// Covers host and port parsing for connect strings.
 public sealed class ConnectEndpointParserTests
 {
     public static TheoryData<string?, int, string?, int> Cases => new()
@@ -23,6 +24,7 @@ public sealed class ConnectEndpointParserTests
 
     [Theory]
     [MemberData(nameof(Cases))]
+    // Happy path rows in Cases.
     public void TryParse_success_cases_match_expected(
         string? input,
         int defaultPort,
@@ -44,6 +46,7 @@ public sealed class ConnectEndpointParserTests
     [InlineData("[::1]:abc")]
     [InlineData("[::1]:0")]
     [InlineData("[::1]:65536")]
+    // Malformed bracket forms and bad ports.
     public void TryParse_invalid_inputs_return_false(string input)
     {
         var ok = ConnectEndpointParser.TryParse(input, 27015, out _, out _);

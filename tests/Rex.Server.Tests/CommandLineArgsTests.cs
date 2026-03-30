@@ -2,9 +2,11 @@ using Rex.Shared.Net;
 
 namespace Rex.Server.Tests;
 
+// Dedicated server command line parsing.
 public sealed class CommandLineArgsTests
 {
     [Fact]
+    // No args pick protocol defaults for port tick rate and max players.
     public void TryParse_empty_uses_defaults()
     {
         var ok = CommandLineArgs.TryParse(Array.Empty<string>(), out var parsed, out var error);
@@ -18,6 +20,7 @@ public sealed class CommandLineArgsTests
     }
 
     [Fact]
+    // Port flag overrides the default listen port.
     public void TryParse_port_override()
     {
         var ok = CommandLineArgs.TryParse(new[] { "--port", "40000" }, out var parsed, out _);

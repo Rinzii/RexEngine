@@ -3,6 +3,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
+// Default channel and delivery for each MessageGroup.
 public sealed class MessageGroupExtensionsTests
 {
     public static TheoryData<MessageGroup, byte, DeliveryMethod> DeliveryCases => new()
@@ -17,6 +18,7 @@ public sealed class MessageGroupExtensionsTests
 
     [Theory]
     [MemberData(nameof(DeliveryCases))]
+    // Each group maps to the expected LiteNetLib channel and method.
     public void GetDeliveryInfo_matches_fixed_channel_and_method(
         MessageGroup group,
         byte expectedChannel,

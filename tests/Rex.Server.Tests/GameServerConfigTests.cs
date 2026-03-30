@@ -3,9 +3,11 @@ using Rex.Server.Simulation;
 
 namespace Rex.Server.Tests;
 
+// Server runtime config defaults.
 public sealed class GameServerConfigTests
 {
     [Fact]
+    // New config matches ProtocolConstants and default server name.
     public void Defaults_match_protocol_constants()
     {
         var cfg = new GameServerConfig();

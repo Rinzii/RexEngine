@@ -2,9 +2,11 @@ using RoslynHash = Rex.Roslyn.Shared.Helpers.HashCode;
 
 namespace Rex.Roslyn.Shared.Tests;
 
+// HashCode helper used by source generators.
 public sealed class HashCodeTests
 {
     [Fact]
+    // Same Add sequence yields the same ToHashCode.
     public void Same_sequence_produces_same_hash()
     {
         var a = new RoslynHash();

@@ -3,6 +3,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
+// Round trip for PutGuid and ReadGuid on LiteNetLib buffers.
 public sealed class NetGuidExtensionsTests
 {
     public static TheoryData<Guid> Guids => new()
@@ -14,6 +15,7 @@ public sealed class NetGuidExtensionsTests
 
     [Theory]
     [MemberData(nameof(Guids))]
+    // Writes then reads the same Guid value.
     public void PutGuid_and_ReadGuid_round_trip(Guid value)
     {
         var writer = new NetDataWriter();

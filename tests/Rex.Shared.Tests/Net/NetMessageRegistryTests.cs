@@ -4,6 +4,7 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Shared.Tests.Net;
 
+// NetMessageRegistry dispatch after NetMessages.RegisterAll.
 public sealed class NetMessageRegistryTests
 {
     public NetMessageRegistryTests()
@@ -12,6 +13,7 @@ public sealed class NetMessageRegistryTests
     }
 
     [Fact]
+    // Serialize then Deserialize returns the same ConnectRequest fields.
     public void Deserialize_ConnectRequest_round_trips()
     {
         var original = new ConnectRequestMessage(42, "tester");
@@ -29,6 +31,7 @@ public sealed class NetMessageRegistryTests
     }
 
     [Fact]
+    // Unknown id throws and mentions the id in the message.
     public void Deserialize_unknown_message_id_throws()
     {
         const ushort unknownId = 60000;

@@ -3,9 +3,11 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Shared.Tests.Net;
 
+// In-memory client and server channel pair for tests.
 public sealed class LocalNetChannelPairTests
 {
     [Fact]
+    // Create wires server ClientId and marks the channel local.
     public void Create_pairs_queues_and_server_has_client_id()
     {
         var clientId = Guid.NewGuid();
@@ -17,6 +19,7 @@ public sealed class LocalNetChannelPairTests
     }
 
     [Fact]
+    // Client Send reaches server DrainMessages with the same instance.
     public void Client_send_is_visible_to_server_DrainMessages()
     {
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
@@ -31,6 +34,7 @@ public sealed class LocalNetChannelPairTests
     }
 
     [Fact]
+    // Server Send raises client MessageReceived after PollEvents.
     public void Server_send_is_delivered_on_client_PollEvents()
     {
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
@@ -47,6 +51,7 @@ public sealed class LocalNetChannelPairTests
     }
 
     [Fact]
+    // Connect raises Connected and moves state to Connected.
     public void Client_Connect_raises_Connected_and_sets_state()
     {
         var (client, _) = LocalNetChannelPair.Create(Guid.NewGuid());
@@ -61,6 +66,7 @@ public sealed class LocalNetChannelPairTests
     }
 
     [Fact]
+    // Disconnect raises Disconnected with the reason and resets state.
     public void Client_Disconnect_raises_Disconnected_and_resets_state()
     {
         var (client, _) = LocalNetChannelPair.Create(Guid.NewGuid());

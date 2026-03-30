@@ -4,8 +4,10 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
+// Picks delivery based on group and serialized payload size.
 public sealed class AdaptiveReliabilityTests
 {
+    // Fake Entity group message with a chosen serialized byte length.
     private sealed class PayloadEntityMessage(ushort messageId, int bodyBytes) : INetMessage
     {
         public ushort MessageId => messageId;
@@ -21,6 +23,7 @@ public sealed class AdaptiveReliabilityTests
         }
     }
 
+    // Fake Core group message with a chosen serialized byte length.
     private sealed class PayloadCoreMessage(int bodyBytes) : INetMessage
     {
         public ushort MessageId => 0;
@@ -37,6 +40,7 @@ public sealed class AdaptiveReliabilityTests
     }
 
     [Fact]
+    // Small Entity group messages keep the default channel and method.
     public void Entity_small_payload_uses_group_defaults()
     {
         var message = new PayloadEntityMessage(0, 64);
@@ -49,6 +53,7 @@ public sealed class AdaptiveReliabilityTests
     }
 
     [Fact]
+    // Large Entity payloads upgrade to reliable ordered on the reliable channel.
     public void Entity_large_payload_uses_reliable_ordered()
     {
         var message = new PayloadEntityMessage(0, AdaptiveReliability.ReliableThreshold + 128);
@@ -60,6 +65,7 @@ public sealed class AdaptiveReliabilityTests
     }
 
     [Fact]
+    // Non-entity groups never upgrade based on size.
     public void Non_entity_ignores_payload_size()
     {
         var message = new PayloadCoreMessage(AdaptiveReliability.ReliableThreshold + 500);

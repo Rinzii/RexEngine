@@ -10,6 +10,7 @@ internal static class NetTestBootstrap
         NetMessages.RegisterAll();
     }
 
+    // No-op call that triggers the static ctor on first use.
     internal static void EnsureRegistered()
     {
     }
