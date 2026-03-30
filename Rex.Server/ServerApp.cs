@@ -74,7 +74,7 @@ public sealed partial class ServerApp : IDisposable
             _clock.SetAlpha(alpha);
             frameIndex++;
 
-            var unscaledDt = (float)Math.Min(frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
             var smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
                 _clock,

@@ -1,4 +1,5 @@
 using Rex.Shared.Net.Messages;
+using Rex.Shared.Numerics;
 
 namespace Rex.Client.Net;
 
@@ -48,11 +49,7 @@ public sealed class ClientWorldState
         {
             if (previousEntities.TryGetValue(current.EntityId, out var previous))
             {
-                var x = previous.X + (current.X - previous.X) * alpha;
-                var y = previous.Y + (current.Y - previous.Y) * alpha;
-                var z = previous.Z + (current.Z - previous.Z) * alpha;
-                var rotY = previous.RotationY + (current.RotationY - previous.RotationY) * alpha;
-                result.Add(new EntityState(current.EntityId, x, y, z, rotY));
+                result.Add(EntityStateInterpolation.Lerp(previous, current, alpha));
             }
             else
             {

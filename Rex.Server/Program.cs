@@ -1,4 +1,3 @@
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Rex.Server.Logging;
 using Rex.Server.Simulation;
@@ -38,25 +37,68 @@ internal static class Program
         };
 
         using var app = new ServerApp(config, loggerFactory);
-
         using var cts = new CancellationTokenSource();
-        Console.CancelKeyPress += (_, e) =>
-        {
-            e.Cancel = true;
-            // ReSharper disable AccessToDisposedClosure
-            cts.Cancel();
-            app.Stop();
-            // ReSharper restore AccessToDisposedClosure
-        };
+
+        // Own the Ctrl+C subscription inside a disposable helper so the event handler
+        // is removed before the captured objects go out of scope.
+        using var shutdownHook = new ShutdownHook(cts, app);
 
         try
         {
+            // Run until shutdown is requested through the cancellation token or until
+            // the server stops for some other reason.
             app.Run(cts.Token);
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("already in use", StringComparison.Ordinal))
         {
+            // Surface a clearer startup failure when the requested port is already bound
+            // by another process.
             bootstrapLogger.PortAlreadyInUse(ex.Message);
             Environment.Exit(1);
+        }
+    }
+
+    private sealed class ShutdownHook : IDisposable
+    {
+        private readonly CancellationTokenSource _cts;
+        private readonly ServerApp _app;
+        private bool _disposed;
+
+        public ShutdownHook(CancellationTokenSource cts, ServerApp app)
+        {
+            _cts = cts;
+            _app = app;
+
+            // Subscribe during construction so this helper fully owns the handler lifetime.
+            Console.CancelKeyPress += OnCancelKeyPress;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            // Always detach the handler before the token source and app are disposed.
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            _disposed = true;
+        }
+
+        private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+        {
+            // Prevent the runtime from immediately terminating the process so the server
+            // can stop through its normal shutdown path.
+            e.Cancel = true;
+
+            // Cancel only once in case Ctrl+C is pressed multiple times.
+            if (!_cts.IsCancellationRequested)
+            {
+                _cts.Cancel();
+            }
+
+            // Request the app to stop its work and exit its run loop.
+            _app.Stop();
         }
     }
 }
