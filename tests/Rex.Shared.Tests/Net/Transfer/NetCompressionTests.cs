@@ -35,4 +35,23 @@ public sealed class NetCompressionTests
 
         Assert.Equal(data, restored);
     }
+
+    [Fact]
+    // Finds a payload where Brotli does not shrink so the same array is returned.
+    public void Compress_keeps_original_when_brotli_output_is_not_smaller()
+    {
+        byte[]? candidate = null;
+        for (var seed = 0; seed < 4096 && candidate == null; seed++)
+        {
+            var buf = new byte[384];
+            new Random(seed).NextBytes(buf);
+            var (outBytes, isCompressed) = NetCompression.Compress(buf);
+            if (!isCompressed && ReferenceEquals(buf, outBytes))
+            {
+                candidate = buf;
+            }
+        }
+
+        Assert.NotNull(candidate);
+    }
 }

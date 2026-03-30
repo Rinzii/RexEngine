@@ -1,3 +1,4 @@
+using LiteNetLib;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
 
@@ -58,11 +59,11 @@ public sealed class LocalNetChannelPairTests
         var raised = false;
         client.Connected += () => raised = true;
 
-        Assert.Equal(ConnectionState.Disconnected, client.State);
+        Assert.Equal(Rex.Shared.Net.ConnectionState.Disconnected, client.State);
         client.Connect();
 
         Assert.True(raised);
-        Assert.Equal(ConnectionState.Connected, client.State);
+        Assert.Equal(Rex.Shared.Net.ConnectionState.Connected, client.State);
     }
 
     [Fact]
@@ -78,6 +79,61 @@ public sealed class LocalNetChannelPairTests
         client.Disconnect("bye");
 
         Assert.Equal("bye", reason);
-        Assert.Equal(ConnectionState.Disconnected, client.State);
+        Assert.Equal(Rex.Shared.Net.ConnectionState.Disconnected, client.State);
+    }
+
+    [Fact]
+    // Send with channel and delivery still reaches the server queue.
+    public void Client_Send_with_channel_overload_enqueues_for_server()
+    {
+        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        var sent = new ConnectRequestMessage(1, "c");
+        client.Connect();
+        client.Send(sent, 3, DeliveryMethod.Unreliable);
+
+        INetMessage? received = null;
+        server.DrainMessages(m => received = m);
+
+        Assert.Same(sent, received);
+    }
+
+    [Fact]
+    // DrainMessages invokes the handler once per queued client message in order.
+    public void Server_DrainMessages_delivers_multiple_client_sends_in_order()
+    {
+        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        var first = new ConnectRequestMessage(1, "a");
+        var second = new ConnectRequestMessage(1, "b");
+        client.Connect();
+        client.Send(first);
+        client.Send(second);
+
+        var received = new List<INetMessage>();
+        server.DrainMessages(received.Add);
+
+        Assert.Equal(2, received.Count);
+        Assert.Same(first, received[0]);
+        Assert.Same(second, received[1]);
+    }
+
+    [Fact]
+    // PollEvents raises MessageReceived for each server message in order.
+    public void Client_PollEvents_delivers_multiple_server_sends_in_order()
+    {
+        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        client.Connect();
+
+        var first = new ConnectResponseMessage(true, Guid.NewGuid(), 60);
+        var second = new ConnectResponseMessage(false, Guid.Empty, 0, 0, "no");
+        var received = new List<INetMessage>();
+        client.MessageReceived += received.Add;
+
+        server.Send(first);
+        server.Send(second, 0, DeliveryMethod.ReliableOrdered);
+        client.PollEvents();
+
+        Assert.Equal(2, received.Count);
+        Assert.Same(first, received[0]);
+        Assert.Same(second, received[1]);
     }
 }

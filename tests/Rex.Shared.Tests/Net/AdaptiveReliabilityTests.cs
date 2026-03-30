@@ -76,4 +76,29 @@ public sealed class AdaptiveReliabilityTests
         Assert.Equal(expected.Channel, actual.Channel);
         Assert.Equal(expected.Delivery, actual.Delivery);
     }
+
+    [Fact]
+    // Serialized length equal to ReliableThreshold keeps Entity group defaults.
+    public void Entity_payload_at_threshold_uses_group_defaults()
+    {
+        var message = new PayloadEntityMessage(0, AdaptiveReliability.ReliableThreshold);
+        var expected = MessageGroup.Entity.GetDeliveryInfo();
+
+        var actual = AdaptiveReliability.GetAdaptiveDelivery(message);
+
+        Assert.Equal(expected.Channel, actual.Channel);
+        Assert.Equal(expected.Delivery, actual.Delivery);
+    }
+
+    [Fact]
+    // Serialized length ReliableThreshold plus one upgrades to reliable ordered.
+    public void Entity_payload_one_byte_over_threshold_uses_reliable_ordered()
+    {
+        var message = new PayloadEntityMessage(0, AdaptiveReliability.ReliableThreshold + 1);
+
+        var (channel, delivery) = AdaptiveReliability.GetAdaptiveDelivery(message);
+
+        Assert.Equal(DeliveryChannel.Reliable, channel);
+        Assert.Equal(DeliveryMethod.ReliableOrdered, delivery);
+    }
 }

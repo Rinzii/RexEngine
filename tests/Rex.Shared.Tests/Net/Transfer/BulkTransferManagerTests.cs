@@ -80,6 +80,67 @@ public sealed class BulkTransferManagerTests
         Assert.False(fired);
     }
 
+    [Fact]
+    // IClientNetChannel SendBulkData path completes like the server overload.
+    public void SendBulkData_client_channel_round_trips_MapData()
+    {
+        var manager = new BulkTransferManager(NullLoggerFactory.Instance);
+        var channel = new RecordingClientChannel();
+        var map = new MapData { MapName = "client-path" };
+
+        MapData? received = null;
+        manager.TransferCompleted += (_, _, payload) =>
+        {
+            received = ProtoSerializer.Deserialize<MapData>(payload);
+        };
+
+        manager.SendBulkData(channel, BulkDataType.MapData, map);
+
+        var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
+        manager.HandleTransferInit(init);
+        foreach (var chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
+        {
+            manager.HandleTransferChunk(chunk);
+        }
+
+        Assert.NotNull(received);
+        Assert.Equal("client-path", received!.MapName);
+    }
+
+    [Fact]
+    // Large repeating MapData compresses on the wire and reassembles correctly.
+    public void SendBulkData_compressed_payload_round_trips_large_MapData()
+    {
+        var manager = new BulkTransferManager(NullLoggerFactory.Instance);
+        var channel = new RecordingServerChannel();
+        var map = new MapData { MapName = "heavy", Width = 1, Height = 1 };
+        for (var i = 0; i < 12_000; i++)
+        {
+            map.Tiles.Add(new MapTile { X = i, Y = 0, TileId = 7, Flags = 0 });
+        }
+
+        MapData? received = null;
+        manager.TransferCompleted += (_, _, payload) =>
+        {
+            received = ProtoSerializer.Deserialize<MapData>(payload);
+        };
+
+        manager.SendBulkData(channel, BulkDataType.MapData, map);
+
+        var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
+        Assert.True(init.IsCompressed, "expected Brotli to shrink this payload");
+
+        manager.HandleTransferInit(init);
+        foreach (var chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
+        {
+            manager.HandleTransferChunk(chunk);
+        }
+
+        Assert.NotNull(received);
+        Assert.Equal(12_000, received!.Tiles.Count);
+        Assert.Equal(7, received.Tiles[^1].TileId);
+    }
+
     // Records outbound messages from SendBulkData.
     private sealed class RecordingServerChannel : IServerNetChannel
     {
@@ -104,6 +165,46 @@ public sealed class BulkTransferManagerTests
         }
 
         public void Disconnect(string reason)
+        {
+        }
+    }
+
+    // Same as RecordingServerChannel for IClientNetChannel SendBulkData overload.
+    private sealed class RecordingClientChannel : IClientNetChannel
+    {
+        public List<INetMessage> Sent { get; } = new();
+
+        public Rex.Shared.Net.ConnectionState State { get; set; }
+
+        public int RoundTripTimeMs => 0;
+
+#pragma warning disable CS0067
+        public event Action<INetMessage>? MessageReceived;
+
+        public event Action? Connected;
+
+        public event Action<string>? Disconnected;
+#pragma warning restore CS0067
+
+        public void Connect()
+        {
+        }
+
+        public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
+        {
+            Sent.Add(message);
+        }
+
+        public void Send(INetMessage message)
+        {
+            Sent.Add(message);
+        }
+
+        public void Disconnect(string reason)
+        {
+        }
+
+        public void PollEvents()
         {
         }
     }

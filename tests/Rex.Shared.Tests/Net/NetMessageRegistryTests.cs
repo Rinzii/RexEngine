@@ -46,4 +46,48 @@ public sealed class NetMessageRegistryTests
 
         Assert.Contains("60000", ex.Message, StringComparison.Ordinal);
     }
+
+    [Fact]
+    // Second Register for the same message id wins on Deserialize.
+    public void Register_same_id_replaces_deserializer()
+    {
+        ushort customId = 59997;
+        NetMessageRegistry.Register(customId, _ => new DisconnectMessage("first"));
+        NetMessageRegistry.Register(customId, reader =>
+        {
+            _ = reader.GetString();
+            return new DisconnectMessage("replaced");
+        });
+
+        var writer = new NetDataWriter();
+        NetMessageRegistry.WriteHeader(writer, customId);
+        writer.Put(string.Empty);
+
+        var reader = new NetDataReader();
+        reader.SetSource(writer.Data, 0, writer.Length);
+
+        var decoded = NetMessageRegistry.Deserialize(reader);
+        var typed = Assert.IsType<DisconnectMessage>(decoded);
+
+        Assert.Equal("replaced", typed.Reason);
+    }
+
+    [Fact]
+    // NetMessages.RegisterAll stays safe when invoked again.
+    public void NetMessages_RegisterAll_twice_still_deserializes_ConnectRequest()
+    {
+        NetMessages.RegisterAll();
+        NetMessages.RegisterAll();
+
+        var original = new ConnectRequestMessage(7, "dup");
+        var writer = new NetDataWriter();
+        original.Serialize(writer);
+        var reader = new NetDataReader();
+        reader.SetSource(writer.Data, 0, writer.Length);
+
+        var decoded = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
+
+        Assert.Equal(7, decoded.ProtocolVersion);
+        Assert.Equal("dup", decoded.PlayerName);
+    }
 }
