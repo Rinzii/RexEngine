@@ -1,36 +1,14 @@
+using System.Threading;
 using Microsoft.Extensions.Logging;
-using Rex.Server.Core;
-using Rex.Shared.Timing;
+using Rex.Server.Logging;
+using Rex.Server.Simulation;
 
 namespace Rex.Server;
 
+/// <summary>Headless dedicated server. Reads CLI args into <see cref="GameServerConfig"/> and runs <see cref="ServerApp"/>.</summary>
 internal static class Program
 {
-    private static bool _hasStarted;
-
     internal static void Main(string[] args)
-    {
-        Start(args);
-    }
-
-    private static void Start(string[] args)
-    {
-        if (_hasStarted)
-        {
-            throw new InvalidOperationException("Server attempted to start again!");
-        }
-
-        _hasStarted = true;
-
-        if (!CommandLineArgs.TryParse(args, out var parsed))
-        {
-            return;
-        }
-
-        ParsedMain(parsed);
-    }
-
-    private static void ParsedMain(CommandLineArgs args)
     {
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -38,36 +16,47 @@ internal static class Program
             builder.SetMinimumLevel(LogLevel.Information);
         });
 
-        var logger = loggerFactory.CreateLogger("Rex.Server");
+        var bootstrapLogger = loggerFactory.CreateLogger("Rex.Server");
+
+        if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
+        {
+            bootstrapLogger.CliParseFailed(parseError);
+            return;
+        }
+
+        foreach (var arg in parsed.UnrecognizedArguments)
+        {
+            bootstrapLogger.UnrecognizedCliArgument(arg);
+        }
 
         var config = new GameServerConfig
         {
-            Port = args.Port,
-            MaxPlayers = args.MaxPlayers,
-            TickRate = args.TickRate,
+            Port = parsed.Port,
+            MaxPlayers = parsed.MaxPlayers,
+            TickRate = parsed.TickRate,
             ServerName = "Rex Dedicated Server"
         };
 
-        var server = new GameServer(config, loggerFactory);
-        var gameLoop = new GameLoop(config.TickRate)
-        {
-            YieldBetweenFrames = true
-        };
+        using var app = new ServerApp(config, loggerFactory);
 
-        // Handle graceful shutdown.
+        using var cts = new CancellationTokenSource();
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
-            logger.LogInformation("Shutdown signal received.");
-            gameLoop.Stop();
+            // ReSharper disable AccessToDisposedClosure
+            cts.Cancel();
+            app.Stop();
+            // ReSharper restore AccessToDisposedClosure
         };
 
-        server.Start();
-
-        gameLoop.OnTick = server.Tick;
-        logger.LogInformation("Dedicated server running. Press Ctrl+C to stop.");
-        gameLoop.Run();
-
-        server.Shutdown();
+        try
+        {
+            app.Run(cts.Token);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("already in use", StringComparison.Ordinal))
+        {
+            bootstrapLogger.PortAlreadyInUse(ex.Message);
+            Environment.Exit(1);
+        }
     }
 }

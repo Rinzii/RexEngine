@@ -1,11 +1,10 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Net;
 
 namespace Rex.Shared.Net.Messages;
 
-/// <summary>
-/// Server reply that accepts or rejects a connection request.
-/// </summary>
+/// <summary>Server reply to <see cref="ConnectRequestMessage"/>.</summary>
 public sealed class ConnectResponseMessage : INetMessage
 {
     public const ushort Id = 2;
@@ -16,34 +15,29 @@ public sealed class ConnectResponseMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Core;
 
-    /// <summary>
-    /// Gets a value that indicates whether the server accepted the client.
-    /// </summary>
+    /// <summary>True when the server accepted the client.</summary>
     public bool Accepted { get; }
 
-    /// <summary>
-    /// Gets the server-assigned client ID.
-    /// </summary>
-    public int ClientId { get; }
+    /// <summary>Server-assigned session id when <see cref="Accepted"/> is true.</summary>
+    public Guid ClientId { get; }
 
-    /// <summary>
-    /// Gets the tick rate the client should follow.
-    /// </summary>
+    /// <summary>Simulation rate the client should use.</summary>
     public int TickRate { get; }
 
-    /// <summary>
-    /// Gets the reject reason when <see cref="Accepted"/> is false.
-    /// </summary>
+    /// <summary>Server entity id for the local player when <see cref="Accepted"/> is true.</summary>
+    public int LocalPlayerEntityId { get; }
+
+    /// <summary>Human-readable failure text when <see cref="Accepted"/> is false.</summary>
     public string? RejectReason { get; }
 
-    /// <summary>
-    /// Creates a connection response payload.
-    /// </summary>
-    public ConnectResponseMessage(bool accepted, int clientId, int tickRate, string? rejectReason = null)
+    /// <summary>Builds a connection response payload.</summary>
+    public ConnectResponseMessage(bool accepted, Guid clientId, int tickRate, int localPlayerEntityId = 0,
+        string? rejectReason = null)
     {
         Accepted = accepted;
         ClientId = clientId;
         TickRate = tickRate;
+        LocalPlayerEntityId = localPlayerEntityId;
         RejectReason = rejectReason;
     }
 
@@ -52,18 +46,20 @@ public sealed class ConnectResponseMessage : INetMessage
     {
         NetMessageRegistry.WriteHeader(writer, Id);
         writer.Put(Accepted);
-        writer.Put(ClientId);
+        writer.PutGuid(ClientId);
         writer.Put(TickRate);
+        writer.Put(LocalPlayerEntityId);
         writer.Put(RejectReason ?? string.Empty);
     }
 
-    public static ConnectResponseMessage Deserialize(NetPacketReader reader)
+    public static ConnectResponseMessage Deserialize(NetDataReader reader)
     {
         var accepted = reader.GetBool();
-        var clientId = reader.GetInt();
+        var clientId = reader.ReadGuid();
         var tickRate = reader.GetInt();
+        var localPlayerEntityId = reader.GetInt();
         var rejectReason = reader.GetString();
-        return new ConnectResponseMessage(accepted, clientId, tickRate,
+        return new ConnectResponseMessage(accepted, clientId, tickRate, localPlayerEntityId,
             string.IsNullOrEmpty(rejectReason) ? null : rejectReason);
     }
 }

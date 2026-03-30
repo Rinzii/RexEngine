@@ -1,0 +1,206 @@
+@startuml 11-class-diagram-client-server-net
+
+title 11 Class diagram client and server networking (apps, transport, host)
+
+left to right direction
+
+skinparam shadowing false
+skinparam roundcorner 10
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+skinparam ArrowFontSize 9
+skinparam ArrowColor #374151
+skinparam linetype polyline
+skinparam nodesep 72
+skinparam ranksep 54
+skinparam wrapWidth 260
+skinparam packageBorderThickness 1.5
+skinparam packageFontStyle bold
+skinparam defaultFontName sans-serif
+skinparam circledInterface false
+
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #334155
+}
+skinparam interface {
+  BackgroundColor #EEF2FF
+  BorderColor #4338CA
+}
+skinparam enum {
+  BackgroundColor #ECFDF5
+  BorderColor #047857
+}
+
+legend top left
+  |= Line |= Meaning |
+  | <|.. | realizes interface |
+  | *-- / o-- | composition or aggregation |
+  | ..> | uses |
+end legend
+
+together {
+  package "Rex.Shared.Net (cross-refs)" #DBEAFE {
+    together {
+      interface "IClientNetChannel"
+      interface "IServerNetChannel"
+    }
+    together {
+      class "LocalNetChannelPair" <<static>>
+      class "LocalClientNetChannel"
+      class "LocalServerNetChannel"
+    }
+    together {
+      class "NetMessageRegistry" <<static>>
+      class "NetMessages" <<static>>
+      class BulkTransferManager
+    }
+    together {
+      class "ProtocolConstants" <<static>>
+      class "ConnectEndpointParser" <<static>>
+      class "NetGuidExtensions" <<static>>
+    }
+    enum "NetMode" {
+      Standalone
+      Client
+      ListenServer
+      DedicatedServer
+    }
+    "IClientNetChannel" -[hidden]down- "LocalNetChannelPair"
+    "LocalNetChannelPair" -[hidden]down- "NetMessageRegistry"
+    "NetMessageRegistry" -[hidden]right- ClientApp
+  }
+}
+
+together {
+  package "Rex.Client" #EDE9FE {
+    class ClientApp {
+      Mode
+      Client / World
+      Run(host, port)
+      SetupStandalone / SetupNetworked
+    }
+    ClientApp ..> NetMode
+    ClientApp ..> "ProtocolConstants" : defaults, tick rate
+  }
+
+  package "Rex.Client.Net" #DDD6FE {
+    class GameClient {
+      ClientId / LocalPlayerEntityId
+      Connect(host, port)
+      Connect(channel)
+      Tick / DeserializeBulkData
+    }
+
+    class "RemoteClientNetChannel" {
+      NetManager
+      NetPeer serverPeer
+      PollEvents
+    }
+
+    together {
+      class ClientWorldState
+      class InputBuffer
+      class PredictionSystem
+    }
+
+    ClientApp *-- GameClient : networked modes
+
+    GameClient *-- ClientWorldState
+    GameClient *-- InputBuffer
+    GameClient *-- PredictionSystem
+    GameClient ..> "IClientNetChannel"
+    GameClient ..> BulkTransferManager
+    GameClient ..> "NetMessages" : RegisterAll on connect
+    GameClient ..> "ProtocolConstants" : ConnectionKey, version
+
+    "IClientNetChannel" <|.. "RemoteClientNetChannel"
+    "IClientNetChannel" <|.. "LocalClientNetChannel"
+
+    "RemoteClientNetChannel" ..> "NetMessageRegistry" : inbound deserialize
+
+    GameClient -[hidden]down- "RemoteClientNetChannel"
+    "RemoteClientNetChannel" -[hidden]down- ClientWorldState
+  }
+}
+
+together {
+  package "Rex.Server" #FED7AA {
+    class ServerApp {
+      Config / Clock / Server
+      Run(cancellationToken)
+    }
+    ServerApp *-- GameServer : creates in Run
+    ServerApp ..> GameServerConfig : ctor + Run
+  }
+
+  package "Rex.Server.Core" #FECACA {
+    class GameServer {
+      Host / Start / Tick / Shutdown
+    }
+
+    GameServer *-- GameServerHost
+    GameServer ..> "RemoteServerNetChannel" : one per peer
+    GameServer ..> ClientSession
+    GameServer ..> "NetMessageRegistry" : inbound deserialize
+  }
+
+  package "Rex.Server.Net" #FCA5A5 {
+    class "RemoteServerNetChannel" {
+      NetPeer
+      ClientId
+    }
+    "IServerNetChannel" <|.. "RemoteServerNetChannel"
+  }
+
+  package "Rex.Server.Simulation" #F87171 {
+    class GameServerHost {
+      Config / World / Sessions
+      Statistics / TransferManager
+      Start / Tick / AddSession / RemoveSession
+    }
+
+    class ClientSession {
+      Channel
+      PlayerEntityId
+      EnqueueInput / TryDequeueInput
+    }
+
+    class GameServerConfig {
+      Port / ConnectionKey
+      TickRate / MaxPlayers
+    }
+
+    GameServerHost *-- GameServerConfig
+    GameServerHost o-- ClientSession
+    ClientSession ..> "IServerNetChannel"
+    GameServerHost ..> BulkTransferManager
+    GameServerHost ..> "NetMessages" : RegisterAll in Start
+
+    GameServerHost -[hidden]down- ClientSession
+  }
+
+  ServerApp -[hidden]down- GameServer
+  GameServer -[hidden]down- "RemoteServerNetChannel"
+  "RemoteServerNetChannel" -[hidden]down- GameServerHost
+}
+
+GameClient -[hidden]right- GameServer
+
+ClientApp ..> "LocalNetChannelPair" : Standalone wiring (see ClientApp)
+GameServerHost ..> "LocalServerNetChannel" : listen server (see GameServerHost)
+
+note right of "RemoteClientNetChannel"
+  RemoteClientNetChannel uses EventBasedNetListener.
+  Outbound path resets NetDataWriter, calls INetMessage.Serialize,
+  then NetPeer.Send on the chosen channel and delivery mode.
+  Concrete messages usually write the ushort id first inside Serialize
+  (often via NetMessageRegistry.WriteHeader).
+end note
+
+note right of GameServer
+  GameServer owns NetManager, accepts peers, and constructs
+  RemoteServerNetChannel plus ClientSession entries in GameServerHost.
+end note
+
+@enduml

@@ -36,7 +36,7 @@ public sealed class StateAckMessage : INetMessage
         writer.Put(AcknowledgedTick);
     }
 
-    public static StateAckMessage Deserialize(NetPacketReader reader)
+    public static StateAckMessage Deserialize(NetDataReader reader)
     {
         var acknowledgedTick = reader.GetUInt();
         return new StateAckMessage(acknowledgedTick);

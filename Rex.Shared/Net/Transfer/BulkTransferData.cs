@@ -126,7 +126,7 @@ public sealed class BulkEntityData
 {
     [ProtoMember(1)] public int EntityId { get; set; }
     [ProtoMember(2)] public string EntityType { get; set; } = string.Empty;
-    [ProtoMember(3)] public int OwnerClientId { get; set; }
+    [ProtoMember(3)] public Guid OwnerClientId { get; set; }
     [ProtoMember(4)] public float X { get; set; }
     [ProtoMember(5)] public float Y { get; set; }
     [ProtoMember(6)] public float Z { get; set; }

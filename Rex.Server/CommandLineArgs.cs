@@ -1,10 +1,10 @@
 using System.Diagnostics.CodeAnalysis;
 using Rex.Shared.Net;
 using Rex.Shared.Utility;
-using C = System.Console;
 
 namespace Rex.Server;
 
+/// <summary>Server CLI. Unknown tokens are collected; the host logs them after bootstrap logging is available.</summary>
 internal sealed class CommandLineArgs
 {
     public string? ConfigFile { get; }
@@ -15,120 +15,136 @@ internal sealed class CommandLineArgs
     public int Port { get; }
     public int MaxPlayers { get; }
     public int TickRate { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
 
-    public static bool TryParse(IReadOnlyList<string> args, [NotNullWhen(true)] out CommandLineArgs? parsed)
+    public static bool TryParse(
+        IReadOnlyList<string> args,
+        [NotNullWhen(true)] out CommandLineArgs? parsed,
+        [NotNullWhen(false)] out string? error)
     {
         parsed = null;
+        error = null;
         string? configFile = null;
         string? dataDir = null;
         var cvars = new List<(string, string)>();
         var loglevels = new List<(string, string)>();
         var execCommands = new List<string>();
-        int port = ProtocolConstants.DefaultPort;
-        int maxPlayers = ProtocolConstants.DefaultMaxPlayers;
-        int tickRate = ProtocolConstants.DefaultTickRate;
+        var unrecognized = new List<string>();
+        var port = ProtocolConstants.DefaultPort;
+        var maxPlayers = ProtocolConstants.DefaultMaxPlayers;
+        var tickRate = ProtocolConstants.DefaultTickRate;
 
         using var enumerator = args.GetEnumerator();
 
         while (enumerator.MoveNext())
         {
             var arg = enumerator.Current;
-            if (arg == "--config-file")
+            switch (arg)
             {
-                if (!enumerator.MoveNext())
-                {
-                    C.WriteLine("Missing config file!");
+                case "--config-file" when !enumerator.MoveNext():
+                    error = "Missing value for --config-file.";
                     return false;
-                }
-
-                configFile = enumerator.Current;
-            }
-            else if (arg == "--data-dir")
-            {
-                if (!enumerator.MoveNext())
-                {
-                    C.WriteLine("Missing data directory!");
+                case "--config-file":
+                    configFile = enumerator.Current;
+                    break;
+                case "--data-dir" when !enumerator.MoveNext():
+                    error = "Missing value for --data-dir.";
                     return false;
-                }
+                case "--data-dir":
+                    dataDir = enumerator.Current;
+                    break;
+                case "--port":
+                    {
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
+                        {
+                            error = "Missing or invalid value for --port.";
+                            return false;
+                        }
 
-                dataDir = enumerator.Current;
-            }
-            else if (arg == "--port")
-            {
-                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
-                {
-                    C.WriteLine("Missing or invalid port!");
+                        break;
+                    }
+                case "--max-players":
+                    {
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
+                        {
+                            error = "Missing or invalid value for --max-players.";
+                            return false;
+                        }
+
+                        break;
+                    }
+                case "--tick-rate":
+                    {
+                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
+                        {
+                            error = "Missing or invalid value for --tick-rate.";
+                            return false;
+                        }
+
+                        break;
+                    }
+                case "--cvar" when !enumerator.MoveNext():
+                    error = "Missing value for --cvar.";
                     return false;
-                }
-            }
-            else if (arg == "--max-players")
-            {
-                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
-                {
-                    C.WriteLine("Missing or invalid max players!");
+                case "--cvar":
+                    {
+                        var cvar = enumerator.Current;
+                        DebugTools.AssertNotNull(cvar);
+                        var pos = cvar.IndexOf('=');
+
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --cvar.";
+                            return false;
+                        }
+
+                        cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
+                        break;
+                    }
+                case "--logLevel" when !enumerator.MoveNext():
+                    error = "Missing value for --logLevel.";
                     return false;
-                }
+                case "--logLevel":
+                    {
+                        var logLevel = enumerator.Current;
+                        DebugTools.AssertNotNull(logLevel);
+                        var pos = logLevel.IndexOf('=');
+
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --logLevel.";
+                            return false;
+                        }
+
+                        loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
+                        break;
+                    }
+                default:
+                    {
+                        if (arg.StartsWith('+'))
+                        {
+                            execCommands.Add(arg[1..]);
+                        }
+                        else
+                        {
+                            unrecognized.Add(arg);
+                        }
+
+                        break;
+                    }
             }
-            else if (arg == "--tick-rate")
-            {
-                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
-                {
-                    C.WriteLine("Missing or invalid tick rate!");
-                    return false;
-                }
-            }
-            else if (arg == "--cvar")
-            {
-                if (!enumerator.MoveNext())
-                {
-                    C.WriteLine("Missing cvar value!");
-                    return false;
-                }
-
-                var cvar = enumerator.Current;
-                DebugTools.AssertNotNull(cvar);
-                var pos = cvar.IndexOf('=');
-
-                if (pos == -1)
-                {
-                    C.WriteLine("Expected = in cvar!");
-                    return false;
-                }
-
-                cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
-            }
-            else if (arg == "--logLevel")
-            {
-                if (!enumerator.MoveNext())
-                {
-                    C.WriteLine("Missing cvar value!");
-                    return false;
-                }
-
-                var logLevel = enumerator.Current;
-                DebugTools.AssertNotNull(logLevel);
-                var pos = logLevel.IndexOf('=');
-
-                if (pos == -1)
-                {
-                    C.WriteLine("Expected = in cvar!");
-                    return false;
-                }
-
-                loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
-            }
-            else if (arg.StartsWith("+"))
-            {
-                execCommands.Add(arg[1..]);
-            }
-            else
-            {
-                C.WriteLine("Unknown argument: {0}", arg);
-            }
-
         }
 
-        parsed = new CommandLineArgs(configFile, dataDir, cvars, loglevels, execCommands, port, maxPlayers, tickRate);
+        parsed = new CommandLineArgs(
+            configFile,
+            dataDir,
+            cvars,
+            loglevels,
+            execCommands,
+            port,
+            maxPlayers,
+            tickRate,
+            unrecognized);
 
         return true;
     }
@@ -141,7 +157,8 @@ internal sealed class CommandLineArgs
         IReadOnlyList<string> execCommands,
         int port,
         int maxPlayers,
-        int tickRate
+        int tickRate,
+        IReadOnlyList<string> unrecognizedArguments
     )
     {
         ConfigFile = configFile;
@@ -152,5 +169,6 @@ internal sealed class CommandLineArgs
         Port = port;
         MaxPlayers = maxPlayers;
         TickRate = tickRate;
+        UnrecognizedArguments = unrecognizedArguments;
     }
 }

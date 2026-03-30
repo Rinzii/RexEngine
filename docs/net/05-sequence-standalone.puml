@@ -1,0 +1,60 @@
+@startuml 05-sequence-standalone
+
+title NetMode Standalone (no network stack)
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.2
+skinparam maxMessageSize 220
+
+actor User
+
+participant ClientApp <<control>> as App
+participant GameWorld <<entity>> as World
+participant InputCollector <<boundary>> as Input
+
+note over User, Input
+  No IClientNetChannel.
+  No LiteNetLib.
+  Simulation and rendering use local GameWorld state only.
+end note
+
+== Startup ==
+
+User -> App : Run()
+activate App
+App -> App : SetupStandalone()
+App -> World : SpawnEntity(player)
+World --> App
+App -> App : store local entity id
+deactivate App
+
+== Fixed tick loop ==
+
+loop [each simulation tick]
+  App -> App : begin fixed tick
+  activate App
+  opt [InputCollector configured]
+    App -> Input : Sample(tick)
+    Input --> App
+    App -> World : ProcessInput(localEntityId, input)
+    World --> App
+  end
+  App -> World : Tick(deltaTime)
+  World --> App
+  App -> App : capture entity lists for interpolation
+  deactivate App
+end
+
+== Variable frame (draw) ==
+
+loop [each render frame]
+  App -> App : begin render frame
+  activate App
+  App -> App : interpolate between tick snapshots
+  App -> App : render world
+  deactivate App
+end
+
+@enduml

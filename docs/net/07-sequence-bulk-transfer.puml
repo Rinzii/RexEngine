@@ -1,0 +1,83 @@
+@startuml 07-sequence-bulk-transfer
+
+title 07 Bulk transfer (chunked payload)
+
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.2
+skinparam maxMessageSize 220
+
+autonumber
+
+participant "Caller" as Caller
+participant "BulkTransferManager" as BTM
+participant "ProtoSerializer" as Proto
+participant "NetCompression" as Zip
+participant "Net channel" as Ch
+participant "Transport" as Net
+participant "Receiver BTM" as Rx
+participant "Receiver app" as App
+
+Caller -> BTM : SendBulkData(channel, type, payload)
+BTM --> Caller
+
+BTM -> Proto : Serialize
+Proto --> BTM
+
+BTM -> Zip : Compress
+Zip --> BTM
+
+BTM -> BTM : Split into chunks
+
+BTM ->> Ch : BulkTransferInit
+loop [each chunk]
+  BTM ->> Ch : BulkTransferChunk
+end
+
+Ch ->> Net : send BulkTransferInit
+loop [each chunk]
+  Ch ->> Net : send BulkTransferChunk
+end
+
+Net ->> App : deliver BulkTransferInit
+loop [each chunk]
+  Net ->> App : deliver BulkTransferChunk
+end
+
+App -> Rx : HandleTransferInit
+Rx --> App
+
+loop [each chunk]
+  App -> Rx : HandleTransferChunk
+  Rx --> App
+end
+
+Rx -> Rx : reassemble chunks
+Rx -> Rx : decompress if compressed
+
+Rx ->> App : TransferCompleted
+
+note over BTM, Rx
+  BulkTransferManager exists on the client process.
+end note
+
+note over BTM, Rx
+  BulkTransferManager exists on the server process.
+end note
+
+note over BTM, Rx
+  GameClient wires HandleTransferInit to its manager.
+end note
+
+note over BTM, Rx
+  GameClient wires HandleTransferChunk to its manager.
+end note
+
+legend right
+  Open arrowhead means one send or callback.
+end legend
+
+legend right
+  Solid call plus dashed return means one synchronous operation.
+end legend
+
+@enduml

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -9,18 +9,26 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Rex.Shared\Rex.Shared.csproj" />
+        <InternalsVisibleTo Include="Rex.Client.Tests"/>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
-      <PackageReference Include="LiteNetLib" Version="2.0.2" />
-      <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
-      <PackageReference Include="Silk.NET.Core" Version="2.23.0" />
-      <PackageReference Include="Silk.NET.Maths" Version="2.23.0" />
-      <PackageReference Include="Silk.NET.SDL" Version="2.23.0" />
-      <PackageReference Include="System.Text.Json" Version="10.0.5" />
+        <ProjectReference Include="..\Rex.Shared\Rex.Shared.csproj" />
+        <ProjectReference Include="..\Rex.Analyzers\Rex.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.4" />
+        <PackageReference Include="LiteNetLib" Version="2.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5" />
+        <PackageReference Include="Silk.NET.Core" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Input" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Maths" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.OpenGL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.SDL" Version="2.23.0" />
+        <PackageReference Include="Silk.NET.Windowing" Version="2.23.0" />
     </ItemGroup>
 
 </Project>

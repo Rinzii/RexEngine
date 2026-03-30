@@ -18,18 +18,23 @@ public static class NetCompression
     public static (byte[] Data, bool IsCompressed) Compress(byte[] data)
     {
         if (data.Length < CompressionThreshold)
+        {
             return (data, false);
+        }
 
         using var output = new MemoryStream();
-        using (var brotli = new BrotliStream(output, CompressionLevel.Fastest, leaveOpen: true))
+        using (var brotli = new BrotliStream(output, CompressionLevel.Fastest, true))
         {
             brotli.Write(data);
         }
 
         var compressed = output.ToArray();
 
+        // Brotli adds overhead. Keep original if we did not shrink.
         if (compressed.Length >= data.Length)
+        {
             return (data, false);
+        }
 
         return (compressed, true);
     }
@@ -43,13 +48,18 @@ public static class NetCompression
         using var brotli = new BrotliStream(input, CompressionMode.Decompress);
         var result = new byte[originalLength];
         var totalRead = 0;
+        // BrotliStream may not fill the buffer in one read.
         while (totalRead < originalLength)
         {
             var read = brotli.Read(result, totalRead, originalLength - totalRead);
             if (read == 0)
+            {
                 break;
+            }
+
             totalRead += read;
         }
+
         return result;
     }
 }

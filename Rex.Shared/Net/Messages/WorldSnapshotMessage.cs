@@ -21,9 +21,7 @@ public sealed class WorldSnapshotMessage : INetMessage
     /// </summary>
     public uint ServerTick { get; }
 
-    /// <summary>
-    /// Gets the latest input tick the server already applied for this client.
-    /// </summary>
+    /// <summary>Server-side last input tick applied for the receiving client. Used to trim prediction replay.</summary>
     public uint LastProcessedInputTick { get; }
 
     /// <summary>
@@ -55,7 +53,7 @@ public sealed class WorldSnapshotMessage : INetMessage
         }
     }
 
-    public static WorldSnapshotMessage Deserialize(NetPacketReader reader)
+    public static WorldSnapshotMessage Deserialize(NetDataReader reader)
     {
         var serverTick = reader.GetUInt();
         var lastProcessedInputTick = reader.GetUInt();
@@ -128,7 +126,7 @@ public sealed class EntityState
     /// <summary>
     /// Reads one entity state from the packet.
     /// </summary>
-    public static EntityState Deserialize(NetPacketReader reader)
+    public static EntityState Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
         var x = reader.GetFloat();

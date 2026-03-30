@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <!-- Performance CA rules (see SDK analysislevelperformance_* globalconfig). Exempt Roslyn projects where noise dominates. -->
+    <AnalysisLevelPerformance Condition="'$(MSBuildProjectName)' != 'Rex.Analyzers' and '$(MSBuildProjectName)' != 'Rex.Roslyn.Shared'">10.0-recommended</AnalysisLevelPerformance>
+  </PropertyGroup>
+</Project>

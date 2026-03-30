@@ -5,7 +5,7 @@ namespace Rex.Shared.Net.Transfer;
 /// <summary>
 /// Splits large payloads into chunks for transfer on a dedicated channel.
 /// </summary>
-public sealed class BulkTransferManager
+public sealed partial class BulkTransferManager
 {
     /// <summary>
     /// Chunk size used for transfer messages.
@@ -13,13 +13,12 @@ public sealed class BulkTransferManager
     public const int MaxChunkSize = 4096;
 
     private readonly ILogger _logger;
-    private int _nextTransferId;
-    private readonly Dictionary<int, IncomingTransfer> _incomingTransfers = new();
+    private readonly Dictionary<Guid, IncomingTransfer> _incomingTransfers = new();
 
     /// <summary>
     /// Raised when a transfer has been fully reassembled.
     /// </summary>
-    public event Action<int, BulkDataType, byte[]>? TransferCompleted;
+    public event Action<Guid, BulkDataType, byte[]>? TransferCompleted;
 
     /// <summary>
     /// Creates a bulk transfer manager with its own logger.
@@ -37,10 +36,11 @@ public sealed class BulkTransferManager
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
         var (payload, isCompressed) = NetCompression.Compress(raw);
-        var transferId = _nextTransferId++;
+        var transferId = Guid.CreateVersion7();
 
         var chunks = ChunkData(payload);
-        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed, chunks.Count);
+        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
+            chunks.Count);
         channel.Send(init);
 
         for (var i = 0; i < chunks.Count; i++)
@@ -49,8 +49,7 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug("Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
-            transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
+        LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
     /// <summary>
@@ -61,10 +60,11 @@ public sealed class BulkTransferManager
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
         var (payload, isCompressed) = NetCompression.Compress(raw);
-        var transferId = _nextTransferId++;
+        var transferId = Guid.CreateVersion7();
 
         var chunks = ChunkData(payload);
-        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed, chunks.Count);
+        var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
+            chunks.Count);
         channel.Send(init);
 
         for (var i = 0; i < chunks.Count; i++)
@@ -73,8 +73,7 @@ public sealed class BulkTransferManager
             channel.Send(chunk);
         }
 
-        _logger.LogDebug("Started bulk transfer {TransferId}: {DataType}, {OriginalSize} bytes (compressed: {IsCompressed}, {PayloadSize} bytes, {ChunkCount} chunks)",
-            transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
+        LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
     /// <summary>
@@ -94,8 +93,7 @@ public sealed class BulkTransferManager
             ChunksReceived = 0
         };
 
-        _logger.LogDebug("Receiving bulk transfer {TransferId}: {DataType}, expecting {ChunkCount} chunks ({TotalSize} bytes)",
-            init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
+        LogReceivingBulkTransfer(init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
     }
 
     /// <summary>
@@ -105,10 +103,11 @@ public sealed class BulkTransferManager
     {
         if (!_incomingTransfers.TryGetValue(chunk.TransferId, out var transfer))
         {
-            _logger.LogWarning("Received chunk for unknown transfer {TransferId}", chunk.TransferId);
+            LogUnknownTransferChunk(chunk.TransferId);
             return;
         }
 
+        // Chunks can arrive out of order. Index picks the slot to fill.
         transfer.ReceivedChunks[chunk.ChunkIndex] = chunk.Data;
         transfer.ChunksReceived++;
 
@@ -121,8 +120,7 @@ public sealed class BulkTransferManager
 
             _incomingTransfers.Remove(chunk.TransferId);
 
-            _logger.LogDebug("Bulk transfer {TransferId} complete: {DataType}, {Size} bytes",
-                transfer.TransferId, transfer.DataType, finalData.Length);
+            LogBulkTransferComplete(transfer.TransferId, transfer.DataType, finalData.Length);
 
             TransferCompleted?.Invoke(transfer.TransferId, transfer.DataType, finalData);
         }
@@ -168,7 +166,7 @@ public sealed class BulkTransferManager
 
     private sealed class IncomingTransfer
     {
-        public int TransferId;
+        public Guid TransferId;
         public BulkDataType DataType;
         public int TotalSize;
         public int OriginalSize;

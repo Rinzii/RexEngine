@@ -3,69 +3,101 @@ using Rex.Shared.Net;
 
 namespace Rex.Client;
 
+/// <summary>Flags from argv. Defaults to standalone if neither --connect nor --listen.</summary>
 internal sealed class CommandLineArgs
 {
     public bool Headless { get; }
-    public bool ListenServer { get; }
+    public NetMode Mode { get; }
     public string? ConnectAddress { get; }
     public int Port { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
 
-    public static bool TryParse(IReadOnlyList<string> args, [NotNullWhen(true)] out CommandLineArgs? parsed)
+    internal CommandLineArgs(
+        bool headless,
+        NetMode mode,
+        string? connectAddress,
+        int port,
+        IReadOnlyList<string> unrecognizedArguments)
+    {
+        Headless = headless;
+        Mode = mode;
+        ConnectAddress = connectAddress;
+        Port = port;
+        UnrecognizedArguments = unrecognizedArguments;
+    }
+
+    public static bool TryParse(
+        IReadOnlyList<string> args,
+        [NotNullWhen(true)] out CommandLineArgs? parsed,
+        [NotNullWhen(false)] out string? error)
     {
         parsed = null;
+        error = null;
         var headless = false;
         var listenServer = false;
+        var standalone = false;
         string? connectAddress = null;
-        int port = ProtocolConstants.DefaultPort;
+        var port = ProtocolConstants.DefaultPort;
+        var unrecognized = new List<string>();
 
         using var enumerator = args.GetEnumerator();
 
         while (enumerator.MoveNext())
         {
             var arg = enumerator.Current;
-            if (arg == "--headless")
+            switch (arg)
             {
-                headless = true;
-            }
-            else if (arg == "--listen")
-            {
-                listenServer = true;
-            }
-            else if (arg == "--connect")
-            {
-                if (!enumerator.MoveNext())
-                {
-                    Console.WriteLine("Missing connect address!");
+                case "--headless":
+                    headless = true;
+                    break;
+                case "--listen":
+                    listenServer = true;
+                    break;
+                case "--standalone":
+                    standalone = true;
+                    break;
+                case "--connect" when !enumerator.MoveNext():
+                    error = "Missing value for --connect.";
                     return false;
-                }
+                case "--connect":
+                    connectAddress = enumerator.Current;
+                    break;
+                case "--port" when !enumerator.MoveNext():
+                    error = "Missing value for --port.";
+                    return false;
+                case "--port":
+                    if (!int.TryParse(enumerator.Current, out port))
+                    {
+                        error = "Invalid value for --port.";
+                        return false;
+                    }
 
-                connectAddress = enumerator.Current;
-            }
-            else if (arg == "--port")
-            {
-                if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
-                {
-                    Console.WriteLine("Missing or invalid port!");
-                    return false;
-                }
+                    break;
+                default:
+                    unrecognized.Add(arg);
+                    break;
             }
         }
 
-        if (!listenServer && connectAddress == null)
+        NetMode mode;
+        if (standalone)
         {
-            listenServer = true;
+            mode = NetMode.Standalone;
+        }
+        else if (connectAddress != null)
+        {
+            mode = NetMode.Client;
+        }
+        else if (listenServer)
+        {
+            mode = NetMode.ListenServer;
+        }
+        else
+        {
+            mode = NetMode.Standalone;
         }
 
-        parsed = new CommandLineArgs(headless, listenServer, connectAddress, port);
-
+        parsed = new CommandLineArgs(headless, mode, connectAddress, port, unrecognized);
         return true;
-    }
-
-    private CommandLineArgs(bool headless, bool listenServer, string? connectAddress, int port)
-    {
-        Headless = headless;
-        ListenServer = listenServer;
-        ConnectAddress = connectAddress;
-        Port = port;
     }
 }

@@ -1,5 +1,6 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Net;
 
 namespace Rex.Shared.Net.Transfer;
 
@@ -19,7 +20,7 @@ public sealed class BulkTransferInitMessage : INetMessage
     /// <summary>
     /// Gets the transfer ID shared by all chunks in this transfer.
     /// </summary>
-    public int TransferId { get; }
+    public Guid TransferId { get; }
 
     /// <summary>
     /// Gets the bulk payload kind.
@@ -49,7 +50,8 @@ public sealed class BulkTransferInitMessage : INetMessage
     /// <summary>
     /// Creates a bulk transfer init payload.
     /// </summary>
-    public BulkTransferInitMessage(int transferId, BulkDataType dataType, int totalSize, int originalSize, bool isCompressed, int chunkCount)
+    public BulkTransferInitMessage(Guid transferId, BulkDataType dataType, int totalSize, int originalSize,
+        bool isCompressed, int chunkCount)
     {
         TransferId = transferId;
         DataType = dataType;
@@ -63,7 +65,7 @@ public sealed class BulkTransferInitMessage : INetMessage
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);
-        writer.Put(TransferId);
+        writer.PutGuid(TransferId);
         writer.Put((byte)DataType);
         writer.Put(TotalSize);
         writer.Put(OriginalSize);
@@ -71,9 +73,9 @@ public sealed class BulkTransferInitMessage : INetMessage
         writer.Put(ChunkCount);
     }
 
-    public static BulkTransferInitMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferInitMessage Deserialize(NetDataReader reader)
     {
-        var transferId = reader.GetInt();
+        var transferId = reader.ReadGuid();
         var dataType = (BulkDataType)reader.GetByte();
         var totalSize = reader.GetInt();
         var originalSize = reader.GetInt();
@@ -99,7 +101,7 @@ public sealed class BulkTransferChunkMessage : INetMessage
     /// <summary>
     /// Gets the transfer ID shared by all chunks in this transfer.
     /// </summary>
-    public int TransferId { get; }
+    public Guid TransferId { get; }
 
     /// <summary>
     /// Gets the zero-based chunk index.
@@ -114,7 +116,7 @@ public sealed class BulkTransferChunkMessage : INetMessage
     /// <summary>
     /// Creates a chunk payload for an active bulk transfer.
     /// </summary>
-    public BulkTransferChunkMessage(int transferId, int chunkIndex, byte[] data)
+    public BulkTransferChunkMessage(Guid transferId, int chunkIndex, byte[] data)
     {
         TransferId = transferId;
         ChunkIndex = chunkIndex;
@@ -125,14 +127,14 @@ public sealed class BulkTransferChunkMessage : INetMessage
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);
-        writer.Put(TransferId);
+        writer.PutGuid(TransferId);
         writer.Put(ChunkIndex);
         writer.PutBytesWithLength(Data);
     }
 
-    public static BulkTransferChunkMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferChunkMessage Deserialize(NetDataReader reader)
     {
-        var transferId = reader.GetInt();
+        var transferId = reader.ReadGuid();
         var chunkIndex = reader.GetInt();
         var data = reader.GetBytesWithLength();
         return new BulkTransferChunkMessage(transferId, chunkIndex, data);
@@ -155,7 +157,7 @@ public sealed class BulkTransferAckMessage : INetMessage
     /// <summary>
     /// Gets the completed transfer ID.
     /// </summary>
-    public int TransferId { get; }
+    public Guid TransferId { get; }
 
     /// <summary>
     /// Gets a value that indicates whether the receiver accepted the transfer.
@@ -165,7 +167,7 @@ public sealed class BulkTransferAckMessage : INetMessage
     /// <summary>
     /// Creates a bulk transfer ack payload.
     /// </summary>
-    public BulkTransferAckMessage(int transferId, bool success)
+    public BulkTransferAckMessage(Guid transferId, bool success)
     {
         TransferId = transferId;
         Success = success;
@@ -175,13 +177,13 @@ public sealed class BulkTransferAckMessage : INetMessage
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);
-        writer.Put(TransferId);
+        writer.PutGuid(TransferId);
         writer.Put(Success);
     }
 
-    public static BulkTransferAckMessage Deserialize(NetPacketReader reader)
+    public static BulkTransferAckMessage Deserialize(NetDataReader reader)
     {
-        var transferId = reader.GetInt();
+        var transferId = reader.ReadGuid();
         var success = reader.GetBool();
         return new BulkTransferAckMessage(transferId, success);
     }

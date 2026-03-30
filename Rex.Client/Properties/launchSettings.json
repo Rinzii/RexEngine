@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Rex Client": {
+      "commandName": "Project",
+      "workingDirectory": "..",
+      "commandLineArgs": "--connect 127.0.0.1 --port 27015"
+    },
+    "Rex Listen Server": {
+      "commandName": "Project",
+      "workingDirectory": "..",
+      "commandLineArgs": "--listen --port 27015"
+    },
+    "Rex Standalone": {
+      "commandName": "Project",
+      "workingDirectory": "..",
+      "commandLineArgs": "--standalone"
+    }
+  }
+}

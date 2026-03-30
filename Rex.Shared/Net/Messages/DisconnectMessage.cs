@@ -36,7 +36,7 @@ public sealed class DisconnectMessage : INetMessage
         writer.Put(Reason);
     }
 
-    public static DisconnectMessage Deserialize(NetPacketReader reader)
+    public static DisconnectMessage Deserialize(NetDataReader reader)
     {
         var reason = reader.GetString();
         return new DisconnectMessage(reason);

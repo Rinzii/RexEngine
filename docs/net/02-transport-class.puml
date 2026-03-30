@@ -1,0 +1,78 @@
+@startuml 02-transport-class
+
+title 02 Transport (interfaces and implementations)
+
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+
+' --- Contracts ---
+interface IClientNetChannel {
+  State
+  RoundTripTimeMs
+  Send(message, channel, delivery)
+  Send(message)
+  Connect()
+  Disconnect(reason)
+  PollEvents()
+  --
+  MessageReceived
+  Connected
+  Disconnected
+}
+
+interface IServerNetChannel {
+  ClientId
+  IsLocal
+  State
+  RoundTripTimeMs
+  Send(message, channel, delivery)
+  Send(message)
+  Disconnect(reason)
+}
+
+' --- UDP (LiteNetLib) ---
+class RemoteClientNetChannel {
+  NetManager
+  NetPeer serverPeer
+  Serialize then Send on channel
+}
+
+class RemoteServerNetChannel {
+  NetPeer
+  Guid clientId
+}
+
+' --- In-memory ---
+class LocalClientNetChannel {
+  Queue to server
+  Queue from server
+  PollEvents drains inbound
+}
+
+class LocalServerNetChannel {
+  Guid clientId
+  Queue from client
+  Queue to client
+  DrainMessages(handler)
+}
+
+class LocalNetChannelPair <<static>> {
+  {static} Create(Guid clientId)
+}
+
+IClientNetChannel <|.. RemoteClientNetChannel
+IClientNetChannel <|.. LocalClientNetChannel
+IServerNetChannel <|.. RemoteServerNetChannel
+IServerNetChannel <|.. LocalServerNetChannel
+
+LocalNetChannelPair ..> LocalClientNetChannel
+LocalNetChannelPair ..> LocalServerNetChannel
+
+note bottom of LocalNetChannelPair
+  Paired queues. Client Send goes to server inbound.
+  Server Send goes to client inbound. No UDP.
+end note
+
+@enduml

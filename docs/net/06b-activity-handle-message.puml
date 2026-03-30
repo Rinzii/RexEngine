@@ -1,0 +1,47 @@
+@startuml 06b-activity-handle-message
+
+title 06b GameServerHost.HandleMessage
+
+skinparam shadowing false
+skinparam ActivityBackgroundColor #F8F8F8
+skinparam ActivityBorderColor #666666
+
+start
+
+if (ConnectRequest?) then (yes)
+  :Validate protocol version;
+  :Set session PlayerName;
+  :Spawn player entity in world;
+  :Send ConnectResponseMessage;
+  :Send WorldSnapshotMessage;
+  while (another InGame client needs spawn notify?) is (yes)
+    :Select next other client session;
+    :Send EntitySpawnMessage;
+  endwhile
+  stop
+endif
+
+if (PlayerInput?) then (yes)
+  :EnqueueInput;
+  stop
+endif
+
+if (StateAck?) then (yes)
+  :LastAcknowledgedTick = ack;
+  stop
+endif
+
+if (BulkTransferAck?) then (yes)
+  :Log;
+  stop
+endif
+
+if (Disconnect?) then (yes)
+  :Channel.Disconnect;
+  stop
+endif
+
+:Log unhandled;
+stop
+
+@enduml

@@ -1,13 +1,31 @@
-name: ci
+name: CI
 
 on:
   push:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NO_LOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Checkout
@@ -18,8 +36,28 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: |
+            nuget-${{ runner.os }}-
+
       - name: Restore
         run: dotnet restore Rex.sln
 
       - name: Build
-        run: dotnet build Rex.sln --configuration Release --no-restore
+        run: >
+          dotnet build Rex.sln
+          --configuration Release
+          --no-restore
+          -warnaserror
+          /p:ContinuousIntegrationBuild=true
+
+      - name: Test
+        run: >
+          dotnet test Rex.sln
+          --configuration Release
+          --no-build
+          --verbosity minimal

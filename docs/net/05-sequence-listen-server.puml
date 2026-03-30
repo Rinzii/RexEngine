@@ -1,0 +1,61 @@
+@startuml 05-sequence-listen-server
+
+title NetMode ListenServer (client host spawns Rex.Server child)
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.2
+skinparam maxMessageSize 220
+
+actor User
+
+box "Rex.Client process" #E8F4FC
+  participant Program <<control>> as Prog
+  participant ClientApp <<control>> as App
+end box
+
+participant "Rex.Server child process" <<boundary>> as Child
+
+note over User, Child
+  ListenServer is not a NetMode value passed into ClientApp.
+  Rex.Client starts Rex.Server as a separate OS process then runs ClientApp as NetMode Client to localhost.
+  In-game packets match 05-sequence-client-remote.puml after the child prints the ready line.
+end note
+
+== Start child server ==
+
+User -> Prog : Main(args with ListenServer)
+activate Prog
+Prog -> Child : Process.Start(Rex.Server)
+activate Child
+note right of Child
+  Child runs ServerApp.Run.
+  That constructs GameServer and calls Start.
+end note
+Child -> Child : ServerApp.Run
+Child -> Child : GameServer.Start
+Child ->> Prog : stdout ProtocolConstants.ListenProcessReadyLine
+deactivate Child
+
+== Run local client ==
+
+Prog -> App : new ClientApp(NetMode.Client)
+activate App
+Prog -> App : Run(127.0.0.1, port)
+note right of App
+  Run blocks until the client stops.
+  Connect and steady state follow the Client remote diagram.
+end note
+
+== Teardown ==
+
+App --> Prog
+deactivate App
+Prog -> Child : stop child Process
+activate Child
+Child -> Child : process exit
+deactivate Child
+deactivate Prog
+
+@enduml

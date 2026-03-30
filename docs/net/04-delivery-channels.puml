@@ -1,0 +1,65 @@
+@startuml 04-delivery-channels
+
+title 04 Message groups and delivery
+
+skinparam shadowing false
+skinparam roundcorner 6
+skinparam classAttributeIconSize 0
+skinparam ArrowThickness 1.2
+
+enum MessageGroup {
+  Core
+  Entity
+  EntityEvent
+  Input
+  Command
+  Transfer
+}
+
+class DeliveryChannel <<static>> {
+  Reliable = 0
+  Snapshot = 1
+  ReliableUnordered = 2
+  Unreliable = 3
+  Transfer = 4
+}
+
+class MessageGroupExtensions <<static>> {
+  GetDeliveryInfo(group)
+  returns channel + DeliveryMethod
+}
+
+class AdaptiveReliability <<static>> {
+  ReliableThreshold bytes
+  GetAdaptiveDelivery(message)
+}
+
+MessageGroupExtensions ..> MessageGroup
+MessageGroupExtensions ..> DeliveryChannel
+
+AdaptiveReliability ..> MessageGroup : Entity only
+AdaptiveReliability ..> DeliveryChannel : oversized Entity snapshot
+
+legend right
+  Default GetDeliveryInfo mapping
+  --
+  Core uses Reliable lane.
+  Core uses ReliableOrdered delivery.
+  EntityEvent uses Reliable lane.
+  EntityEvent uses ReliableOrdered delivery.
+  Entity uses Snapshot lane.
+  Entity uses Sequenced delivery.
+  Input uses Unreliable lane.
+  Input uses Unreliable delivery.
+  Command uses ReliableUnordered lane.
+  Command uses ReliableUnordered delivery.
+  Transfer uses Transfer lane.
+  Transfer uses ReliableOrdered delivery.
+  --
+  AdaptiveReliability
+  Entity group only measures serialized size.
+  Over threshold selects Reliable lane.
+  Over threshold selects ReliableOrdered delivery for MTU safety.
+end legend
+
+@enduml

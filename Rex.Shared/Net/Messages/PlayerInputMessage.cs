@@ -21,14 +21,10 @@ public sealed class PlayerInputMessage : INetMessage
     /// </summary>
     public uint Tick { get; }
 
-    /// <summary>
-    /// Gets movement input on the X axis.
-    /// </summary>
+    /// <summary>Strafe input. Server applies to world X in the prototype mover.</summary>
     public float MoveX { get; }
 
-    /// <summary>
-    /// Gets movement input on the Y axis.
-    /// </summary>
+    /// <summary>Forward input. Server maps this to world Z in the prototype mover.</summary>
     public float MoveY { get; }
 
     /// <summary>
@@ -71,7 +67,7 @@ public sealed class PlayerInputMessage : INetMessage
         writer.Put(ActionFlags);
     }
 
-    public static PlayerInputMessage Deserialize(NetPacketReader reader)
+    public static PlayerInputMessage Deserialize(NetDataReader reader)
     {
         var tick = reader.GetUInt();
         var moveX = reader.GetFloat();

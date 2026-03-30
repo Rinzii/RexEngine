@@ -1,0 +1,172 @@
+@startuml 05-sequence-client-remote
+
+title NetMode Client (remote server, one session)
+
+skinparam SequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam shadowing false
+skinparam sequenceArrowThickness 1.2
+skinparam maxMessageSize 220
+
+actor User
+
+box "Client process" #E8F4FC
+  participant GameClient <<control>> as GC
+  participant RemoteClientNetChannel <<boundary>> as CCh
+  participant NetManager <<boundary>> as LNC
+end box
+
+box "Server process" #E8FCE8
+  participant NetManager <<boundary>> as LNS
+  participant GameServer <<control>> as GS
+  participant RemoteServerNetChannel <<boundary>> as SCh
+  participant GameServerHost <<control>> as Host
+  participant ClientSession <<entity>> as Sess
+end box
+
+note over User, Sess
+  Filled synchronous arrowhead means one synchronous operation call.
+  Dashed open arrowhead means one reply to that call.
+  Open arrowhead only means one asynchronous signal or send (no reply drawn).
+  Connect ordering is illustrative only (network interleaves the two sides).
+end note
+
+== Connect ==
+
+group Application requests connection
+  User -> GC : connect(host, port)
+  activate GC
+  GC -> CCh : connect()
+  activate CCh
+  CCh -> LNC : start()
+  activate LNC
+  LNC --> CCh : void
+  CCh -> LNC : connect(key, host, port)
+  LNC --> CCh : void
+  deactivate LNC
+  CCh --> GC : void
+  deactivate CCh
+  deactivate GC
+end
+
+group Transport accepts peer (server)
+  LNS ->> GS : peerConnected(peer)
+  activate GS
+  GS -> SCh : new RemoteServerNetChannel(peer, clientId)
+  activate SCh
+  SCh --> GS
+  deactivate SCh
+  GS -> Sess : new ClientSession(channel)
+  activate Sess
+  Sess --> GS
+  deactivate Sess
+  GS -> Host : addSession(session)
+  activate Host
+  Host --> GS
+  deactivate Host
+  deactivate GS
+end
+
+group Transport confirms peer (client)
+  LNC ->> CCh : peerConnected(peer)
+  activate CCh
+  CCh ->> GC : connected
+  deactivate CCh
+  activate GC
+  GC ->> CCh : send(ConnectRequestMessage)
+  deactivate GC
+end
+
+group Application handshake completes (server)
+  LNS ->> GS : networkReceive(ConnectRequest)
+  activate GS
+  GS -> Host : handleMessage(clientId, ConnectRequest)
+  activate Host
+  Host -> Host : spawnPlayerEntity()
+  Host -> Sess : set PlayerEntityId
+  activate Sess
+  Sess --> Host
+  deactivate Sess
+  Host -> Host : build ConnectResponseMessage
+  Host -> Host : build WorldSnapshotMessage
+  Host --> GS
+  deactivate Host
+  deactivate GS
+  activate SCh
+  SCh ->> LNS : send(ConnectResponseMessage)
+  SCh ->> LNS : send(WorldSnapshotMessage)
+  SCh ->> LNS : send(EntitySpawnMessage)
+  deactivate SCh
+end
+
+group Application handshake completes (client)
+  LNC ->> CCh : networkReceive(ConnectResponse)
+  activate CCh
+  CCh ->> GC : messageReceived(ConnectResponse)
+  deactivate CCh
+  activate GC
+  GC -> GC : set ConnectionState InGame
+  GC -> GC : set ClientId
+  GC -> GC : set LocalPlayerEntityId
+  deactivate GC
+end
+
+== Steady state ==
+
+note over GC, SCh
+  Fragment par means client and server time regions overlap.
+  Each operand is one loop fragment.
+end note
+
+par
+  loop [client tick while connected]
+    GC -> CCh : pollEvents()
+    activate GC
+    activate CCh
+    CCh --> GC
+    deactivate CCh
+    opt [WorldSnapshotMessage received]
+      CCh ->> GC : messageReceived(WorldSnapshot)
+      GC -> GC : apply WorldSnapshotMessage
+      GC -> GC : update ClientWorldState
+      GC -> GC : reconcile prediction
+      GC ->> CCh : send(StateAckMessage)
+    end
+    opt [ConnectionState InGame]
+      opt [input sampled this tick]
+        GC ->> CCh : send(PlayerInputMessage)
+      end
+    end
+    deactivate GC
+  end
+
+else
+  loop [server tick while running]
+    GS -> LNS : pollEvents()
+    activate GS
+    activate LNS
+    LNS --> GS
+    deactivate LNS
+    opt [inbound packet during poll]
+      LNS ->> GS : networkReceive(...)
+      GS -> Host : handleMessage(clientId, message)
+      activate Host
+      Host --> GS
+      deactivate Host
+    end
+    GS -> Host : tick()
+    activate Host
+    loop [each ClientSession]
+      Host -> Host : dequeue PlayerInput from session
+    end
+    Host -> Host : World.Tick(deltaTime)
+    loop [each InGame session]
+      Host -> Host : build WorldSnapshotMessage
+      Host ->> SCh : send(WorldSnapshotMessage)
+    end
+    deactivate Host
+    deactivate GS
+  end
+end
+
+@enduml

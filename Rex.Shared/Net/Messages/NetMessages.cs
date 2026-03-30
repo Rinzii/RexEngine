@@ -16,10 +16,13 @@ public static class NetMessages
     public static void RegisterAll()
     {
         if (_registered)
+        {
             return;
+        }
 
         _registered = true;
 
+        // Order does not matter. Ids must be unique across this block.
         NetMessageRegistry.Register(ConnectRequestMessage.Id, ConnectRequestMessage.Deserialize);
         NetMessageRegistry.Register(ConnectResponseMessage.Id, ConnectResponseMessage.Deserialize);
         NetMessageRegistry.Register(DisconnectMessage.Id, DisconnectMessage.Deserialize);

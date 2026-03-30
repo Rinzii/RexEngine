@@ -1,0 +1,61 @@
+@startuml 01-overview-components
+
+title 01 Overview (networking)
+
+skinparam shadowing false
+skinparam roundcorner 8
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam ArrowThickness 1.2
+
+package "Rex.Client" {
+  component [ClientApp] as CA
+  component [GameClient] as GC
+  component [RemoteClientNetChannel] as RCC
+}
+
+package "Rex.Server" {
+  component [GameServer] as GS
+  component [RemoteServerNetChannel] as RSC
+}
+
+package "Rex.Server.Simulation" {
+  component [GameServerHost] as GSH
+  component [ClientSession] as CS
+}
+
+package "Rex.Shared.Net" {
+  interface "IClientNetChannel" as IClient
+  interface "IServerNetChannel" as IServer
+  component [NetMessageRegistry] as NMR
+  component [NetMessages] as NM
+}
+
+package "LiteNetLib" {
+  component [NetManager (UDP)] as LNL
+}
+
+CA --> GC : networked modes
+GC ..|> IClient
+RCC ..|> IClient
+RCC --> LNL
+RCC --> NMR : Deserialize inbound
+
+GS --> GSH
+GS --> LNL
+GS --> RSC : per peer
+RSC ..|> IServer
+RSC --> NMR : Deserialize inbound
+
+GSH --> CS : sessions
+CS --> IServer : Channel
+NM --> NMR : RegisterAll
+
+legend right
+  Remote path uses LiteNetLib.
+  LocalNetChannelPair uses in-memory queues.
+  Local path does not use UDP.
+  xUnit test projects live under tests/.
+end legend
+
+@enduml

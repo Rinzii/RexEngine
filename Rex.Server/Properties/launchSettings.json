@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Rex Server": {
+      "commandName": "Project",
+      "workingDirectory": "..",
+      "commandLineArgs": "--port 27015"
+    }
+  }
+}
