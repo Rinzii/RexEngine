@@ -62,9 +62,17 @@ internal sealed class CommandLineArgs
                 case "--connect":
                     connectAddress = enumerator.Current;
                     break;
-                case "--port" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port):
-                    error = "Missing or invalid value for --port.";
+                case "--port" when !enumerator.MoveNext():
+                    error = "Missing value for --port.";
                     return false;
+                case "--port":
+                    if (!int.TryParse(enumerator.Current, out port))
+                    {
+                        error = "Invalid value for --port.";
+                        return false;
+                    }
+
+                    break;
                 default:
                     unrecognized.Add(arg);
                     break;

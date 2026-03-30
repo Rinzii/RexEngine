@@ -31,6 +31,45 @@ public sealed class CommandLineArgsTests
     }
 
     [Fact]
+    // --port after --connect sets Port and leaves nothing unrecognized.
+    public void TryParse_connect_and_port_parses_port()
+    {
+        var ok = CommandLineArgs.TryParse(
+            new[] { "--connect", "127.0.0.1", "--port", "27015" },
+            out var parsed,
+            out _);
+
+        Assert.True(ok);
+        Assert.Equal(NetMode.Client, parsed!.Mode);
+        Assert.Equal("127.0.0.1", parsed.ConnectAddress);
+        Assert.Equal(27015, parsed.Port);
+        Assert.Empty(parsed.UnrecognizedArguments);
+    }
+
+    [Fact]
+    // Trailing --port without a value is a parse error.
+    public void TryParse_port_without_value_fails()
+    {
+        var ok = CommandLineArgs.TryParse(new[] { "--connect", "h", "--port" }, out _, out var error);
+
+        Assert.False(ok);
+        Assert.Equal("Missing value for --port.", error);
+    }
+
+    [Fact]
+    // Non-numeric --port value is a parse error.
+    public void TryParse_port_non_integer_fails()
+    {
+        var ok = CommandLineArgs.TryParse(
+            new[] { "--listen", "--port", "not-a-port" },
+            out _,
+            out var error);
+
+        Assert.False(ok);
+        Assert.Equal("Invalid value for --port.", error);
+    }
+
+    [Fact]
     // Listen flag selects listen server mode.
     public void TryParse_listen_sets_listen_server_mode()
     {
