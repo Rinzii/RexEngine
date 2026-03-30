@@ -44,7 +44,7 @@ public sealed class WindowCreator : IGameWindow
     public void Close()
     {
 
-        WINDOW.Close();
+        WINDOW?.Close();
         IsOpen = false;
     }
 

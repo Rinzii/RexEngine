@@ -10,9 +10,9 @@ namespace Rex.Client;
 /// <summary>Parses command-line args and runs <see cref="ClientApp"/>. May start a listen-server child process.</summary>
 internal static class Program
 {
-    private static void Main(string[] args)
-    {
-
+    private static void Main(string[] args) {
+        using WindowCreator creator = new WindowCreator();
+        creator.Open("Hello",800,800);
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
