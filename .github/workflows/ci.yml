@@ -1,63 +1,72 @@
 name: CI
 
 on:
-  push:
-  pull_request:
-  workflow_dispatch:
+    push:
+    pull_request:
+    workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
 
 permissions:
-  contents: read
+    contents: read
 
 env:
-  DOTNET_NO_LOGO: true
-  DOTNET_CLI_TELEMETRY_OPTOUT: true
-  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+    DOTNET_NO_LOGO: true
+    DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    build:
+        name: Build (${{ matrix.os }})
+        strategy:
+            fail-fast: false
+            matrix:
+                os: [ubuntu-latest, windows-latest, macos-latest]
+        
+        runs-on: ${{ matrix.os }}
+        timeout-minutes: 30
+        
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
 
-    runs-on: ${{ matrix.os }}
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: 10.0.x
+                  cache: true
+                  cache-dependency-path: |
+                      **/*.csproj
+                      **/Directory.Build.props
+                      **/Directory.Packages.props
+                      **/packages.lock.json
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
+            - name: Restore
+              run: dotnet restore Rex.sln
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
+            - name: Build
+              run: >
+                  dotnet build Rex.sln
+                  --configuration Release
+                  --no-restore
+                  -warnaserror
+                  /p:ContinuousIntegrationBuild=true
 
-      - name: Cache NuGet packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.NUGET_PACKAGES }}
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+            - name: Test
+              run: >
+                  dotnet test Rex.sln
+                  --configuration Release
+                  --no-build
+                  --verbosity minimal
+                  --results-directory TestResults
+                  --logger "trx;LogFileName=test-results.trx"
+                  --blame-hang --blame-hang-timeout 5m
 
-      - name: Restore
-        run: dotnet restore Rex.sln
-
-      - name: Build
-        run: >
-          dotnet build Rex.sln
-          --configuration Release
-          --no-restore
-          -warnaserror
-          /p:ContinuousIntegrationBuild=true
-
-      - name: Test
-        run: >
-          dotnet test Rex.sln
-          --configuration Release
-          --no-build
-          --verbosity minimal
+            - name: Upload test results
+              if: always()
+              uses: actions/upload-artifact@v4
+              with:
+                  name: test-results-${{ matrix.os }}
+                  path: TestResults
+                  if-no-files-found: ignore
