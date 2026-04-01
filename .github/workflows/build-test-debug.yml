@@ -1,4 +1,4 @@
-name: Build & Test
+name: Build & Test (Debug)
 
 on:
     push:
@@ -48,7 +48,7 @@ jobs:
             - name: Build
               run: >
                   dotnet build Rex.sln
-                  --configuration Release
+                  --configuration Debug
                   --no-restore
                   -warnaserror
                   /p:ContinuousIntegrationBuild=true
@@ -56,7 +56,7 @@ jobs:
             - name: Test
               run: >
                   dotnet test Rex.sln
-                  --configuration Release
+                  --configuration Debug
                   --no-build
                   --verbosity minimal
                   --results-directory TestResults
