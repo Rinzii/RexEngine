@@ -1,0 +1,30 @@
+name: "Labels: Branch stable"
+
+on:
+    pull_request_target:
+        types:
+            - opened
+        branches:
+            - stable
+
+permissions:
+    contents: read
+    pull-requests: write
+    issues: write
+
+jobs:
+    add-branch-label:
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Add stable branch label
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  script: |
+                      await github.rest.issues.addLabels({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: context.payload.pull_request.number,
+                        labels: ['Branch: Stable']
+                      });
