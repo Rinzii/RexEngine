@@ -2,7 +2,7 @@ name: CRLF Check
 
 on:
     pull_request:
-        types: [ opened, reopened, synchronize, ready_for_review ]
+        types: [opened, reopened, synchronize, ready_for_review]
 
 jobs:
     build:
@@ -11,5 +11,11 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4.2.2
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.x"
+
             - name: Check for CRLF
-              run: Tools/check_crlf.py
+              run: python3 Tools/check_crlf.py
