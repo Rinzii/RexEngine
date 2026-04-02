@@ -11,8 +11,9 @@ namespace Rex.Client;
 internal static class Program
 {
     private static void Main(string[] args) {
-        using WindowCreator creator = new WindowCreator();
-        creator.Open("Hello",800,800);
+        using WindowCreator creator = new WindowCreator("Hello",800,800);
+        creator.Open();
+        
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();

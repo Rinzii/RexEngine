@@ -221,8 +221,9 @@ public sealed partial class ClientApp : IDisposable
         {
             return;
         }
-
-        _window.Open("RexEngine", 1280, 720);
+         // Changed Open To Have 0 Params In Favor For Ctor Construction
+         // Open => _window.Run();
+        _window.Open(/*"RexEngine", 1280, 720*/);
         _renderer?.Initialize(_window);
     }
 

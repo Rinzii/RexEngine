@@ -7,44 +7,56 @@ using Silk.NET.Maths;
 
 namespace Rex.Client;
 
-public sealed class WindowCreator : IGameWindow
-{
-    private IWindow? WINDOW { get; set; }
-    public string? Title { get; set; }
+public sealed class WindowCreator : IGameWindow {
+    private readonly IWindow? _window;
+    public string Title { get; set; }
     public int Width { get; private set; }
     public int Height { get; private set; }
     public bool IsOpen { get; private set; }
 
+    public static Action? OnLoad;
+    public static Action<double>? OnUpdate;
+    public static Action<double>? OnRender;
 
-    public void Dispose()
-    {
-        WINDOW.Dispose();
-    }
-    public void Open(string title, int width, int height)
-    {
+    public WindowCreator(string title, int width, int height) {
+        
+        OnLoad += OnLoad1;
+        OnRender += OnRender1;
+        OnUpdate += OnUpdate1;
+        
         Title = title;
         Width = width;
         Height = height;
-
-        WindowOptions options = WindowOptions.Default with
+        
+        var options = WindowOptions.Default with
         {
-            Size = new Vector2D<int>(Width, Height),
+            Size = new Vector2D<int>(Width, Height), Title
             // ReSharper disable once ArrangeThisQualifier
-            Title = this.Title
+            = this.Title
         };
+         
+        _window = Window.Create(options);
+        _window.Load += OnLoad;
+        _window.Update += OnUpdate;
+        _window.Render += OnRender;
+    }
 
-        IWindow window = Window.Create(options);
-        WINDOW = window;
-        WINDOW.Load += OnLoad;
-        WINDOW.Update += OnUpdate;
-        WINDOW.Render += OnRender;
-        window.Run();
+    public void Dispose()
+    {
+        _window?.Dispose();
+    }
+    public void Open()
+    {
+        if (IsOpen) {
+            return;
+        }
+        _window?.Run();
         IsOpen = true;
     }
     public void Close()
     {
 
-        WINDOW?.Close();
+        _window?.Close();
         IsOpen = false;
     }
 
@@ -58,21 +70,21 @@ public sealed class WindowCreator : IGameWindow
         throw new NotImplementedException();
     }
 
-    private void OnLoad()
+    private void OnLoad1()
     {
-        IInputContext input = WINDOW.CreateInput();
-        for (int i = 0; i < input.Keyboards.Count; i++)
+        IInputContext? input = _window?.CreateInput();
+        for (int i = 0; i < input?.Keyboards.Count; i++)
         {
             input.Keyboards[i].KeyDown += KeyDown;
         }
     }
 
-    private void OnUpdate(double deltaTime)
+    private void OnUpdate1(double deltaTime)
     {
 
     }
 
-    private void OnRender(double deltaTime)
+    private void OnRender1(double deltaTime)
     {
 
     }

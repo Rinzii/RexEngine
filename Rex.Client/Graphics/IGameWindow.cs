@@ -12,8 +12,8 @@ public interface IGameWindow : IDisposable
     int Height { get; }
     bool IsOpen { get; }
 
-    /// <summary>Creates and shows the window.</summary>
-    void Open(string title, int width, int height);
+    /// <summary> Opens the window.</summary>
+    void Open();
 
     /// <summary>Pumps platform events such as input, resize, and close.</summary>
     void PollEvents();
