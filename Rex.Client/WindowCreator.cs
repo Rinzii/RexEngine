@@ -7,7 +7,8 @@ using Silk.NET.Maths;
 
 namespace Rex.Client;
 
-public sealed class WindowCreator : IGameWindow {
+public sealed class WindowCreator : IGameWindow
+{
     private readonly IWindow? _window;
     public string Title { get; set; }
     public int Width { get; private set; }
@@ -18,23 +19,25 @@ public sealed class WindowCreator : IGameWindow {
     public static Action<double>? OnUpdate;
     public static Action<double>? OnRender;
 
-    public WindowCreator(string title, int width, int height) {
-        
+    public WindowCreator(string title, int width, int height)
+    {
+
         OnLoad += OnLoad1;
         OnRender += OnRender1;
         OnUpdate += OnUpdate1;
-        
+
         Title = title;
         Width = width;
         Height = height;
-        
+
         var options = WindowOptions.Default with
         {
-            Size = new Vector2D<int>(Width, Height), Title
+            Size = new Vector2D<int>(Width, Height),
+            Title
             // ReSharper disable once ArrangeThisQualifier
             = this.Title
         };
-         
+
         _window = Window.Create(options);
         _window.Load += OnLoad;
         _window.Update += OnUpdate;
@@ -47,7 +50,8 @@ public sealed class WindowCreator : IGameWindow {
     }
     public void Open()
     {
-        if (IsOpen) {
+        if (IsOpen)
+        {
             return;
         }
         _window?.Run();
