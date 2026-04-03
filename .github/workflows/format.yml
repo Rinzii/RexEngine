@@ -1,59 +1,55 @@
-# Standalone formatting. Runs separately from CI. Applies dotnet format then verifies that nothing
-# remains that the tool cannot fix. Pushes a commit only when auto-fixes changed files (same-repo only).
-
 name: Format
 
 on:
-  push:
-  pull_request:
-  workflow_dispatch:
+    push:
+    pull_request:
+    workflow_dispatch:
 
 concurrency:
-  group: format-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    group: format-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  format:
-    runs-on: ubuntu-latest
-    # Fork PRs cannot receive pushes from this repo's GITHUB_TOKEN.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    format:
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v5
+              with:
+                  token: ${{ secrets.GITHUB_TOKEN }}
+                  ref: ${{ github.head_ref || github.ref }}
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref || github.ref }}
+            - name: Setup .NET
+              uses: actions/setup-dotnet@v5
+              with:
+                  dotnet-version: 10.0.x
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
+            - name: Restore
+              run: dotnet restore Rex.sln
 
-      - name: Restore
-        run: dotnet restore Rex.sln
+            - name: Apply auto-fixes
+              run: dotnet format Rex.sln --no-restore
 
-      - name: Apply auto-fixes
-        run: dotnet format Rex.sln --no-restore
+            - name: Commit and push when auto-fixes changed files on same-repo PRs or normal pushes
+              if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+              shell: bash
+              env:
+                  BRANCH: ${{ github.head_ref || github.ref_name }}
+              run: |
+                  set -euo pipefail
+                  git config user.name "github-actions[bot]"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add -u
+                  if git diff --cached --quiet; then
+                    echo "No file changes from dotnet format."
+                    exit 0
+                  fi
+                  git commit -m "Apply dotnet format"
+                  git push origin "HEAD:${BRANCH}"
 
-      - name: Verify no remaining fixable or manual issues
-        run: dotnet format Rex.sln --verify-no-changes --no-restore
-
-      - name: Commit and push when auto-fixes changed files
-        shell: bash
-        env:
-          BRANCH: ${{ github.head_ref || github.ref_name }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -u
-          if git diff --cached --quiet; then
-            echo "No file changes from dotnet format."
-            exit 0
-          fi
-          git commit -m "Apply dotnet format"
-          git push origin "HEAD:${BRANCH}"
+            - name: Verify no remaining fixable or manual issues
+              run: dotnet format Rex.sln --verify-no-changes --no-restore
