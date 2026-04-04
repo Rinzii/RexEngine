@@ -1,17 +1,17 @@
 namespace Rex.Shared.Net;
 
-/// <summary>How this process uses the network stack, comparable to Unreal <c>ENetMode</c>.</summary>
+/// <summary>How this process participates in networking for a consumer runtime.</summary>
 public enum NetMode
 {
-    /// <summary>Single player. Game world runs in-process, no networking.</summary>
+    /// <summary>Single-process local runtime with no remote networking.</summary>
     Standalone,
 
-    /// <summary>Remote client connected to a dedicated or listen server.</summary>
+    /// <summary>Remote client connected to a host process.</summary>
     Client,
 
-    /// <summary>Client that owns a server running as a child process.</summary>
+    /// <summary>Client process that also manages a local host process.</summary>
     ListenServer,
 
-    /// <summary>Headless server process. Not selected by current Rex.Client CLI defaults.</summary>
+    /// <summary>Headless host process.</summary>
     DedicatedServer
 }

@@ -1,13 +1,13 @@
-using Rex.Shared.Net.Messages;
+using Rex.Sandbox.Shared.Net.Messages;
+using Rex.Sandbox.Shared.Simulation;
 using Rex.Shared.Simulation;
 
-namespace Rex.Shared.Tests.Simulation;
+namespace Rex.Sandbox.Shared.Tests.Simulation;
 
-// Minimal authoritative world spawn input and snapshots.
+// Minimal authoritative Sandbox world spawn input and snapshots.
 public sealed class GameWorldTests
 {
     [Fact]
-    // Ids increase by one and positions match spawn.
     public void SpawnEntity_returns_monotonic_ids_and_tracks_position()
     {
         var world = new GameWorld();
@@ -23,23 +23,19 @@ public sealed class GameWorldTests
     }
 
     [Fact]
-    // Destroy removes the entity from the map.
     public void DestroyEntity_removes_entry()
     {
         var world = new GameWorld();
-        var typeName = "X";
-        var id = world.SpawnEntity(Guid.Empty, typeName, 0f, 0f, 0f);
+        var id = world.SpawnEntity(Guid.Empty, "X", 0f, 0f, 0f);
         world.DestroyEntity(id);
         Assert.Empty(world.Entities);
     }
 
     [Fact]
-    // Move axes map to XZ and LookY sets yaw.
     public void ProcessInput_moves_entity_on_xz_and_sets_rotation_from_look_y()
     {
         var world = new GameWorld();
-        var typeName = "Pawn";
-        var id = world.SpawnEntity(Guid.Empty, typeName, 0f, 0f, 0f);
+        var id = world.SpawnEntity(Guid.Empty, "Pawn", 0f, 0f, 0f);
         var input = new PlayerInputMessage(1u, 1f, 0f, 0f, 90f, 0u);
         world.ProcessInput(id, input);
 
@@ -50,7 +46,6 @@ public sealed class GameWorldTests
     }
 
     [Fact]
-    // Missing entity id does nothing.
     public void ProcessInput_unknown_entity_is_noop()
     {
         var world = new GameWorld();
@@ -59,7 +54,6 @@ public sealed class GameWorldTests
     }
 
     [Fact]
-    // Tick bumps the world tick counter.
     public void Tick_increments_CurrentTick()
     {
         var world = new GameWorld();
@@ -69,14 +63,12 @@ public sealed class GameWorldTests
     }
 
     [Fact]
-    // Full snapshot lists every entity. Delta snapshot filters by id set.
     public void BuildSnapshot_contains_all_entities_BuildDelta_only_dirty()
     {
         var tracker = new DirtyTracker(256);
         var world = new GameWorld(tracker);
-        var t = "E";
-        var id1 = world.SpawnEntity(Guid.Empty, t, 0f, 0f, 0f);
-        _ = world.SpawnEntity(Guid.Empty, t, 1f, 1f, 1f);
+        var id1 = world.SpawnEntity(Guid.Empty, "E", 0f, 0f, 0f);
+        _ = world.SpawnEntity(Guid.Empty, "E", 1f, 1f, 1f);
 
         var full = world.BuildSnapshot(10u, 9u);
         Assert.Equal(2, full.Entities.Count);

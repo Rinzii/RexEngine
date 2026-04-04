@@ -1,37 +1,23 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Analyzers;
+using Rex.Shared.Net;
 
-namespace Rex.Shared.Net.Messages;
+namespace Rex.Sandbox.Shared.Net.Messages;
 
 /// <summary>
-/// Server snapshot for the current world state.
+/// Server snapshot for the current Sandbox world state.
 /// </summary>
 public sealed class WorldSnapshotMessage : INetMessage
 {
     public const ushort Id = 5;
 
-    /// <inheritdoc />
     public ushort MessageId => Id;
-
-    /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Entity;
-
-    /// <summary>
-    /// Gets the server tick that produced this snapshot.
-    /// </summary>
     public uint ServerTick { get; }
-
-    /// <summary>Server-side last input tick applied for the receiving client. Used to trim prediction replay.</summary>
     public uint LastProcessedInputTick { get; }
-
-    /// <summary>
-    /// Gets the entity states included in this snapshot.
-    /// </summary>
     public IReadOnlyList<EntityState> Entities { get; }
 
-    /// <summary>
-    /// Creates a world snapshot payload.
-    /// </summary>
     public WorldSnapshotMessage(uint serverTick, uint lastProcessedInputTick, IReadOnlyList<EntityState> entities)
     {
         ServerTick = serverTick;
@@ -39,7 +25,6 @@ public sealed class WorldSnapshotMessage : INetMessage
         Entities = entities;
     }
 
-    /// <inheritdoc />
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);
@@ -70,38 +55,16 @@ public sealed class WorldSnapshotMessage : INetMessage
 }
 
 /// <summary>
-/// Compact world state for one entity inside a snapshot.
+/// Compact Sandbox world state for one entity inside a snapshot.
 /// </summary>
 public sealed class EntityState
 {
-    /// <summary>
-    /// Gets the entity ID.
-    /// </summary>
     public int EntityId { get; }
-
-    /// <summary>
-    /// Gets the world X position.
-    /// </summary>
     public float X { get; }
-
-    /// <summary>
-    /// Gets the world Y position.
-    /// </summary>
     public float Y { get; }
-
-    /// <summary>
-    /// Gets the world Z position.
-    /// </summary>
     public float Z { get; }
-
-    /// <summary>
-    /// Gets the Y rotation.
-    /// </summary>
     public float RotationY { get; }
 
-    /// <summary>
-    /// Creates one entity snapshot entry.
-    /// </summary>
     public EntityState(int entityId, float x, float y, float z, float rotationY)
     {
         EntityId = entityId;
@@ -111,9 +74,6 @@ public sealed class EntityState
         RotationY = rotationY;
     }
 
-    /// <summary>
-    /// Writes this entity state into the current packet.
-    /// </summary>
     public void Serialize(NetDataWriter writer)
     {
         writer.Put(EntityId);
@@ -123,9 +83,6 @@ public sealed class EntityState
         writer.Put(RotationY);
     }
 
-    /// <summary>
-    /// Reads one entity state from the packet.
-    /// </summary>
     public static EntityState Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
@@ -134,5 +91,84 @@ public sealed class EntityState
         var z = reader.GetFloat();
         var rotationY = reader.GetFloat();
         return new EntityState(entityId, x, y, z, rotationY);
+    }
+}
+
+/// <summary>
+/// Reliable notice that an entity entered the Sandbox replicated world.
+/// </summary>
+public sealed class EntitySpawnMessage : INetMessage
+{
+    public const ushort Id = 6;
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.EntityEvent;
+    public int EntityId { get; }
+    public Guid OwnerClientId { get; }
+    public string EntityType { get; }
+    public float X { get; }
+    public float Y { get; }
+    public float Z { get; }
+
+    public EntitySpawnMessage(int entityId, Guid ownerClientId, [ForbidLiteral] string entityType, float x, float y,
+        float z)
+    {
+        EntityId = entityId;
+        OwnerClientId = ownerClientId;
+        EntityType = entityType;
+        X = x;
+        Y = y;
+        Z = z;
+    }
+
+    public void Serialize(NetDataWriter writer)
+    {
+        NetMessageRegistry.WriteHeader(writer, Id);
+        writer.Put(EntityId);
+        writer.PutGuid(OwnerClientId);
+        writer.Put(EntityType);
+        writer.Put(X);
+        writer.Put(Y);
+        writer.Put(Z);
+    }
+
+    public static EntitySpawnMessage Deserialize(NetDataReader reader)
+    {
+        var entityId = reader.GetInt();
+        var ownerClientId = reader.ReadGuid();
+        var entityType = reader.GetString();
+        var x = reader.GetFloat();
+        var y = reader.GetFloat();
+        var z = reader.GetFloat();
+        return new EntitySpawnMessage(entityId, ownerClientId, entityType, x, y, z);
+    }
+}
+
+/// <summary>
+/// Reliable notice that an entity left the Sandbox replicated world.
+/// </summary>
+public sealed class EntityDestroyMessage : INetMessage
+{
+    public const ushort Id = 7;
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.EntityEvent;
+    public int EntityId { get; }
+
+    public EntityDestroyMessage(int entityId)
+    {
+        EntityId = entityId;
+    }
+
+    public void Serialize(NetDataWriter writer)
+    {
+        NetMessageRegistry.WriteHeader(writer, Id);
+        writer.Put(EntityId);
+    }
+
+    public static EntityDestroyMessage Deserialize(NetDataReader reader)
+    {
+        var entityId = reader.GetInt();
+        return new EntityDestroyMessage(entityId);
     }
 }

@@ -3,27 +3,27 @@ using LiteNetLib;
 namespace Rex.Shared.Net;
 
 /// <summary>
-/// Groups messages by traffic pattern.
+/// Groups messages by transport behavior so consumers can share delivery defaults without sharing gameplay policy.
 /// </summary>
 public enum MessageGroup
 {
     /// <summary>
-    /// Connection flow and handshake traffic.
+    /// Session setup, capability exchange, and other control-plane traffic.
     /// </summary>
     Core,
 
     /// <summary>
-    /// World state snapshots sent at tick rate.
+    /// High-rate state replication traffic such as snapshots or delta state.
     /// </summary>
     Entity,
 
     /// <summary>
-    /// Reliable entity events such as spawns and destroys.
+    /// Reliable state lifecycle events such as create/remove notifications.
     /// </summary>
     EntityEvent,
 
     /// <summary>
-    /// High frequency player input traffic.
+    /// High-frequency command streams such as input or control updates.
     /// </summary>
     Input,
 

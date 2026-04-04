@@ -2,7 +2,7 @@ using LiteNetLib;
 
 namespace Rex.Shared.Net;
 
-/// <summary>One client's link from server-side game code. Pair with <see cref="ClientSession"/>.</summary>
+/// <summary>One consumer session's outbound link from server-side runtime code.</summary>
 public interface IServerNetChannel
 {
     Guid ClientId { get; }

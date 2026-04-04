@@ -1,50 +1,25 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Rex.Shared.Net;
 
-namespace Rex.Shared.Net.Messages;
+namespace Rex.Sandbox.Shared.Net.Messages;
 
 /// <summary>
-/// One sampled input frame from a client.
+/// One sampled input frame from the Sandbox client.
 /// </summary>
 public sealed class PlayerInputMessage : INetMessage
 {
     public const ushort Id = 4;
 
-    /// <inheritdoc />
     public ushort MessageId => Id;
-
-    /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Input;
-
-    /// <summary>
-    /// Gets the client tick that produced this input.
-    /// </summary>
     public uint Tick { get; }
-
-    /// <summary>Strafe input. Server applies to world X in the prototype mover.</summary>
     public float MoveX { get; }
-
-    /// <summary>Forward input. Server maps this to world Z in the prototype mover.</summary>
     public float MoveY { get; }
-
-    /// <summary>
-    /// Gets look input on the X axis.
-    /// </summary>
     public float LookX { get; }
-
-    /// <summary>
-    /// Gets look input on the Y axis.
-    /// </summary>
     public float LookY { get; }
-
-    /// <summary>
-    /// Gets packed action bits for jump, fire, and similar actions.
-    /// </summary>
     public uint ActionFlags { get; }
 
-    /// <summary>
-    /// Creates a player input payload.
-    /// </summary>
     public PlayerInputMessage(uint tick, float moveX, float moveY, float lookX, float lookY, uint actionFlags)
     {
         Tick = tick;
@@ -55,7 +30,6 @@ public sealed class PlayerInputMessage : INetMessage
         ActionFlags = actionFlags;
     }
 
-    /// <inheritdoc />
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);

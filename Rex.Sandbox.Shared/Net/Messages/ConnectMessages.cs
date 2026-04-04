@@ -2,35 +2,54 @@ using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Net;
 
-namespace Rex.Shared.Net.Messages;
+namespace Rex.Sandbox.Shared.Net.Messages;
 
-/// <summary>Server reply to <see cref="ConnectRequestMessage"/>.</summary>
+/// <summary>
+/// First Sandbox gameplay message sent by a client after the transport connects.
+/// </summary>
+public sealed class ConnectRequestMessage : INetMessage
+{
+    public const ushort Id = 1;
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.Core;
+    public ushort ProtocolVersion { get; }
+    public string PlayerName { get; }
+
+    public ConnectRequestMessage(ushort protocolVersion, string playerName)
+    {
+        ProtocolVersion = protocolVersion;
+        PlayerName = playerName;
+    }
+
+    public void Serialize(NetDataWriter writer)
+    {
+        NetMessageRegistry.WriteHeader(writer, Id);
+        writer.Put(ProtocolVersion);
+        writer.Put(PlayerName);
+    }
+
+    public static ConnectRequestMessage Deserialize(NetDataReader reader)
+    {
+        var protocolVersion = reader.GetUShort();
+        var playerName = reader.GetString();
+        return new ConnectRequestMessage(protocolVersion, playerName);
+    }
+}
+
+/// <summary>Sandbox reply to <see cref="ConnectRequestMessage"/>.</summary>
 public sealed class ConnectResponseMessage : INetMessage
 {
     public const ushort Id = 2;
 
-    /// <inheritdoc />
     public ushort MessageId => Id;
-
-    /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Core;
-
-    /// <summary>True when the server accepted the client.</summary>
     public bool Accepted { get; }
-
-    /// <summary>Server-assigned session id when <see cref="Accepted"/> is true.</summary>
     public Guid ClientId { get; }
-
-    /// <summary>Simulation rate the client should use.</summary>
     public int TickRate { get; }
-
-    /// <summary>Server entity id for the local player when <see cref="Accepted"/> is true.</summary>
     public int LocalPlayerEntityId { get; }
-
-    /// <summary>Human-readable failure text when <see cref="Accepted"/> is false.</summary>
     public string? RejectReason { get; }
 
-    /// <summary>Builds a connection response payload.</summary>
     public ConnectResponseMessage(bool accepted, Guid clientId, int tickRate, int localPlayerEntityId = 0,
         string? rejectReason = null)
     {
@@ -41,7 +60,6 @@ public sealed class ConnectResponseMessage : INetMessage
         RejectReason = rejectReason;
     }
 
-    /// <inheritdoc />
     public void Serialize(NetDataWriter writer)
     {
         NetMessageRegistry.WriteHeader(writer, Id);

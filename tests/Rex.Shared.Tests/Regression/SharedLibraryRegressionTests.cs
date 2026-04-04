@@ -66,17 +66,6 @@ public sealed class SharedLibraryRegressionTests
     }
 
     [Fact]
-    public void Regression_game_world_spawn_ids_are_monotonic()
-    {
-        var world = new GameWorld();
-        var a = world.SpawnEntity(Guid.Empty, "T", 0f, 0f, 0f);
-        var b = world.SpawnEntity(Guid.Empty, "T", 0f, 0f, 0f);
-
-        Assert.Equal(1, a);
-        Assert.Equal(2, b);
-    }
-
-    [Fact]
     public void Regression_prototype_name_strips_suffix()
     {
         Assert.Equal("player", PrototypeUtility.CalculatePrototypeName("PlayerPrototype"));

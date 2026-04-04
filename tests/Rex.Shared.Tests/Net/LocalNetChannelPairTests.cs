@@ -1,6 +1,6 @@
 using LiteNetLib;
+using LiteNetLib.Utils;
 using Rex.Shared.Net;
-using Rex.Shared.Net.Messages;
 
 namespace Rex.Shared.Tests.Net;
 
@@ -24,7 +24,7 @@ public sealed class LocalNetChannelPairTests
     public void Client_send_is_visible_to_server_DrainMessages()
     {
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var sent = new ConnectRequestMessage(3, "player");
+        var sent = new TestMessage(3, "player");
         client.Connect();
         client.Send(sent);
 
@@ -41,7 +41,7 @@ public sealed class LocalNetChannelPairTests
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
         client.Connect();
 
-        var outbound = new ConnectResponseMessage(true, Guid.NewGuid(), 60);
+        var outbound = new TestMessage(60, "server");
         INetMessage? received = null;
         client.MessageReceived += m => received = m;
 
@@ -87,7 +87,7 @@ public sealed class LocalNetChannelPairTests
     public void Client_Send_with_channel_overload_enqueues_for_server()
     {
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var sent = new ConnectRequestMessage(1, "c");
+        var sent = new TestMessage(1, "c");
         client.Connect();
         client.Send(sent, 3, DeliveryMethod.Unreliable);
 
@@ -102,8 +102,8 @@ public sealed class LocalNetChannelPairTests
     public void Server_DrainMessages_delivers_multiple_client_sends_in_order()
     {
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var first = new ConnectRequestMessage(1, "a");
-        var second = new ConnectRequestMessage(1, "b");
+        var first = new TestMessage(1, "a");
+        var second = new TestMessage(1, "b");
         client.Connect();
         client.Send(first);
         client.Send(second);
@@ -123,8 +123,8 @@ public sealed class LocalNetChannelPairTests
         var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
         client.Connect();
 
-        var first = new ConnectResponseMessage(true, Guid.NewGuid(), 60);
-        var second = new ConnectResponseMessage(false, Guid.Empty, 0, 0, "no");
+        var first = new TestMessage(1, "yes");
+        var second = new TestMessage(2, "no");
         var received = new List<INetMessage>();
         client.MessageReceived += received.Add;
 
@@ -135,5 +135,23 @@ public sealed class LocalNetChannelPairTests
         Assert.Equal(2, received.Count);
         Assert.Same(first, received[0]);
         Assert.Same(second, received[1]);
+    }
+    private sealed class TestMessage : INetMessage
+    {
+        public TestMessage(int sequence, string payload)
+        {
+            Sequence = sequence;
+            Payload = payload;
+        }
+
+        public int Sequence { get; }
+        public string Payload { get; }
+        public ushort MessageId => 999;
+        public MessageGroup Group => MessageGroup.Command;
+
+        public void Serialize(NetDataWriter writer)
+        {
+            throw new NotSupportedException("LocalNetChannelPair tests pass message instances directly.");
+        }
     }
 }

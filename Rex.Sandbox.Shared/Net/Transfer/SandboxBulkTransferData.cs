@@ -1,41 +1,19 @@
 using ProtoBuf;
 
-namespace Rex.Shared.Net.Transfer;
+namespace Rex.Sandbox.Shared.Net.Transfer;
 
 /// <summary>
-/// Identifies the kind of payload carried by a bulk transfer.
+/// Sandbox-owned bulk payload identifiers. A future external game would define its own transfer kinds.
 /// </summary>
-public enum BulkDataType : byte
+public enum SandboxBulkDataType : byte
 {
-    /// <summary>
-    /// Full map data used for loading a level.
-    /// </summary>
     MapData = 1,
-
-    /// <summary>
-    /// Asset list and metadata.
-    /// </summary>
     AssetManifest = 2,
-
-    /// <summary>
-    /// Server-side gameplay settings.
-    /// </summary>
     ServerConfig = 3,
-
-    /// <summary>
-    /// Large entity state payload.
-    /// </summary>
     EntityBulkState = 4,
-
-    /// <summary>
-    /// Raw file data.
-    /// </summary>
     ResourceFile = 5
 }
 
-/// <summary>
-/// Bulk payload for a full map load.
-/// </summary>
 [ProtoContract]
 public sealed class MapData
 {
@@ -47,9 +25,6 @@ public sealed class MapData
     [ProtoMember(6)] public Dictionary<string, string> Properties { get; set; } = new();
 }
 
-/// <summary>
-/// One tile entry inside <see cref="MapData"/>.
-/// </summary>
 [ProtoContract]
 public sealed class MapTile
 {
@@ -59,9 +34,6 @@ public sealed class MapTile
     [ProtoMember(4)] public byte Flags { get; set; }
 }
 
-/// <summary>
-/// One entity entry inside <see cref="MapData"/>.
-/// </summary>
 [ProtoContract]
 public sealed class MapEntity
 {
@@ -74,9 +46,6 @@ public sealed class MapEntity
     [ProtoMember(7)] public Dictionary<string, byte[]> ComponentData { get; set; } = new();
 }
 
-/// <summary>
-/// Bulk payload that lists the assets a client may need.
-/// </summary>
 [ProtoContract]
 public sealed class AssetManifest
 {
@@ -84,9 +53,6 @@ public sealed class AssetManifest
     [ProtoMember(2)] public List<AssetEntry> Assets { get; set; } = new();
 }
 
-/// <summary>
-/// One asset entry inside <see cref="AssetManifest"/>.
-/// </summary>
 [ProtoContract]
 public sealed class AssetEntry
 {
@@ -95,9 +61,6 @@ public sealed class AssetEntry
     [ProtoMember(3)] public string Hash { get; set; } = string.Empty;
 }
 
-/// <summary>
-/// Bulk payload for server configuration values.
-/// </summary>
 [ProtoContract]
 public sealed class ServerConfigData
 {
@@ -108,9 +71,6 @@ public sealed class ServerConfigData
     [ProtoMember(5)] public Dictionary<string, string> CVars { get; set; } = new();
 }
 
-/// <summary>
-/// Bulk payload for a large set of entity states.
-/// </summary>
 [ProtoContract]
 public sealed class EntityBulkState
 {
@@ -118,9 +78,6 @@ public sealed class EntityBulkState
     [ProtoMember(2)] public List<BulkEntityData> Entities { get; set; } = new();
 }
 
-/// <summary>
-/// One entity entry inside <see cref="EntityBulkState"/>.
-/// </summary>
 [ProtoContract]
 public sealed class BulkEntityData
 {

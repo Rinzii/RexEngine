@@ -1,11 +1,27 @@
-using Rex.Shared.Analyzers;
-using Rex.Shared.Net.Messages;
+using Rex.Shared.Simulation;
+using Rex.Sandbox.Shared.Net.Messages;
 
-namespace Rex.Shared.Simulation;
+namespace Rex.Sandbox.Shared.Simulation;
 
 /// <summary>
-/// Authoritative game world. Owns entity state, processes inputs, and advances the simulation.
-/// Runs on the dedicated server with an optional <see cref="DirtyTracker"/> and on standalone clients without one.
+/// Sandbox-owned simulation tuning shared between the authoritative world and client prediction.
+/// </summary>
+public static class MovementConstants
+{
+    public const float PlanarUnitsPerInputTick = 5f;
+}
+
+/// <summary>
+/// Stable Sandbox entity type names shared by simulation and replication.
+/// A future external game repository would own its own equivalents.
+/// </summary>
+public static class EntityTypeIds
+{
+    public const string Player = "player";
+}
+
+/// <summary>
+/// Authoritative Sandbox world. This demo simulation stays outside the reusable engine layer.
 /// </summary>
 public sealed class GameWorld
 {
@@ -22,9 +38,8 @@ public sealed class GameWorld
         _dirtyTracker = dirtyTracker;
     }
 
-    public int SpawnEntity(Guid ownerClientId, [ForbidLiteral] string entityType, float x, float y, float z)
+    public int SpawnEntity(Guid ownerClientId, string entityType, float x, float y, float z)
     {
-        // Entity ids stay monotonic ints. ownerClientId and entityType are reserved for replication rules later.
         var entityId = _nextEntityId++;
         _entities[entityId] = new EntityState(entityId, x, y, z, 0f);
         _dirtyTracker?.MarkDirty(entityId, _currentTick);
@@ -43,7 +58,6 @@ public sealed class GameWorld
             return;
         }
 
-        // MoveXZ and yaw only. Y unchanged (no jump or fly yet).
         var newX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, current.X);
         var newZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, current.Z);
         var newRotY = input.LookY;
@@ -54,18 +68,15 @@ public sealed class GameWorld
 
     public void Tick(float deltaTime)
     {
-        // deltaTime reserved for physics and timers. Only the tick counter runs today.
         _currentTick++;
     }
 
-    /// <summary>Builds a full snapshot of all entities. Used by the server for broadcasting.</summary>
     public WorldSnapshotMessage BuildSnapshot(uint serverTick, uint lastProcessedInputTick)
     {
         var entities = new List<EntityState>(_entities.Values);
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }
 
-    /// <summary>Builds a delta snapshot of only dirty entities. Used by the server for broadcasting.</summary>
     public WorldSnapshotMessage BuildDeltaSnapshot(uint serverTick, uint lastProcessedInputTick,
         HashSet<int> dirtyEntityIds)
     {
