@@ -1,20 +1,19 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Graphics;
-using Rex.Client.Input;
-using Rex.Client.Net;
-using Rex.Shared;
+using Rex.Sandbox.Client.Graphics;
+using Rex.Sandbox.Client.Input;
+using Rex.Sandbox.Client.Net;
+using Rex.Sandbox.Shared.Net.Messages;
+using Rex.Sandbox.Shared.Simulation;
+using Rex.Shared.Logging;
 using Rex.Shared.Net;
-using Rex.Shared.Net.Messages;
-using Rex.Shared.Numerics;
-using Rex.Shared.Simulation;
 using Rex.Shared.Timing;
 
-namespace Rex.Client;
+namespace Rex.Sandbox.Client;
 
 /// <summary>
-/// Top-level client application. Runs fixed-step simulation, then variable-rate <see cref="OnUpdate"/> and
-/// <see cref="OnLateUpdate"/>, then draws with interpolation between simulation ticks.
+/// Sandbox-owned client application that exercises the reusable engine runtime as an internal consumer.
 /// </summary>
 public sealed partial class ClientApp : IDisposable
 {
@@ -25,10 +24,7 @@ public sealed partial class ClientApp : IDisposable
     private readonly DeltaTimeSmoother _deltaSmoother = new();
     private bool _isRunning;
 
-    // Networked play only (client or listen server).
     private GameClient? _client;
-
-    // Standalone only. Local world, no network session.
     private GameWorld? _world;
     private int _localEntityId;
     private IReadOnlyList<EntityState> _previousEntities = Array.Empty<EntityState>();
@@ -38,10 +34,7 @@ public sealed partial class ClientApp : IDisposable
     private readonly Dictionary<int, EntityState> _standaloneInterpPrevious = [];
     private readonly List<EntityState> _standaloneInterpolated = [];
 
-    // Sampled once per fixed tick in both standalone and networked modes.
     private InputCollector? _inputCollector;
-
-    // Optional. Set before Run().
     private IGameWindow? _window;
     private IRenderer? _renderer;
 
@@ -49,43 +42,24 @@ public sealed partial class ClientApp : IDisposable
     public TickClock Clock => _clock;
     public bool IsRunning => _isRunning;
     public bool Headless { get; init; }
-
-    /// <summary>
-    /// Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>. Use 0 to freeze scaled time and 1 for normal speed.
-    /// Fixed ticks always use <see cref="TickClock.TickRate"/>. Rex does not scale fixed ticks.
-    /// </summary>
     public float TimeScale { get; set; } = 1f;
-
-    /// <summary>Variable-rate work after fixed ticks. Cameras, UI, or non-authoritative motion.</summary>
     public Action<FrameContext>? OnUpdate { get; set; }
-
-    /// <summary>Runs after <see cref="OnUpdate"/>. For logic that reads state that <see cref="OnUpdate"/> may have changed.</summary>
     public Action<FrameContext>? OnLateUpdate { get; set; }
-
-    /// <summary>Network session. Non-null in Client and ListenServer modes.</summary>
     public GameClient? Client => _client;
-
-    /// <summary>Local simulation world. Non-null in Standalone mode.</summary>
     public GameWorld? World => _world;
 
-    /// <summary>Optional window. Set before <see cref="Run"/>.</summary>
     public IGameWindow? Window
     {
         get => _window;
         set => _window = value;
     }
 
-    /// <summary>Optional renderer. Set before <see cref="Run"/>.</summary>
     public IRenderer? Renderer
     {
         get => _renderer;
         set => _renderer = value;
     }
 
-    /// <summary>Creates a client with a fixed-rate simulation clock and the given networking role.</summary>
-    /// <param name="mode">Standalone, remote client, listen server, or dedicated server enum value. See <see cref="NetMode"/>.</param>
-    /// <param name="loggerFactory">Creates loggers for this app and nested systems such as networking.</param>
-    /// <param name="tickRate">Simulation ticks per second. Each fixed step advances sim time by <c>1 / tickRate</c> seconds.</param>
     public ClientApp(NetMode mode, ILoggerFactory loggerFactory, int tickRate = ProtocolConstants.DefaultTickRate)
     {
         _mode = mode;
@@ -94,16 +68,11 @@ public sealed partial class ClientApp : IDisposable
         _clock = new TickClock(tickRate);
     }
 
-    /// <summary>Registers input sampled each fixed tick.</summary>
     public void SetInputCollector(InputCollector collector)
     {
         _inputCollector = collector;
     }
 
-    /// <summary>Wires the chosen net mode, runs the main loop until stop, then shuts down.</summary>
-    /// <param name="port"></param>
-    /// <param name="cancellationToken">When canceled, the loop exits after the current frame.</param>
-    /// <param name="host"></param>
     public void Run(string? host = null, int port = ProtocolConstants.DefaultPort, CancellationToken cancellationToken = default)
     {
         InitializeWindow();
@@ -124,9 +93,7 @@ public sealed partial class ClientApp : IDisposable
         }
 
         LogClientRunning(_mode);
-
         RunMainLoop(cancellationToken);
-
         Shutdown();
     }
 
@@ -155,15 +122,11 @@ public sealed partial class ClientApp : IDisposable
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
-            // Fixed sim may run zero or many times so wall time stays in sync with tick rate.
             var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, FixedStep);
-
-            // How far we are between the last tick and the next, for draw interpolation.
             var alpha = (float)(accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
             frameIndex++;
 
-            // Same cap as the accumulator uses, so Update sees a consistent frame length.
             var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
             var smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
@@ -187,7 +150,6 @@ public sealed partial class ClientApp : IDisposable
             }
 
             InvokeUpdateCallbacks(ctx);
-
             Render(ctx);
 
             if (Headless)
@@ -223,7 +185,7 @@ public sealed partial class ClientApp : IDisposable
             return;
         }
 
-        _window.Open("RexEngine", 1280, 720);
+        _window.Open("Rex Sandbox", 1280, 720);
         _renderer?.Initialize(_window);
     }
 
@@ -231,14 +193,12 @@ public sealed partial class ClientApp : IDisposable
     {
         _world = new GameWorld();
         _localEntityId = _world.SpawnEntity(Guid.Empty, EntityTypeIds.Player, 0f, 0f, 0f);
-
         LogStandaloneWorldInitialized();
     }
 
     private void SetupNetworked(string host, int port)
     {
         _client = new GameClient(_loggerFactory);
-
         if (_inputCollector != null)
         {
             _client.SetInputCollector(_inputCollector);
@@ -255,8 +215,7 @@ public sealed partial class ClientApp : IDisposable
             _world!.ProcessInput(_localEntityId, input);
         }
 
-        var deltaTime = 1.0f / _clock.TickRate;
-        _world!.Tick(deltaTime);
+        _world!.Tick(1.0f / _clock.TickRate);
 
         (_entitySnapshotBuffer0, _entitySnapshotBuffer1) = (_entitySnapshotBuffer1, _entitySnapshotBuffer0);
         _previousEntities = _entitySnapshotBuffer0;
@@ -285,12 +244,9 @@ public sealed partial class ClientApp : IDisposable
         if (_renderer != null)
         {
             _renderer.BeginFrame();
-
-            // Standalone lerps local snapshots. Networked uses predicted or interpolated server state.
             var entities = _mode == NetMode.Standalone
                 ? InterpolateStandalone(ctx.InterpolationAlpha)
                 : _client!.WorldState.GetInterpolatedState(ctx.InterpolationAlpha);
-
             _renderer.RenderWorld(entities, ctx.InterpolationAlpha);
             _renderer.EndFrame();
         }
@@ -298,7 +254,6 @@ public sealed partial class ClientApp : IDisposable
         _window?.SwapBuffers();
     }
 
-    /// <summary>Linear blend between entity state at the previous tick and the current tick. Standalone draw path.</summary>
     private IReadOnlyList<EntityState> InterpolateStandalone(float alpha)
     {
         if (_currentEntities.Count == 0 || _previousEntities.Count == 0)
@@ -360,4 +315,42 @@ public sealed partial class ClientApp : IDisposable
         _client?.Disconnect();
         _window?.Close();
     }
+}
+
+internal static class EntityStateInterpolation
+{
+    public static EntityState Lerp(EntityState previous, EntityState current, float alpha) =>
+        new(
+            current.EntityId,
+            float.Lerp(previous.X, current.X, alpha),
+            float.Lerp(previous.Y, current.Y, alpha),
+            float.Lerp(previous.Z, current.Z, alpha),
+            Rex.Shared.Numerics.AngleMath.LerpAngleDegrees(previous.RotationY, current.RotationY, alpha));
+}
+
+public sealed partial class ClientApp
+{
+    [LoggerMessage(EventId = LogEventIds.ClientApp.InvalidNetMode, Level = LogLevel.Error,
+        Message = "Net mode {Mode} is not valid for the Sandbox client.")]
+    private partial void LogInvalidClientNetMode(NetMode mode);
+
+    [LoggerMessage(EventId = LogEventIds.ClientApp.ClientRunning, Level = LogLevel.Information,
+        Message = "Sandbox client running in {Mode} mode.")]
+    private partial void LogClientRunning(NetMode mode);
+
+    [LoggerMessage(EventId = LogEventIds.ClientApp.StandaloneWorldInitialized, Level = LogLevel.Information,
+        Message = "Sandbox standalone world initialized.")]
+    private partial void LogStandaloneWorldInitialized();
+
+    [LoggerMessage(EventId = LogEventIds.ClientApp.OnUpdateFailed, Level = LogLevel.Error,
+        Message = "OnUpdate threw an exception.")]
+    private partial void LogOnUpdateFailed(Exception ex);
+
+    [LoggerMessage(EventId = LogEventIds.ClientApp.OnLateUpdateFailed, Level = LogLevel.Error,
+        Message = "OnLateUpdate threw an exception.")]
+    private partial void LogOnLateUpdateFailed(Exception ex);
+
+    [LoggerMessage(EventId = LogEventIds.ClientApp.MainLoopCancellationRequested, Level = LogLevel.Debug,
+        Message = "Main loop exiting due to cancellation.")]
+    private partial void LogMainLoopCancellationRequested();
 }

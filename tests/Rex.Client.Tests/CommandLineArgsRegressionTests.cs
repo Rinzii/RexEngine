@@ -1,6 +1,6 @@
 using Rex.Shared.Net;
 
-namespace Rex.Client.Tests;
+namespace Rex.Sandbox.Client.Tests;
 
 // Locks client argv behavior for modes flags port and error strings.
 public sealed class CommandLineArgsRegressionTests

@@ -1,22 +1,26 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
-using Rex.Client.Logging;
+using Rex.Sandbox.Shared.Net;
+using Rex.Shared.Logging;
 using Rex.Shared.Net;
 
-namespace Rex.Client;
+namespace Rex.Sandbox.Client;
 
-/// <summary>Parses command-line args and runs <see cref="ClientApp"/>. May start a listen-server child process.</summary>
+/// <summary>
+/// Sandbox CLI entrypoint. This remains in-repo but models how a future game-side consumer would boot the engine.
+/// </summary>
 internal static class Program
 {
+    private const string ServerAssemblyEnvironmentVariable = "REX_SANDBOX_SERVER_DLL";
+
     private static void Main(string[] args)
     {
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
 
-            // Allow an environment variable to override the default log level so
-            // dev and test runs can be made more or less verbose without recompiling.
-            if (Environment.GetEnvironmentVariable("REX_CLIENT_LOG_LEVEL") is { } logLevelStr &&
+            if (Environment.GetEnvironmentVariable("REX_SANDBOX_CLIENT_LOG_LEVEL") is { } logLevelStr &&
                 Enum.TryParse<LogLevel>(logLevelStr, true, out var logLevel))
             {
                 builder.SetMinimumLevel(logLevel);
@@ -27,7 +31,7 @@ internal static class Program
             }
         });
 
-        var logger = loggerFactory.CreateLogger("Rex.Client");
+        var logger = loggerFactory.CreateLogger("Rex.Sandbox.Client");
 
         if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
         {
@@ -40,8 +44,6 @@ internal static class Program
             logger.UnrecognizedCliArgument(arg);
         }
 
-        // Listen-server mode means this client process first launches a local server
-        // child process, then connects to it as a normal client.
         if (parsed.Mode == NetMode.ListenServer)
         {
             RunWithListenServer(parsed, loggerFactory, logger);
@@ -59,12 +61,7 @@ internal static class Program
             Headless = args.Headless
         };
 
-        // This token is passed into the app run loop so Ctrl+C can request a clean shutdown.
         using var cts = new CancellationTokenSource();
-
-        // This helper owns the Console.CancelKeyPress subscription.
-        // Keeping the event hookup inside a disposable object makes the subscription lifetime
-        // explicit and avoids event handlers outliving the objects they use.
         using var shutdownHook = new ShutdownHook(logger, cts, app);
 
         string? host = null;
@@ -72,8 +69,6 @@ internal static class Program
 
         if (args.ConnectAddress != null)
         {
-            // The connect argument may contain just a host or a host plus port.
-            // This parser resolves the final host and port pair that the client should use.
             if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out var parsedHost, out var parsedPort))
             {
                 logger.InvalidConnectAddress(args.ConnectAddress);
@@ -89,8 +84,6 @@ internal static class Program
 
     private static void RunWithListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
     {
-        // The bridge keeps the child process alive, keeps logging subscriptions attached,
-        // and exposes a wait point for the server ready signal.
         using var serverProcessBridge = StartListenServerProcess(args.Port, logger);
         if (serverProcessBridge == null)
         {
@@ -99,8 +92,6 @@ internal static class Program
 
         try
         {
-            // Once the local server is up, we launch the client side in normal client mode
-            // and point it at localhost on the requested port.
             var clientArgs = new CommandLineArgs(
                 args.Headless,
                 NetMode.Client,
@@ -112,7 +103,6 @@ internal static class Program
         }
         finally
         {
-            // Always stop the child server when the client side exits, even if the client run throws.
             StopListenServerProcess(serverProcessBridge.Process, logger);
         }
     }
@@ -131,23 +121,12 @@ internal static class Program
             StartInfo = new ProcessStartInfo
             {
                 FileName = "dotnet",
-
-                // We want direct control over stdio so we can watch server output for logs
-                // and for the specific ready line that signals startup completion.
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-
-                // This is a background helper process, not something that should spawn its own console window.
                 CreateNoWindow = true,
-
-                // Set the working directory to the server assembly directory so any relative paths
-                // used by the server resolve from its own output location.
                 WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
             },
-
-            // Required for some process event scenarios and generally appropriate
-            // when this Process instance is being used as a managed runtime wrapper.
             EnableRaisingEvents = true
         };
 
@@ -159,8 +138,6 @@ internal static class Program
 
         try
         {
-            // Create the bridge before starting the process so output handlers are already attached
-            // when the child begins writing startup logs.
             bridge = new ListenServerProcessBridge(process, logger);
 
             if (!process.Start())
@@ -170,13 +147,9 @@ internal static class Program
                 return null;
             }
 
-            // Begin async consumption of stdout and stderr.
-            // Without this, redirected output can fill buffers and potentially block the child process.
             process.BeginOutputReadLine();
             process.BeginErrorReadLine();
 
-            // The server is expected to print a specific ready line once startup is complete.
-            // We wait up to 10 seconds before treating startup as failed.
             if (bridge.WaitUntilReady(TimeSpan.FromSeconds(10)))
             {
                 return bridge;
@@ -197,8 +170,6 @@ internal static class Program
         }
         catch
         {
-            // Dispose the bridge if it exists so event handlers are detached and the process wrapper
-            // is cleaned up before the exception continues upward.
             bridge?.Dispose();
             process.Dispose();
             throw;
@@ -213,17 +184,19 @@ internal static class Program
         }
 
         logger.StoppingListenServer();
-
-        // Kill the full process tree in case the child server spawned children of its own.
         process.Kill(true);
-
-        // Give the OS a short window to report final termination and release resources.
         process.WaitForExit(5000);
     }
 
     private static string? ResolveServerAssemblyPath()
     {
-        var siblingPath = Path.Combine(AppContext.BaseDirectory, "Rex.Server.dll");
+        var configuredPath = Environment.GetEnvironmentVariable(ServerAssemblyEnvironmentVariable);
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            return File.Exists(configuredPath) ? configuredPath : null;
+        }
+
+        var siblingPath = Path.Combine(AppContext.BaseDirectory, "Rex.Sandbox.Server.dll");
         if (File.Exists(siblingPath))
         {
             return siblingPath;
@@ -234,11 +207,6 @@ internal static class Program
                 Path.AltDirectorySeparatorChar));
         var tfm = outputDir.Name;
         var config = outputDir.Parent?.Name;
-
-        // In normal deployed layouts the server DLL may sit next to the client DLL.
-        // In local dev layouts it may instead be in its own project output directory, so
-        // this walks back from bin/{Config}/{Tfm}/ to the repo root and reconstructs the expected path.
-        // TODO: IanP: This might change later as there is a high likely hood we will later change the output location of builds.
         var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
 
         if (config == null || repoRoot == null)
@@ -246,7 +214,8 @@ internal static class Program
             return null;
         }
 
-        var repoPath = Path.Combine(repoRoot.FullName, "Rex.Server", "bin", config, tfm, "Rex.Server.dll");
+        var repoPath = Path.Combine(repoRoot.FullName, "Rex.Sandbox.Server", "bin", config, tfm,
+            "Rex.Sandbox.Server.dll");
         return File.Exists(repoPath) ? repoPath : null;
     }
 
@@ -262,8 +231,6 @@ internal static class Program
             _logger = logger;
             _cts = cts;
             _app = app;
-
-            // Attach once during construction so this helper fully owns the subscription.
             Console.CancelKeyPress += OnCancelKeyPress;
         }
 
@@ -274,16 +241,12 @@ internal static class Program
                 return;
             }
 
-            // Detach the handler before the captured objects go out of scope.
-            // This keeps the event subscription lifetime aligned with the object lifetime.
             Console.CancelKeyPress -= OnCancelKeyPress;
             _disposed = true;
         }
 
         private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
         {
-            // Mark the signal as handled so the runtime does not immediately tear down the process.
-            // We want the app to shut down through its own controlled path instead.
             e.Cancel = true;
             _logger.ShutdownSignalReceived();
 
@@ -306,13 +269,7 @@ internal static class Program
         {
             Process = process;
             _logger = logger;
-
-            // This is used only to block startup until the server announces readiness.
-            // Output logging continues after that for the full process lifetime.
             _readySignal = new ManualResetEventSlim();
-
-            // These handlers stay attached for the full bridge lifetime so we keep receiving
-            // stdout and stderr from the child process until shutdown.
             Process.OutputDataReceived += OnOutputDataReceived;
             Process.ErrorDataReceived += OnErrorDataReceived;
         }
@@ -331,8 +288,6 @@ internal static class Program
                 return;
             }
 
-            // Remove event subscriptions before disposing owned resources so no callback can fire
-            // into an object that is already being torn down.
             Process.OutputDataReceived -= OnOutputDataReceived;
             Process.ErrorDataReceived -= OnErrorDataReceived;
             _readySignal.Dispose();
@@ -349,9 +304,7 @@ internal static class Program
 
             _logger.ListenServerOutput(e.Data);
 
-            // The server writes a sentinel line once startup is complete.
-            // Seeing that line releases the startup wait in StartListenServerProcess.
-            if (e.Data.Contains(ProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
+            if (e.Data.Contains(SandboxProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
             {
                 _readySignal.Set();
             }
@@ -365,4 +318,151 @@ internal static class Program
             }
         }
     }
+}
+
+internal sealed class CommandLineArgs
+{
+    public bool Headless { get; }
+    public NetMode Mode { get; }
+    public string? ConnectAddress { get; }
+    public int Port { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
+
+    internal CommandLineArgs(
+        bool headless,
+        NetMode mode,
+        string? connectAddress,
+        int port,
+        IReadOnlyList<string> unrecognizedArguments)
+    {
+        Headless = headless;
+        Mode = mode;
+        ConnectAddress = connectAddress;
+        Port = port;
+        UnrecognizedArguments = unrecognizedArguments;
+    }
+
+    public static bool TryParse(
+        IReadOnlyList<string> args,
+        [NotNullWhen(true)] out CommandLineArgs? parsed,
+        [NotNullWhen(false)] out string? error)
+    {
+        parsed = null;
+        error = null;
+        var headless = false;
+        var listenServer = false;
+        var standalone = false;
+        string? connectAddress = null;
+        var port = ProtocolConstants.DefaultPort;
+        var unrecognized = new List<string>();
+
+        using var enumerator = args.GetEnumerator();
+
+        while (enumerator.MoveNext())
+        {
+            var arg = enumerator.Current;
+            switch (arg)
+            {
+                case "--headless":
+                    headless = true;
+                    break;
+                case "--listen":
+                    listenServer = true;
+                    break;
+                case "--standalone":
+                    standalone = true;
+                    break;
+                case "--connect" when !enumerator.MoveNext():
+                    error = "Missing value for --connect.";
+                    return false;
+                case "--connect":
+                    connectAddress = enumerator.Current;
+                    break;
+                case "--port" when !enumerator.MoveNext():
+                    error = "Missing value for --port.";
+                    return false;
+                case "--port":
+                    if (!int.TryParse(enumerator.Current, out port))
+                    {
+                        error = "Invalid value for --port.";
+                        return false;
+                    }
+
+                    break;
+                default:
+                    unrecognized.Add(arg);
+                    break;
+            }
+        }
+
+        NetMode mode;
+        if (standalone)
+        {
+            mode = NetMode.Standalone;
+        }
+        else if (connectAddress != null)
+        {
+            mode = NetMode.Client;
+        }
+        else if (listenServer)
+        {
+            mode = NetMode.ListenServer;
+        }
+        else
+        {
+            mode = NetMode.Standalone;
+        }
+
+        parsed = new CommandLineArgs(headless, mode, connectAddress, port, unrecognized);
+        return true;
+    }
+}
+
+internal static partial class ClientProgramLog
+{
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ShutdownSignal, Level = LogLevel.Information,
+        Message = "Shutdown signal received.")]
+    public static partial void ShutdownSignalReceived(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerStdout, Level = LogLevel.Information,
+        Message = "[Server] {Message}")]
+    public static partial void ListenServerOutput(this ILogger logger, string message);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerStderr, Level = LogLevel.Error,
+        Message = "[Server] {Message}")]
+    public static partial void ListenServerError(this ILogger logger, string message);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerAssemblyNotFound, Level = LogLevel.Error,
+        Message =
+            "Could not find Rex.Sandbox.Server assembly for listen server mode. Set REX_SANDBOX_SERVER_DLL to override the default lookup.")]
+    public static partial void ListenServerAssemblyNotFound(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerStartFailed, Level = LogLevel.Error,
+        Message = "Failed to start Rex.Sandbox.Server process.")]
+    public static partial void ListenServerStartFailed(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerExitedEarly, Level = LogLevel.Error,
+        Message = "Listen server exited before startup completed.")]
+    public static partial void ListenServerExitedEarly(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.ListenServerStartupTimeout, Level = LogLevel.Error,
+        Message = "Timed out waiting for listen server startup.")]
+    public static partial void ListenServerStartupTimeout(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.StoppingListenServer, Level = LogLevel.Information,
+        Message = "Stopping listen server process.")]
+    public static partial void StoppingListenServer(this ILogger logger);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.InvalidConnectAddress, Level = LogLevel.Error,
+        Message =
+            "Invalid connect address \"{ConnectAddress}\". Use host, host:port, or bracketed IPv6 such as [::1]:port.")]
+    public static partial void InvalidConnectAddress(this ILogger logger, string connectAddress);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.CliParseFailed, Level = LogLevel.Error,
+        Message = "Command-line parse failed: {Reason}")]
+    public static partial void CliParseFailed(this ILogger logger, string reason);
+
+    [LoggerMessage(EventId = LogEventIds.ClientHost.UnrecognizedCliArgument, Level = LogLevel.Warning,
+        Message = "Ignoring unrecognized command-line argument: {Argument}")]
+    public static partial void UnrecognizedCliArgument(this ILogger logger, string argument);
 }
