@@ -1,7 +1,8 @@
 using Rex.Shared.Net;
-using Rex.Server.Simulation;
+using Rex.Sandbox.Shared.Net;
+using Rex.Sandbox.Server.Simulation;
 
-namespace Rex.Server.Tests;
+namespace Rex.Sandbox.Server.Tests;
 
 // Server runtime config defaults.
 public sealed class GameServerConfigTests
@@ -15,7 +16,7 @@ public sealed class GameServerConfigTests
         Assert.Equal(ProtocolConstants.DefaultTickRate, cfg.TickRate);
         Assert.Equal(ProtocolConstants.DefaultMaxPlayers, cfg.MaxPlayers);
         Assert.Equal(ProtocolConstants.DefaultPort, cfg.Port);
-        Assert.Equal(ProtocolConstants.ConnectionKey, cfg.ConnectionKey);
-        Assert.Equal("RexEngine Server", cfg.ServerName);
+        Assert.Equal(SandboxProtocolConstants.ConnectionKey, cfg.ConnectionKey);
+        Assert.Equal("Rex Sandbox Server", cfg.ServerName);
     }
 }

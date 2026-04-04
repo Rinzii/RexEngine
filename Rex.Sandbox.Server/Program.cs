@@ -1,10 +1,100 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
+using Rex.Sandbox.Server.Core;
+using Rex.Sandbox.Server.Simulation;
+using Rex.Shared.Logging;
 using Rex.Shared.Net;
 using Rex.Shared.Utility;
 
-namespace Rex.Server;
+namespace Rex.Sandbox.Server;
 
-/// <summary>Server CLI. Unknown tokens are collected; the host logs them after bootstrap logging is available.</summary>
+/// <summary>
+/// Sandbox server CLI entrypoint.
+/// </summary>
+internal static class Program
+{
+    internal static void Main(string[] args)
+    {
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Information);
+        });
+
+        var bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
+
+        if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
+        {
+            bootstrapLogger.CliParseFailed(parseError);
+            return;
+        }
+
+        foreach (var arg in parsed.UnrecognizedArguments)
+        {
+            bootstrapLogger.UnrecognizedCliArgument(arg);
+        }
+
+        var config = new GameServerConfig
+        {
+            Port = parsed.Port,
+            MaxPlayers = parsed.MaxPlayers,
+            TickRate = parsed.TickRate,
+            ServerName = "Rex Sandbox Dedicated Server"
+        };
+
+        using var app = new ServerApp(config, loggerFactory);
+        using var cts = new CancellationTokenSource();
+        using var shutdownHook = new ShutdownHook(cts, app);
+
+        try
+        {
+            app.Run(cts.Token);
+        }
+        catch (PortAlreadyInUseException ex)
+        {
+            bootstrapLogger.PortAlreadyInUse(ex.Message);
+            Environment.Exit(1);
+        }
+    }
+
+    private sealed class ShutdownHook : IDisposable
+    {
+        private readonly CancellationTokenSource _cts;
+        private readonly ServerApp _app;
+        private bool _disposed;
+
+        public ShutdownHook(CancellationTokenSource cts, ServerApp app)
+        {
+            _cts = cts;
+            _app = app;
+            Console.CancelKeyPress += OnCancelKeyPress;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            Console.CancelKeyPress -= OnCancelKeyPress;
+            _disposed = true;
+        }
+
+        private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
+        {
+            e.Cancel = true;
+
+            if (!_cts.IsCancellationRequested)
+            {
+                _cts.Cancel();
+            }
+
+            _app.Stop();
+        }
+    }
+}
+
 internal sealed class CommandLineArgs
 {
     public string? ConfigFile { get; }
@@ -54,35 +144,29 @@ internal sealed class CommandLineArgs
                     dataDir = enumerator.Current;
                     break;
                 case "--port":
+                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
                     {
-                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port))
-                        {
-                            error = "Missing or invalid value for --port.";
-                            return false;
-                        }
-
-                        break;
+                        error = "Missing or invalid value for --port.";
+                        return false;
                     }
+
+                    break;
                 case "--max-players":
+                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
                     {
-                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers))
-                        {
-                            error = "Missing or invalid value for --max-players.";
-                            return false;
-                        }
-
-                        break;
+                        error = "Missing or invalid value for --max-players.";
+                        return false;
                     }
+
+                    break;
                 case "--tick-rate":
+                    if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
                     {
-                        if (!enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate))
-                        {
-                            error = "Missing or invalid value for --tick-rate.";
-                            return false;
-                        }
-
-                        break;
+                        error = "Missing or invalid value for --tick-rate.";
+                        return false;
                     }
+
+                    break;
                 case "--cvar" when !enumerator.MoveNext():
                     error = "Missing value for --cvar.";
                     return false;
@@ -120,18 +204,16 @@ internal sealed class CommandLineArgs
                         break;
                     }
                 default:
+                    if (arg.StartsWith('+'))
                     {
-                        if (arg.StartsWith('+'))
-                        {
-                            execCommands.Add(arg[1..]);
-                        }
-                        else
-                        {
-                            unrecognized.Add(arg);
-                        }
-
-                        break;
+                        execCommands.Add(arg[1..]);
                     }
+                    else
+                    {
+                        unrecognized.Add(arg);
+                    }
+
+                    break;
             }
         }
 
@@ -158,8 +240,7 @@ internal sealed class CommandLineArgs
         int port,
         int maxPlayers,
         int tickRate,
-        IReadOnlyList<string> unrecognizedArguments
-    )
+        IReadOnlyList<string> unrecognizedArguments)
     {
         ConfigFile = configFile;
         DataDir = dataDir;
@@ -171,4 +252,19 @@ internal sealed class CommandLineArgs
         TickRate = tickRate;
         UnrecognizedArguments = unrecognizedArguments;
     }
+}
+
+internal static partial class ServerProgramLog
+{
+    [LoggerMessage(EventId = LogEventIds.ServerHost.CliParseFailed, Level = LogLevel.Error,
+        Message = "Command-line parse failed: {Reason}")]
+    public static partial void CliParseFailed(this ILogger logger, string reason);
+
+    [LoggerMessage(EventId = LogEventIds.ServerHost.UnrecognizedCliArgument, Level = LogLevel.Warning,
+        Message = "Ignoring unrecognized command-line argument: {Argument}")]
+    public static partial void UnrecognizedCliArgument(this ILogger logger, string argument);
+
+    [LoggerMessage(EventId = LogEventIds.ServerHost.PortAlreadyInUse, Level = LogLevel.Error,
+        Message = "Dedicated server could not start: {Detail}")]
+    public static partial void PortAlreadyInUse(this ILogger logger, string detail);
 }

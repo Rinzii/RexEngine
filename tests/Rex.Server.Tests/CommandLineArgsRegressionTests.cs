@@ -1,7 +1,7 @@
 using System.Linq;
 using Rex.Shared.Net;
 
-namespace Rex.Server.Tests;
+namespace Rex.Sandbox.Server.Tests;
 
 // Locks dedicated server argv parsing for every flag and error path.
 public sealed class CommandLineArgsRegressionTests

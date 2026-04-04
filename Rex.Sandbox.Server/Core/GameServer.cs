@@ -1,12 +1,14 @@
 using LiteNetLib;
 using Microsoft.Extensions.Logging;
+using Rex.Sandbox.Server.Simulation;
+using Rex.Sandbox.Shared.Net;
 using Rex.Server.Net;
-using Rex.Server.Simulation;
+using Rex.Shared.Logging;
 using Rex.Shared.Net;
 
-namespace Rex.Server.Core;
+namespace Rex.Sandbox.Server.Core;
 
-/// <summary>LiteNetLib facade. Accepts peers and delegates simulation to <see cref="GameServerHost"/>.</summary>
+/// <summary>LiteNetLib facade for the Sandbox server.</summary>
 public sealed partial class GameServer
 {
     private readonly GameServerHost _host;
@@ -34,20 +36,18 @@ public sealed partial class GameServer
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
 
-        // Bind before GameServerHost.Start so we do not run the sim if the port is taken.
         if (!_netManager.Start(_host.Config.Port))
         {
             LogCannotListenOnPort(_host.Config.Port);
             _netManager.Stop();
             _netManager = null;
             _listener = null;
-            throw new InvalidOperationException($"Port {_host.Config.Port} is already in use.");
+            throw new PortAlreadyInUseException(_host.Config.Port);
         }
 
         _host.Start();
-
         LogServerListening(_host.Config.Port);
-        Console.Out.WriteLine(ProtocolConstants.ListenProcessReadyLine);
+        Console.Out.WriteLine(SandboxProtocolConstants.ListenProcessReadyLine);
     }
 
     public void Tick()
@@ -66,7 +66,6 @@ public sealed partial class GameServer
 
     private void OnConnectionRequest(ConnectionRequest request)
     {
-        // Reject before accept if we are at max players.
         if (_host.IsFull)
         {
             request.Reject();
@@ -79,7 +78,6 @@ public sealed partial class GameServer
 
     private void OnPeerConnected(NetPeer peer)
     {
-        // One ClientSession and id for the lifetime of this peer.
         var clientId = GameServerHost.AllocateClientId();
         var channel = new RemoteServerNetChannel(peer, clientId);
         var session = new ClientSession(channel);
@@ -96,9 +94,7 @@ public sealed partial class GameServer
             return;
         }
 
-        // Tear down sim and notify other clients via host.
         LogPeerDisconnected(clientId, disconnectInfo.Reason);
-
         _host.RemoveSession(clientId);
         _peerToClientId.Remove(peer);
     }
@@ -111,7 +107,6 @@ public sealed partial class GameServer
             return;
         }
 
-        // Byte count only here. Message id can be counted after deserialize if you extend stats.
         _host.Statistics.RecordReceived(0, reader.AvailableBytes);
         try
         {
@@ -125,4 +120,50 @@ public sealed partial class GameServer
             reader.Recycle();
         }
     }
+}
+
+/// <summary>
+/// Raised when the Sandbox server cannot bind its requested UDP port during startup.
+/// </summary>
+public sealed class PortAlreadyInUseException : InvalidOperationException
+{
+    public PortAlreadyInUseException(int port)
+        : base($"Port {port} is already in use.")
+    {
+        Port = port;
+    }
+
+    public int Port { get; }
+}
+
+public sealed partial class GameServer
+{
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.CannotListenOnPort, Level = LogLevel.Error,
+        Message =
+            "Cannot listen on port {Port}. It is probably already in use. Stop the other process or use --port with a different value.")]
+    private partial void LogCannotListenOnPort(int port);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.ServerListening, Level = LogLevel.Information,
+        Message = "Sandbox server listening on port {Port}")]
+    private partial void LogServerListening(int port);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.ServerNetworkStopped, Level = LogLevel.Information,
+        Message = "Sandbox server network layer stopped.")]
+    private partial void LogServerNetworkStopped();
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.ConnectionRejectedServerFull, Level = LogLevel.Warning,
+        Message = "Connection rejected: server full.")]
+    private partial void LogConnectionRejectedServerFull();
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerConnected, Level = LogLevel.Information,
+        Message = "Peer connected: {Address} -> ClientId {ClientId}")]
+    private partial void LogPeerConnected(System.Net.IPAddress address, Guid clientId);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerDisconnected, Level = LogLevel.Information,
+        Message = "Peer disconnected: ClientId {ClientId} ({Reason})")]
+    private partial void LogPeerDisconnected(Guid clientId, DisconnectReason reason);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.DeserializeMessageFailed, Level = LogLevel.Warning,
+        Message = "Failed to deserialize inbound message for ClientId {ClientId}.")]
+    private partial void LogDeserializeMessageFailed(Guid clientId, Exception ex);
 }

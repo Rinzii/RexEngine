@@ -1,6 +1,6 @@
 using Rex.Shared.Net;
 
-namespace Rex.Server.Tests;
+namespace Rex.Sandbox.Server.Tests;
 
 // Dedicated server command line parsing.
 public sealed class CommandLineArgsTests

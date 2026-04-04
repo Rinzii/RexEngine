@@ -1,15 +1,57 @@
+using LiteNetLib;
 using Microsoft.Extensions.Logging;
-using Rex.Shared;
+using Rex.Sandbox.Shared.Net;
+using Rex.Sandbox.Shared.Net.Messages;
+using Rex.Sandbox.Shared.Net.Transfer;
+using Rex.Sandbox.Shared.Simulation;
+using Rex.Server.Net;
+using Rex.Shared.Logging;
 using Rex.Shared.Net;
-using Rex.Shared.Net.Messages;
 using Rex.Shared.Net.Transfer;
-using Rex.Shared.Simulation;
+using ConnectionState = Rex.Shared.Net.ConnectionState;
 
-namespace Rex.Server.Simulation;
+namespace Rex.Sandbox.Server.Simulation;
+
+/// <summary>Configuration for the Sandbox server host.</summary>
+public sealed class GameServerConfig
+{
+    public int TickRate { get; init; } = ProtocolConstants.DefaultTickRate;
+    public int MaxPlayers { get; init; } = ProtocolConstants.DefaultMaxPlayers;
+    public int Port { get; init; } = ProtocolConstants.DefaultPort;
+    public string ServerName { get; init; } = "Rex Sandbox Server";
+    public string ConnectionKey { get; init; } = SandboxProtocolConstants.ConnectionKey;
+}
+
+/// <summary>Per-client state tracked by the Sandbox server host.</summary>
+public sealed class ClientSession
+{
+    public IServerNetChannel Channel { get; }
+    public Guid ClientId => Channel.ClientId;
+    public int PlayerEntityId { get; set; }
+    public string PlayerName { get; set; } = string.Empty;
+    public uint LastProcessedInputTick { get; set; }
+    public uint LastAcknowledgedTick { get; set; }
+
+    private readonly Queue<PlayerInputMessage> _inputBuffer = new();
+
+    public ClientSession(IServerNetChannel channel)
+    {
+        Channel = channel;
+    }
+
+    public void EnqueueInput(PlayerInputMessage input)
+    {
+        _inputBuffer.Enqueue(input);
+    }
+
+    public bool TryDequeueInput(out PlayerInputMessage? input)
+    {
+        return _inputBuffer.TryDequeue(out input);
+    }
+}
 
 /// <summary>
-/// Transport-agnostic server host. Manages sessions, processes inputs,
-/// ticks the shared world, and broadcasts snapshots to connected clients.
+/// Transport-agnostic Sandbox host. This sample policy sits outside the reusable engine layer.
 /// </summary>
 public sealed partial class GameServerHost
 {
@@ -18,7 +60,7 @@ public sealed partial class GameServerHost
     private readonly ILoggerFactory _loggerFactory;
     private readonly Dictionary<Guid, ClientSession> _sessions = new();
     private readonly GameWorld _world;
-    private readonly DirtyTracker _dirtyTracker = new();
+    private readonly Rex.Shared.Simulation.DirtyTracker _dirtyTracker = new();
     private readonly RexNetStatistics _statistics = new();
 
     private BulkTransferManager? _transferManager;
@@ -42,7 +84,6 @@ public sealed partial class GameServerHost
         _world = new GameWorld(_dirtyTracker);
     }
 
-    /// <summary>Initializes the host. Call before the first tick.</summary>
     public void Start()
     {
         if (_isRunning)
@@ -51,28 +92,24 @@ public sealed partial class GameServerHost
             throw new InvalidOperationException("Server host is already running.");
         }
 
-        NetMessages.RegisterAll();
+        SandboxNetMessages.RegisterAll();
         _transferManager = new BulkTransferManager(_loggerFactory);
         _isRunning = true;
 
         LogServerHostStarted(_config.TickRate, _config.MaxPlayers);
     }
 
-    /// <summary>Allocates a new client session id for an incoming connection.</summary>
     public static Guid AllocateClientId()
     {
         return Guid.CreateVersion7();
     }
 
-    /// <summary>Registers a session created by the transport layer.</summary>
     public void AddSession(ClientSession session)
     {
         _sessions[session.ClientId] = session;
-
         LogSessionAdded(session.ClientId);
     }
 
-    /// <summary>Removes a session and destroys its entities.</summary>
     public void RemoveSession(Guid clientId)
     {
         if (!_sessions.Remove(clientId, out var session))
@@ -97,7 +134,6 @@ public sealed partial class GameServerHost
         LogSessionRemoved(clientId);
     }
 
-    /// <summary>Routes an inbound message to the appropriate handler.</summary>
     public void HandleMessage(Guid clientId, INetMessage message)
     {
         if (!_sessions.TryGetValue(clientId, out var session))
@@ -113,15 +149,14 @@ public sealed partial class GameServerHost
             case PlayerInputMessage playerInput:
                 session.EnqueueInput(playerInput);
                 break;
-            case StateAckMessage stateAck:
+            case Rex.Shared.Net.Messages.StateAckMessage stateAck:
                 session.LastAcknowledgedTick = stateAck.AcknowledgedTick;
                 break;
             case BulkTransferAckMessage transferAck:
                 LogBulkTransferAcked(session.ClientId, transferAck.TransferId, transferAck.Success);
                 break;
-            case DisconnectMessage disconnect:
+            case Rex.Shared.Net.Messages.DisconnectMessage disconnect:
                 LogClientDisconnecting(session.ClientId, disconnect.Reason);
-
                 session.Channel.Disconnect(disconnect.Reason);
                 break;
             default:
@@ -130,17 +165,17 @@ public sealed partial class GameServerHost
         }
     }
 
-    public void SendBulkData<T>(Guid clientId, BulkDataType dataType, T data)
+    public void SendBulkData<T>(Guid clientId, SandboxBulkDataType dataType, T data)
     {
         if (_transferManager == null || !_sessions.TryGetValue(clientId, out var session))
         {
             return;
         }
 
-        _transferManager.SendBulkData(session.Channel, dataType, data);
+        _transferManager.SendBulkData(session.Channel, (byte)dataType, data);
     }
 
-    public void BroadcastBulkData<T>(BulkDataType dataType, T data)
+    public void BroadcastBulkData<T>(SandboxBulkDataType dataType, T data)
     {
         if (_transferManager == null)
         {
@@ -151,12 +186,11 @@ public sealed partial class GameServerHost
         {
             if (session.Channel.State == ConnectionState.InGame)
             {
-                _transferManager.SendBulkData(session.Channel, dataType, data);
+                _transferManager.SendBulkData(session.Channel, (byte)dataType, data);
             }
         }
     }
 
-    /// <summary>Processes inputs, advances the world, and broadcasts snapshots.</summary>
     public void Tick()
     {
         if (!_isRunning)
@@ -178,8 +212,7 @@ public sealed partial class GameServerHost
             }
         }
 
-        var deltaTime = 1.0f / _config.TickRate;
-        _world.Tick(deltaTime);
+        _world.Tick(1.0f / _config.TickRate);
         _currentTick++;
         BroadcastSnapshots();
     }
@@ -200,7 +233,6 @@ public sealed partial class GameServerHost
 
         _sessions.Clear();
         _isRunning = false;
-
         LogServerHostStopped();
     }
 
@@ -216,7 +248,6 @@ public sealed partial class GameServerHost
             var dirtyEntities = _dirtyTracker.GetDirtyEntities(session.LastAcknowledgedTick, _currentTick);
             WorldSnapshotMessage snapshot;
 
-            // Null means ack too old for the ring buffer. Send full state once.
             if (dirtyEntities == null)
             {
                 snapshot = _world.BuildSnapshot(_currentTick, session.LastProcessedInputTick);
@@ -264,4 +295,47 @@ public sealed partial class GameServerHost
             }
         }
     }
+}
+
+public sealed partial class GameServerHost
+{
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.HostStarted, Level = LogLevel.Information,
+        Message = "Sandbox server host started (tick rate: {TickRate}, max players: {MaxPlayers})")]
+    private partial void LogServerHostStarted(int tickRate, int maxPlayers);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.SessionAdded, Level = LogLevel.Information,
+        Message = "Session added: ClientId {ClientId}")]
+    private partial void LogSessionAdded(Guid clientId);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.SessionRemoved, Level = LogLevel.Information,
+        Message = "Session removed: ClientId {ClientId}")]
+    private partial void LogSessionRemoved(Guid clientId);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.BulkTransferAcked, Level = LogLevel.Debug,
+        Message = "Client {ClientId} acked transfer {TransferId}: {Success}")]
+    private partial void LogBulkTransferAcked(Guid clientId, Guid transferId, bool success);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.ClientDisconnecting, Level = LogLevel.Information,
+        Message = "Client {ClientId} disconnecting: {Reason}")]
+    private partial void LogClientDisconnecting(Guid clientId, string reason);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.HostShuttingDown, Level = LogLevel.Information,
+        Message = "Sandbox server host shutting down...")]
+    private partial void LogServerHostShuttingDown();
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.HostStopped, Level = LogLevel.Information,
+        Message = "Sandbox server host stopped.")]
+    private partial void LogServerHostStopped();
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.ClientAuthenticated, Level = LogLevel.Information,
+        Message = "Client {ClientId} authenticated as '{PlayerName}'")]
+    private partial void LogClientAuthenticated(Guid clientId, string playerName);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.UnhandledNetMessage, Level = LogLevel.Debug,
+        Message = "Unhandled message from ClientId {ClientId}: Id {MessageId} ({MessageType})")]
+    private partial void LogUnhandledNetMessage(Guid clientId, ushort messageId, string messageType);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.HostAlreadyRunning, Level = LogLevel.Error,
+        Message = "Start called while the Sandbox server host is already running.")]
+    private partial void LogHostAlreadyRunning();
 }

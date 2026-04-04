@@ -1,23 +1,22 @@
 using System.Diagnostics;
-using System.Threading;
 using Microsoft.Extensions.Logging;
-using Rex.Server.Core;
-using Rex.Server.Simulation;
+using Rex.Sandbox.Server.Core;
+using Rex.Sandbox.Server.Simulation;
+using Rex.Shared.Logging;
 using Rex.Shared.Timing;
 
-namespace Rex.Server;
+namespace Rex.Sandbox.Server;
 
 /// <summary>
-/// Top-level dedicated server application. Runs fixed simulation ticks like Unity <c>FixedUpdate</c>.
-/// Optional variable-rate <see cref="OnUpdate"/> and <see cref="OnLateUpdate"/> run after each batch of fixed steps for housekeeping.
+/// Sandbox-owned dedicated server loop. The reusable server transport stays in `Rex.Server`.
 /// </summary>
 public sealed partial class ServerApp : IDisposable
 {
-    private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
     private readonly GameServerConfig _config;
     private readonly TickClock _clock;
     private readonly DeltaTimeSmoother _deltaSmoother = new();
+    private readonly ILoggerFactory _loggerFactory;
     private bool _isRunning;
 
     private GameServer? _server;
@@ -26,19 +25,10 @@ public sealed partial class ServerApp : IDisposable
     public TickClock Clock => _clock;
     public GameServer? Server => _server;
     public bool IsRunning => _isRunning;
-
-    /// <summary>Multiplies variable-phase <see cref="FrameContext.ScaledDeltaTime"/>. Fixed ticks always use the configured tick rate.</summary>
     public float TimeScale { get; set; } = 1f;
-
-    /// <summary>Optional work after fixed ticks (metrics, admin hooks). Authoritative simulation stays in <see cref="GameServer.Tick"/>.</summary>
     public Action<FrameContext>? OnUpdate { get; set; }
-
-    /// <summary>Runs after <see cref="OnUpdate"/> each outer iteration.</summary>
     public Action<FrameContext>? OnLateUpdate { get; set; }
 
-    /// <summary>Creates a dedicated server host with the given simulation and network settings.</summary>
-    /// <param name="config">Port, tick rate, player limits, and display name.</param>
-    /// <param name="loggerFactory">Creates loggers for the server app and nested systems.</param>
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;
@@ -47,8 +37,6 @@ public sealed partial class ServerApp : IDisposable
         _clock = new TickClock(config.TickRate);
     }
 
-    /// <summary>Starts networking and the game loop. Blocks until stopped.</summary>
-    /// <param name="cancellationToken">When canceled, the loop exits after the current frame.</param>
     public void Run(CancellationToken cancellationToken = default)
     {
         _server = new GameServer(_config, _loggerFactory);
@@ -69,7 +57,6 @@ public sealed partial class ServerApp : IDisposable
             previousTime = currentTime;
 
             var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, () => _server!.Tick());
-
             var alpha = (float)(accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
             frameIndex++;
@@ -87,13 +74,23 @@ public sealed partial class ServerApp : IDisposable
                 stopwatch.Elapsed.TotalSeconds);
 
             InvokeUpdateCallbacks(ctx);
-
             Thread.Yield();
         }
 
         stopwatch.Stop();
-
         _server.Shutdown();
+        _server = null;
+    }
+
+    public void Stop()
+    {
+        LogShutdownSignalReceived();
+        _isRunning = false;
+    }
+
+    public void Dispose()
+    {
+        _server?.Shutdown();
         _server = null;
     }
 
@@ -123,17 +120,23 @@ public sealed partial class ServerApp : IDisposable
             }
         }
     }
+}
 
-    /// <summary>Signals the game loop to exit after the current frame.</summary>
-    public void Stop()
-    {
-        LogShutdownSignalReceived();
-        _isRunning = false;
-    }
+public sealed partial class ServerApp
+{
+    [LoggerMessage(EventId = LogEventIds.ServerApp.DedicatedServerRunning, Level = LogLevel.Information,
+        Message = "Sandbox dedicated server running. Press Ctrl+C to stop.")]
+    private partial void LogDedicatedServerRunning();
 
-    public void Dispose()
-    {
-        _server?.Shutdown();
-        _server = null;
-    }
+    [LoggerMessage(EventId = LogEventIds.ServerApp.ShutdownSignal, Level = LogLevel.Information,
+        Message = "Shutdown signal received.")]
+    private partial void LogShutdownSignalReceived();
+
+    [LoggerMessage(EventId = LogEventIds.ServerApp.OnUpdateFailed, Level = LogLevel.Error,
+        Message = "OnUpdate threw an exception.")]
+    private partial void LogOnUpdateFailed(Exception ex);
+
+    [LoggerMessage(EventId = LogEventIds.ServerApp.OnLateUpdateFailed, Level = LogLevel.Error,
+        Message = "OnLateUpdate threw an exception.")]
+    private partial void LogOnLateUpdateFailed(Exception ex);
 }
