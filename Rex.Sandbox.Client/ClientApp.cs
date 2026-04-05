@@ -36,7 +36,7 @@ public sealed partial class ClientApp : IDisposable
 
     private InputCollector? _inputCollector;
     private IGameWindow? _window;
-    private IRenderer? _renderer;
+    private ISandboxWorldRenderer? _renderer;
 
     public NetMode Mode => _mode;
     public TickClock Clock => _clock;
@@ -54,7 +54,7 @@ public sealed partial class ClientApp : IDisposable
         set => _window = value;
     }
 
-    public IRenderer? Renderer
+    public ISandboxWorldRenderer? Renderer
     {
         get => _renderer;
         set => _renderer = value;

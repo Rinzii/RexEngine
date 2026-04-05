@@ -436,7 +436,7 @@ together {
       + Client : GameClient
       + World : GameWorld
       + Window : IGameWindow
-      + Renderer : IRenderer
+      + Renderer : ISandboxWorldRenderer
       + ClientApp(mode, loggerFactory, tickRate)
       + SetInputCollector(collector) : void
       + Run(host, port, cancellationToken) : void
