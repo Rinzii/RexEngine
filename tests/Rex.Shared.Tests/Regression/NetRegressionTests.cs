@@ -99,7 +99,7 @@ public sealed class NetRegressionTests
         Assert.Equal(2, stats.MessagesSent);
     }
 
-    private static INetMessage RoundTrip(INetMessage original)
+    private static INetMessage RoundTrip(DisconnectMessage original)
     {
         var writer = new NetDataWriter();
         original.Serialize(writer);
