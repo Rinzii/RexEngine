@@ -20,6 +20,7 @@
     <ItemGroup>
         <PackageReference Include="JetBrains.Annotations" Version="2025.2.4"/>
         <PackageReference Include="LiteNetLib" Version="2.0.2"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5"/>
         <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5"/>

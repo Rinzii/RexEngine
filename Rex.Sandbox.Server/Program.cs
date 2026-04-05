@@ -4,6 +4,7 @@ using Rex.Sandbox.Server.Core;
 using Rex.Sandbox.Server.Simulation;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
+using Rex.Shared.Startup;
 using Rex.Shared.Utility;
 
 namespace Rex.Sandbox.Server;
@@ -15,11 +16,7 @@ internal static class Program
 {
     internal static void Main(string[] args)
     {
-        using var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Information);
-        });
+        using var loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
 
         var bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
 
@@ -44,7 +41,7 @@ internal static class Program
 
         using var app = new ServerApp(config, loggerFactory);
         using var cts = new CancellationTokenSource();
-        using var shutdownHook = new ShutdownHook(cts, app);
+        using var shutdownHook = new ConsoleShutdownHook(cts, app.Stop);
 
         try
         {
@@ -57,42 +54,6 @@ internal static class Program
         }
     }
 
-    private sealed class ShutdownHook : IDisposable
-    {
-        private readonly CancellationTokenSource _cts;
-        private readonly ServerApp _app;
-        private bool _disposed;
-
-        public ShutdownHook(CancellationTokenSource cts, ServerApp app)
-        {
-            _cts = cts;
-            _app = app;
-            Console.CancelKeyPress += OnCancelKeyPress;
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            _disposed = true;
-        }
-
-        private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
-        {
-            e.Cancel = true;
-
-            if (!_cts.IsCancellationRequested)
-            {
-                _cts.Cancel();
-            }
-
-            _app.Stop();
-        }
-    }
 }
 
 internal sealed class CommandLineArgs

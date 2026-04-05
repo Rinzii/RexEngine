@@ -1,7 +1,7 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Rex.Sandbox.Server.Core;
 using Rex.Sandbox.Server.Simulation;
+using Rex.Server.Runtime;
 using Rex.Shared.Logging;
 using Rex.Shared.Timing;
 
@@ -14,111 +14,82 @@ public sealed partial class ServerApp : IDisposable
 {
     private readonly ILogger _logger;
     private readonly GameServerConfig _config;
-    private readonly TickClock _clock;
-    private readonly DeltaTimeSmoother _deltaSmoother = new();
     private readonly ILoggerFactory _loggerFactory;
-    private bool _isRunning;
+    private readonly ServerRuntimeHost _runtime;
 
     private GameServer? _server;
 
     public GameServerConfig Config => _config;
-    public TickClock Clock => _clock;
+    public TickClock Clock => _runtime.Clock;
     public GameServer? Server => _server;
-    public bool IsRunning => _isRunning;
-    public float TimeScale { get; set; } = 1f;
-    public Action<FrameContext>? OnUpdate { get; set; }
-    public Action<FrameContext>? OnLateUpdate { get; set; }
+    public bool IsRunning => _runtime.IsRunning;
+    public float TimeScale
+    {
+        get => _runtime.TimeScale;
+        set => _runtime.TimeScale = value;
+    }
+
+    public Action<FrameContext>? OnUpdate
+    {
+        get => _runtime.OnUpdate;
+        set => _runtime.OnUpdate = value;
+    }
+
+    public Action<FrameContext>? OnLateUpdate
+    {
+        get => _runtime.OnLateUpdate;
+        set => _runtime.OnLateUpdate = value;
+    }
 
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ServerApp>();
-        _clock = new TickClock(config.TickRate);
+        _runtime = new ServerRuntimeHost(
+            new ServerRuntimeOptions { TickRate = config.TickRate },
+            loggerFactory)
+        {
+            OnInitialize = InitializeServer,
+            OnFixedUpdate = TickServer,
+            OnShutdown = ShutdownServer
+        };
     }
 
     public void Run(CancellationToken cancellationToken = default)
     {
-        _server = new GameServer(_config, _loggerFactory);
-        _server.Start();
-
-        LogDedicatedServerRunning();
-
-        _isRunning = true;
-        var stopwatch = Stopwatch.StartNew();
-        var previousTime = stopwatch.Elapsed.TotalSeconds;
-        double accumulator = 0;
-        ulong frameIndex = 0;
-
-        while (_isRunning && !cancellationToken.IsCancellationRequested)
-        {
-            var currentTime = stopwatch.Elapsed.TotalSeconds;
-            var frameTime = currentTime - previousTime;
-            previousTime = currentTime;
-
-            var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, () => _server!.Tick());
-            var alpha = (float)(accumulator / _clock.TickInterval);
-            _clock.SetAlpha(alpha);
-            frameIndex++;
-
-            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
-            var smoothDt = _deltaSmoother.Next(unscaledDt);
-            var ctx = new FrameContext(
-                _clock,
-                unscaledDt,
-                smoothDt,
-                TimeScale,
-                fixedSteps,
-                alpha,
-                frameIndex,
-                stopwatch.Elapsed.TotalSeconds);
-
-            InvokeUpdateCallbacks(ctx);
-            Thread.Yield();
-        }
-
-        stopwatch.Stop();
-        _server.Shutdown();
-        _server = null;
+        _runtime.Run(cancellationToken);
     }
 
     public void Stop()
     {
         LogShutdownSignalReceived();
-        _isRunning = false;
+        _runtime.Stop();
     }
 
     public void Dispose()
     {
+        _runtime.Dispose();
         _server?.Shutdown();
         _server = null;
     }
 
-    private void InvokeUpdateCallbacks(FrameContext ctx)
+    private void InitializeServer()
     {
-        if (OnUpdate != null)
-        {
-            try
-            {
-                OnUpdate(ctx);
-            }
-            catch (Exception ex)
-            {
-                LogOnUpdateFailed(ex);
-            }
-        }
+        _server = new GameServer(_config, _loggerFactory);
+        _server.Start();
+        LogDedicatedServerRunning();
+    }
 
-        if (OnLateUpdate != null)
-        {
-            try
-            {
-                OnLateUpdate(ctx);
-            }
-            catch (Exception ex)
-            {
-                LogOnLateUpdateFailed(ex);
-            }
-        }
+    private void TickServer()
+    {
+        _server!.Tick();
+    }
+
+    private void ShutdownServer()
+    {
+        _server?.Shutdown();
+        _server = null;
     }
 }
 

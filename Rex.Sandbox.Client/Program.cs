@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Rex.Sandbox.Shared.Net;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
+using Rex.Shared.Startup;
 
 namespace Rex.Sandbox.Client;
 
@@ -14,7 +15,13 @@ internal static class Program
 {
     private const string ServerAssemblyEnvironmentVariable = "REX_SANDBOX_SERVER_DLL";
 
+    [STAThread]
     private static void Main(string[] args)
+    {
+        Start(args);
+    }
+
+    private static void Start(string[] args)
     {
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
@@ -65,7 +72,7 @@ internal static class Program
         };
 
         using var cts = new CancellationTokenSource();
-        using var shutdownHook = new ShutdownHook(logger, cts, app);
+        using var shutdownHook = new ConsoleShutdownHook(cts, app.Stop);
 
         string? host = null;
         var port = args.Port;
@@ -110,9 +117,13 @@ internal static class Program
         }
     }
 
-    private static ListenServerProcessBridge? StartListenServerProcess(int port, ILogger logger)
+    private static ReadyChildProcess? StartListenServerProcess(int port, ILogger logger)
     {
-        var serverAssemblyPath = ResolveServerAssemblyPath();
+        var serverAssemblyPath = RuntimeAssemblyLocator.ResolveServerAssemblyPath(
+            ServerAssemblyEnvironmentVariable,
+            "Rex.Sandbox.Server.dll",
+            "Rex.Sandbox.Client",
+            "Rex.Sandbox.Server");
         if (serverAssemblyPath == null)
         {
             logger.ListenServerAssemblyNotFound();
@@ -137,11 +148,11 @@ internal static class Program
         process.StartInfo.ArgumentList.Add("--port");
         process.StartInfo.ArgumentList.Add(port.ToString());
 
-        ListenServerProcessBridge? bridge = null;
+        ReadyChildProcess? bridge = null;
 
         try
         {
-            bridge = new ListenServerProcessBridge(process, logger);
+            bridge = new ReadyChildProcess(process, logger, SandboxProtocolConstants.ListenProcessReadyLine);
 
             if (!process.Start())
             {
@@ -191,186 +202,6 @@ internal static class Program
         process.WaitForExit(5000);
     }
 
-    private static string? ResolveServerAssemblyPath()
-    {
-        var configuredPath = Environment.GetEnvironmentVariable(ServerAssemblyEnvironmentVariable)?.Trim();
-        if (!string.IsNullOrEmpty(configuredPath))
-        {
-            try
-            {
-                var fullConfigured = Path.GetFullPath(configuredPath);
-                return File.Exists(fullConfigured) ? fullConfigured : null;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        var baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (string.IsNullOrEmpty(baseDir))
-        {
-            return null;
-        }
-
-        var siblingPath = Path.Combine(baseDir, "Rex.Sandbox.Server.dll");
-        if (File.Exists(siblingPath))
-        {
-            try
-            {
-                return Path.GetFullPath(siblingPath);
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
-
-        DirectoryInfo outputDir;
-        try
-        {
-            outputDir = new DirectoryInfo(baseDir);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-
-        // Artifacts layout: <repo>/build/bin/<Project>/<pivot>/ (see Directory.Build.props UseArtifactsOutput).
-        var projectDir = outputDir.Parent;
-        var binDir = projectDir?.Parent;
-        var buildRoot = binDir?.Parent;
-        if (projectDir != null && binDir != null && buildRoot != null
-            && string.Equals(binDir.Name, "bin", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(buildRoot.Name, "build", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(projectDir.Name, "Rex.Sandbox.Client", StringComparison.OrdinalIgnoreCase))
-        {
-            string artifactsServer;
-            try
-            {
-                artifactsServer = Path.Combine(binDir.FullName, "Rex.Sandbox.Server", outputDir.Name,
-                    "Rex.Sandbox.Server.dll");
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-
-            if (File.Exists(artifactsServer))
-            {
-                try
-                {
-                    return Path.GetFullPath(artifactsServer);
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private sealed class ShutdownHook : IDisposable
-    {
-        private readonly ILogger _logger;
-        private readonly CancellationTokenSource _cts;
-        private readonly ClientApp _app;
-        private bool _disposed;
-
-        public ShutdownHook(ILogger logger, CancellationTokenSource cts, ClientApp app)
-        {
-            _logger = logger;
-            _cts = cts;
-            _app = app;
-            Console.CancelKeyPress += OnCancelKeyPress;
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            Console.CancelKeyPress -= OnCancelKeyPress;
-            _disposed = true;
-        }
-
-        private void OnCancelKeyPress(object? sender, ConsoleCancelEventArgs e)
-        {
-            e.Cancel = true;
-            _logger.ShutdownSignalReceived();
-
-            if (!_cts.IsCancellationRequested)
-            {
-                _cts.Cancel();
-            }
-
-            _app.Stop();
-        }
-    }
-
-    private sealed class ListenServerProcessBridge : IDisposable
-    {
-        private readonly ILogger _logger;
-        private readonly ManualResetEventSlim _readySignal;
-        private bool _disposed;
-
-        public ListenServerProcessBridge(Process process, ILogger logger)
-        {
-            Process = process;
-            _logger = logger;
-            _readySignal = new ManualResetEventSlim();
-            Process.OutputDataReceived += OnOutputDataReceived;
-            Process.ErrorDataReceived += OnErrorDataReceived;
-        }
-
-        public Process Process { get; }
-
-        public bool WaitUntilReady(TimeSpan timeout)
-        {
-            return _readySignal.Wait(timeout);
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-            {
-                return;
-            }
-
-            Process.OutputDataReceived -= OnOutputDataReceived;
-            Process.ErrorDataReceived -= OnErrorDataReceived;
-            _readySignal.Dispose();
-            Process.Dispose();
-            _disposed = true;
-        }
-
-        private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            if (string.IsNullOrWhiteSpace(e.Data))
-            {
-                return;
-            }
-
-            _logger.ListenServerOutput(e.Data);
-
-            if (e.Data.Contains(SandboxProtocolConstants.ListenProcessReadyLine, StringComparison.Ordinal))
-            {
-                _readySignal.Set();
-            }
-        }
-
-        private void OnErrorDataReceived(object sender, DataReceivedEventArgs e)
-        {
-            if (!string.IsNullOrWhiteSpace(e.Data))
-            {
-                _logger.ListenServerError(e.Data);
-            }
-        }
-    }
 }
 
 internal sealed class CommandLineArgs

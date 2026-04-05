@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Rex.Client.Graphics;
+using Rex.Client.Runtime;
 using Rex.Sandbox.Client.Graphics;
 using Rex.Sandbox.Client.Input;
 using Rex.Sandbox.Client.Net;
@@ -20,9 +20,7 @@ public sealed partial class ClientApp : IDisposable
     private readonly NetMode _mode;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ILogger _logger;
-    private readonly TickClock _clock;
-    private readonly DeltaTimeSmoother _deltaSmoother = new();
-    private bool _isRunning;
+    private readonly ClientRuntimeHost _runtime;
 
     private GameClient? _client;
     private GameWorld? _world;
@@ -34,24 +32,46 @@ public sealed partial class ClientApp : IDisposable
     private readonly Dictionary<int, EntityState> _standaloneInterpPrevious = [];
     private readonly List<EntityState> _standaloneInterpolated = [];
 
+    private string _host = "127.0.0.1";
+    private int _port = ProtocolConstants.DefaultPort;
     private InputCollector? _inputCollector;
-    private IGameWindow? _window;
     private ISandboxWorldRenderer? _renderer;
 
     public NetMode Mode => _mode;
-    public TickClock Clock => _clock;
-    public bool IsRunning => _isRunning;
-    public bool Headless { get; init; }
-    public float TimeScale { get; set; } = 1f;
-    public Action<FrameContext>? OnUpdate { get; set; }
-    public Action<FrameContext>? OnLateUpdate { get; set; }
+    public TickClock Clock => _runtime.Clock;
+    public bool IsRunning => _runtime.IsRunning;
+
+    public bool Headless
+    {
+        get => _runtime.Options.Headless;
+        init => _runtime.Options.Headless = value;
+    }
+
+    public float TimeScale
+    {
+        get => _runtime.TimeScale;
+        set => _runtime.TimeScale = value;
+    }
+
+    public Action<FrameContext>? OnUpdate
+    {
+        get => _runtime.OnUpdate;
+        set => _runtime.OnUpdate = value;
+    }
+
+    public Action<FrameContext>? OnLateUpdate
+    {
+        get => _runtime.OnLateUpdate;
+        set => _runtime.OnLateUpdate = value;
+    }
+
     public GameClient? Client => _client;
     public GameWorld? World => _world;
 
     public IGameWindow? Window
     {
-        get => _window;
-        set => _window = value;
+        get => _runtime.Window;
+        set => _runtime.Window = value;
     }
 
     public ISandboxWorldRenderer? Renderer
@@ -65,7 +85,19 @@ public sealed partial class ClientApp : IDisposable
         _mode = mode;
         _loggerFactory = loggerFactory;
         _logger = loggerFactory.CreateLogger<ClientApp>();
-        _clock = new TickClock(tickRate);
+        _runtime = new ClientRuntimeHost(
+            new ClientRuntimeOptions
+            {
+                TickRate = tickRate,
+                WindowTitle = "Rex Sandbox"
+            },
+            loggerFactory)
+        {
+            OnInitialize = InitializeRuntime,
+            OnFixedUpdate = FixedStep,
+            OnRender = Render,
+            OnShutdown = Shutdown
+        };
     }
 
     public void SetInputCollector(InputCollector collector)
@@ -75,95 +107,26 @@ public sealed partial class ClientApp : IDisposable
 
     public void Run(string? host = null, int port = ProtocolConstants.DefaultPort, CancellationToken cancellationToken = default)
     {
-        InitializeWindow();
-
-        switch (_mode)
+        if (_mode == NetMode.DedicatedServer)
         {
-            case NetMode.Standalone:
-                SetupStandalone();
-                break;
-            case NetMode.Client:
-            case NetMode.ListenServer:
-                SetupNetworked(host ?? "127.0.0.1", port);
-                break;
-            case NetMode.DedicatedServer:
-            default:
-                LogInvalidClientNetMode(_mode);
-                return;
+            LogInvalidClientNetMode(_mode);
+            return;
         }
 
-        LogClientRunning(_mode);
-        RunMainLoop(cancellationToken);
-        Shutdown();
+        _host = host ?? "127.0.0.1";
+        _port = port;
+        _runtime.Run(cancellationToken);
     }
 
     public void Stop()
     {
-        _isRunning = false;
+        _runtime.Stop();
     }
 
     public void Dispose()
     {
         _renderer?.Dispose();
-        _window?.Dispose();
-    }
-
-    private void RunMainLoop(CancellationToken cancellationToken)
-    {
-        _isRunning = true;
-        var stopwatch = Stopwatch.StartNew();
-        var previousTime = stopwatch.Elapsed.TotalSeconds;
-        double accumulator = 0;
-        ulong frameIndex = 0;
-
-        while (_isRunning && !cancellationToken.IsCancellationRequested)
-        {
-            var currentTime = stopwatch.Elapsed.TotalSeconds;
-            var frameTime = currentTime - previousTime;
-            previousTime = currentTime;
-
-            var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, FixedStep);
-            var alpha = (float)(accumulator / _clock.TickInterval);
-            _clock.SetAlpha(alpha);
-            frameIndex++;
-
-            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
-            var smoothDt = _deltaSmoother.Next(unscaledDt);
-            var ctx = new FrameContext(
-                _clock,
-                unscaledDt,
-                smoothDt,
-                TimeScale,
-                fixedSteps,
-                alpha,
-                frameIndex,
-                stopwatch.Elapsed.TotalSeconds);
-
-            if (!Headless)
-            {
-                _window?.PollEvents();
-                if (_window is { IsOpen: false })
-                {
-                    Stop();
-                    break;
-                }
-            }
-
-            InvokeUpdateCallbacks(ctx);
-            Render(ctx);
-
-            if (Headless)
-            {
-                Thread.Yield();
-            }
-        }
-
-        if (cancellationToken.IsCancellationRequested)
-        {
-            LogMainLoopCancellationRequested();
-        }
-
-        stopwatch.Stop();
+        _runtime.Dispose();
     }
 
     private void FixedStep()
@@ -178,15 +141,25 @@ public sealed partial class ClientApp : IDisposable
         }
     }
 
-    private void InitializeWindow()
+    private void InitializeRuntime()
     {
-        if (Headless || _window == null)
+        switch (_mode)
         {
-            return;
+            case NetMode.Standalone:
+                SetupStandalone();
+                break;
+            case NetMode.Client:
+            case NetMode.ListenServer:
+                SetupNetworked(_host, _port);
+                break;
         }
 
-        _window.Open("Rex Sandbox", 1280, 720);
-        _renderer?.Initialize(_window);
+        if (!Headless && Window != null)
+        {
+            _renderer?.Initialize(Window);
+        }
+
+        LogClientRunning(_mode);
     }
 
     private void SetupStandalone()
@@ -211,11 +184,11 @@ public sealed partial class ClientApp : IDisposable
     {
         if (_inputCollector != null)
         {
-            var input = _inputCollector.Sample(_clock.CurrentTick);
+            var input = _inputCollector.Sample(Clock.CurrentTick);
             _world!.ProcessInput(_localEntityId, input);
         }
 
-        _world!.Tick(1.0f / _clock.TickRate);
+        _world!.Tick(1.0f / Clock.TickRate);
 
         (_entitySnapshotBuffer0, _entitySnapshotBuffer1) = (_entitySnapshotBuffer1, _entitySnapshotBuffer0);
         _previousEntities = _entitySnapshotBuffer0;
@@ -231,7 +204,7 @@ public sealed partial class ClientApp : IDisposable
 
     private void TickNetworked()
     {
-        _client!.Tick(_clock.CurrentTick);
+        _client!.Tick(Clock.CurrentTick);
     }
 
     private void Render(FrameContext ctx)
@@ -250,8 +223,6 @@ public sealed partial class ClientApp : IDisposable
             _renderer.RenderWorld(entities, ctx.InterpolationAlpha);
             _renderer.EndFrame();
         }
-
-        _window?.SwapBuffers();
     }
 
     private IReadOnlyList<EntityState> InterpolateStandalone(float alpha)
@@ -283,37 +254,9 @@ public sealed partial class ClientApp : IDisposable
         return _standaloneInterpolated;
     }
 
-    private void InvokeUpdateCallbacks(FrameContext ctx)
-    {
-        if (OnUpdate != null)
-        {
-            try
-            {
-                OnUpdate(ctx);
-            }
-            catch (Exception ex)
-            {
-                LogOnUpdateFailed(ex);
-            }
-        }
-
-        if (OnLateUpdate != null)
-        {
-            try
-            {
-                OnLateUpdate(ctx);
-            }
-            catch (Exception ex)
-            {
-                LogOnLateUpdateFailed(ex);
-            }
-        }
-    }
-
     private void Shutdown()
     {
         _client?.Disconnect();
-        _window?.Close();
     }
 }
 
@@ -342,15 +285,4 @@ public sealed partial class ClientApp
         Message = "Sandbox standalone world initialized.")]
     private partial void LogStandaloneWorldInitialized();
 
-    [LoggerMessage(EventId = LogEventIds.ClientApp.OnUpdateFailed, Level = LogLevel.Error,
-        Message = "OnUpdate threw an exception.")]
-    private partial void LogOnUpdateFailed(Exception ex);
-
-    [LoggerMessage(EventId = LogEventIds.ClientApp.OnLateUpdateFailed, Level = LogLevel.Error,
-        Message = "OnLateUpdate threw an exception.")]
-    private partial void LogOnLateUpdateFailed(Exception ex);
-
-    [LoggerMessage(EventId = LogEventIds.ClientApp.MainLoopCancellationRequested, Level = LogLevel.Debug,
-        Message = "Main loop exiting due to cancellation.")]
-    private partial void LogMainLoopCancellationRequested();
 }
