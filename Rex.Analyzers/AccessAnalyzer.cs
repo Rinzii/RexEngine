@@ -183,7 +183,7 @@ public class AccessAnalyzer : DiagnosticAnalyzer
             {
                 // Self access, so simply set the permissions check to self.
                 permissionCheck = self;
-                    accessingRelation = "same-type";
+                accessingRelation = "same-type";
             }
 
             // If we allow this access, return! All is good.
