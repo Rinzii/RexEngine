@@ -1,7 +1,6 @@
 using LiteNetLib.Utils;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
-using Rex.Shared.Net.Transfer;
 using Rex.Sandbox.Shared.Net.Messages;
 
 namespace Rex.Sandbox.Shared.Tests.Net;
