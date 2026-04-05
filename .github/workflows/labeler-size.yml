@@ -14,10 +14,11 @@ jobs:
         
         steps:
             - name: Apply size label
-              uses: pascalgn/size-label-action@v0.5.5
+              uses: pascalgn/size-label-action@v0.5.7
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               with:
+                  # Values are suffixes only; the action applies labels as size/<value> (size/XS, size/S, …).
                   sizes: >
                       {
                         "0": "XS",
