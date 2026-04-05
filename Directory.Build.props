@@ -1,5 +1,19 @@
 <Project>
     <PropertyGroup>
+        <!--
+          Omit the sample sandbox slice from compilation (stub assemblies only; solution still builds).
+          MSBuild: /p:RexDisableSandbox=… where the value trims to 1, true, yes, or on (case-insensitive).
+          Environment: REX_DISABLE_SANDBOX (same; trimmed). A set /p:RexDisableSandbox=… overrides the env gate.
+        -->
+        <_RexEnvDisable>$([System.String]::Copy('$(REX_DISABLE_SANDBOX)').Trim())</_RexEnvDisable>
+        <_RexEnvDisableLower>$([System.String]::Copy('$(_RexEnvDisable)').ToLowerInvariant())</_RexEnvDisableLower>
+        <RexDisableSandbox Condition="'$(RexDisableSandbox)' == '' and ('$(_RexEnvDisableLower)' == '1' or '$(_RexEnvDisableLower)' == 'true' or '$(_RexEnvDisableLower)' == 'yes' or '$(_RexEnvDisableLower)' == 'on')">true</RexDisableSandbox>
+        <RexDisableSandbox Condition="'$(RexDisableSandbox)' == ''">false</RexDisableSandbox>
+        <_RexDisableToken>$([System.String]::Copy('$(RexDisableSandbox)').Trim())</_RexDisableToken>
+        <_RexDisableTokenLower>$([System.String]::Copy('$(_RexDisableToken)').ToLowerInvariant())</_RexDisableTokenLower>
+        <_RexSandboxDisabled>false</_RexSandboxDisabled>
+        <_RexSandboxDisabled Condition="'$(_RexDisableToken)' != '' and ('$(_RexDisableTokenLower)' == '1' or '$(_RexDisableTokenLower)' == 'true' or '$(_RexDisableTokenLower)' == 'yes' or '$(_RexDisableTokenLower)' == 'on')">true</_RexSandboxDisabled>
+
         <!-- Centralize all bin/obj (and publish/package) under ./build per project (SDK artifacts layout). -->
         <UseArtifactsOutput>true</UseArtifactsOutput>
         <ArtifactsPath>$(MSBuildThisFileDirectory)build</ArtifactsPath>

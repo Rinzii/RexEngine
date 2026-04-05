@@ -1,0 +1,57 @@
+<Project>
+  <!--
+    Rex.Sandbox.* is sample-only. Engine and product code must not take a project reference to it.
+    Override with AllowSandboxProjectReferences=true only for deliberate, documented exceptions.
+  -->
+  <Target Name="RexEnforceSandboxReferenceIsolation" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <_RexAllowSandboxRefs>false</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(AllowSandboxProjectReferences)' == 'true'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Client'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Server'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Shared'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Client.Tests'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Server.Tests'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Shared.Tests'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Client.Tests'">true</_RexAllowSandboxRefs>
+      <_RexAllowSandboxRefs Condition="'$(MSBuildProjectName)' == 'Rex.Sandbox.Server.Tests'">true</_RexAllowSandboxRefs>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <_RexSandboxProjectReference Include="@(ProjectReference)"
+                                 Condition="$([System.String]::Copy('%(ProjectReference.Identity)').Contains('Rex.Sandbox'))"/>
+    </ItemGroup>
+
+    <Error
+      Condition="'@(_RexSandboxProjectReference)' != '' and '$(_RexAllowSandboxRefs)' != 'true'"
+      Text="Project '$(MSBuildProjectName)' must not reference Rex.Sandbox.* (sample-only, not a shipping dependency). Remove: @(_RexSandboxProjectReference->'%(Identity)', ', ')"/>
+  </Target>
+
+  <!-- RexDisableSandbox: compile no real sources; keep ProjectReference graph and isolation rules intact. -->
+  <PropertyGroup>
+    <RexStubSandboxSlice>false</RexStubSandboxSlice>
+    <RexStubSandboxSlice Condition="'$(_RexSandboxDisabled)' == 'true' and $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('Rex.Sandbox.'))">true</RexStubSandboxSlice>
+    <RexStubSandboxSlice Condition="'$(_RexSandboxDisabled)' == 'true' and '$(MSBuildProjectName)' == 'Rex.Client.Tests'">true</RexStubSandboxSlice>
+    <RexStubSandboxSlice Condition="'$(_RexSandboxDisabled)' == 'true' and '$(MSBuildProjectName)' == 'Rex.Server.Tests'">true</RexStubSandboxSlice>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RexStubSandboxSlice)' == 'true'">
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+  </PropertyGroup>
+
+  <Target Name="RexVerifySandboxDisabledStub"
+          BeforeTargets="PrepareForBuild"
+          Condition="'$(RexStubSandboxSlice)' == 'true' and '$(OutputType)' == 'Exe' and '@(PackageReference->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk'))' == ''">
+    <PropertyGroup>
+      <_RexSandboxStubSourceFullPath>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)msbuild/RexSandboxDisabledEntryPoint.cs'))</_RexSandboxStubSourceFullPath>
+    </PropertyGroup>
+    <Error Condition="!Exists('$(_RexSandboxStubSourceFullPath)')"
+           Text="RexDisableSandbox is enabled but the entry-point stub is missing: $(_RexSandboxStubSourceFullPath)"/>
+  </Target>
+
+  <!-- Test projects also use OutputType=Exe; they already supply an entry point via the test SDK. -->
+  <ItemGroup Condition="'$(RexStubSandboxSlice)' == 'true' and '$(OutputType)' == 'Exe' and '@(PackageReference->WithMetadataValue('Identity', 'Microsoft.NET.Test.Sdk'))' == ''">
+    <Compile Include="$(MSBuildThisFileDirectory)msbuild/RexSandboxDisabledEntryPoint.cs"/>
+  </ItemGroup>
+</Project>
