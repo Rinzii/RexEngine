@@ -23,7 +23,7 @@ public sealed class BulkTransferManagerTests
         byte[]? received = null;
         manager.TransferCompleted += (_, dataType, raw) =>
         {
-            Assert.Equal(5, dataType);
+            Assert.Equal(TestDataType, dataType);
             received = raw;
         };
 
@@ -32,7 +32,7 @@ public sealed class BulkTransferManagerTests
         Buffer.BlockCopy(payload, 0, first, 0, first.Length);
         Buffer.BlockCopy(payload, first.Length, second, 0, second.Length);
 
-        var init = new BulkTransferInitMessage(transferId, 5, payload.Length, payload.Length,
+        var init = new BulkTransferInitMessage(transferId, TestDataType, payload.Length, payload.Length,
             false, 2);
         manager.HandleTransferInit(init);
         manager.HandleTransferChunk(new BulkTransferChunkMessage(transferId, 1, second));
