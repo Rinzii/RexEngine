@@ -1,0 +1,174 @@
+name: Request Review Command
+
+on:
+    issue_comment:
+        types: [created]
+
+permissions:
+    contents: read
+    issues: write
+    pull-requests: write
+
+concurrency:
+    group: request-review-${{ github.repository }}-${{ github.event.issue.number }}
+    cancel-in-progress: false
+
+jobs:
+    request-review:
+        if: >
+            github.event.issue.pull_request &&
+            startsWith(github.event.comment.body, '/request-review')
+        runs-on: ubuntu-latest
+        
+        steps:
+            - name: Handle request-review command
+              uses: actions/github-script@v7
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  script: |
+                      const owner = context.repo.owner;
+                      const repo = context.repo.repo;
+                      const issueNumber = context.payload.issue.number;
+                      const commenter = context.payload.comment.user.login;
+                      const rawBody = context.payload.comment.body.trim();
+                      
+                      async function postComment(body) {
+                        await github.rest.issues.createComment({
+                          owner,
+                          repo,
+                          issue_number: issueNumber,
+                          body
+                        });
+                      }
+                      
+                      function parseCommand(body) {
+                        const tokens = body.split(/\s+/).filter(Boolean);
+                      
+                        if (tokens.length < 2 || tokens[0] !== '/request-review') {
+                          return { ok: false, message: 'Usage: /request-review @user1 @user2' };
+                        }
+                      
+                        const reviewers = [];
+                        const seen = new Set();
+                      
+                        for (const token of tokens.slice(1)) {
+                          if (!token.startsWith('@')) {
+                            return { ok: false, message: `Invalid reviewer token: ${token}. Use GitHub usernames prefixed with @.` };
+                          }
+                      
+                          const login = token.slice(1).trim();
+                      
+                          if (!login) {
+                            return { ok: false, message: 'Empty reviewer token detected.' };
+                          }
+                      
+                          if (login.includes('/')) {
+                            return { ok: false, message: `Team reviewers are not supported by this command: ${token}` };
+                          }
+                      
+                          const lowered = login.toLowerCase();
+                      
+                          if (!seen.has(lowered)) {
+                            seen.add(lowered);
+                            reviewers.push(login);
+                          }
+                        }
+                      
+                        if (reviewers.length === 0) {
+                          return { ok: false, message: 'Usage: /request-review @user1 @user2' };
+                        }
+                      
+                        return { ok: true, reviewers };
+                      }
+                      
+                      async function getDefaultBranch() {
+                        const response = await github.rest.repos.get({
+                          owner,
+                          repo
+                        });
+                      
+                        return response.data.default_branch;
+                      }
+                      
+                      async function hasMergedIntoDefaultBranch(login, defaultBranch) {
+                        const query = [
+                          `repo:${owner}/${repo}`,
+                          'is:pr',
+                          'is:merged',
+                          `author:${login}`,
+                          `base:${defaultBranch}`
+                        ].join(' ');
+                      
+                        const response = await github.rest.search.issuesAndPullRequests({
+                          q: query,
+                          per_page: 1
+                        });
+                      
+                        return response.data.total_count > 0;
+                      }
+                      
+                      const parsed = parseCommand(rawBody);
+                      
+                      if (!parsed.ok) {
+                        await postComment(parsed.message);
+                        return;
+                      }
+                      
+                      const defaultBranch = await getDefaultBranch();
+                      const authorized = await hasMergedIntoDefaultBranch(commenter, defaultBranch);
+                      
+                      if (!authorized) {
+                        await postComment(
+                          `@${commenter} is not allowed to use this command. Only users with at least one pull request merged into ${defaultBranch} may use it.`
+                        );
+                        return;
+                      }
+                      
+                      const pr = await github.rest.pulls.get({
+                        owner,
+                        repo,
+                        pull_number: issueNumber
+                      });
+                      
+                      const prAuthor = pr.data.user.login.toLowerCase();
+                      
+                      const requested = await github.rest.pulls.listRequestedReviewers({
+                        owner,
+                        repo,
+                        pull_number: issueNumber
+                      });
+                      
+                      const alreadyRequestedUsers = new Set(
+                        requested.data.users.map(user => user.login.toLowerCase())
+                      );
+                      
+                      const finalReviewers = parsed.reviewers.filter(login => {
+                        const lowered = login.toLowerCase();
+                        return lowered !== prAuthor && !alreadyRequestedUsers.has(lowered);
+                      });
+                      
+                      if (finalReviewers.length === 0) {
+                        await postComment('No new valid reviewers were provided.');
+                        return;
+                      }
+                      
+                      try {
+                        await github.rest.pulls.requestReviewers({
+                          owner,
+                          repo,
+                          pull_number: issueNumber,
+                          reviewers: finalReviewers
+                        });
+                      
+                        await postComment(
+                          `Requested review from: ${finalReviewers.map(login => `@${login}`).join(', ')}`
+                        );
+                      } catch (error) {
+                        const message =
+                          typeof error?.message === 'string'
+                            ? error.message
+                            : 'Unknown API error';
+                      
+                        await postComment(`Failed to request review. ${message}`);
+                        throw error;
+                      }

@@ -11,7 +11,8 @@ namespace Rex.Client.Net;
 /// </summary>
 /// <remarks>
 /// Subscribes to <see cref="EventBasedNetListener"/> callbacks on construction.
-/// Call <see cref="PollEvents"/> on the same thread you use for gameplay so receives and connection events are delivered.
+/// Call <see cref="PollEvents"/> regularly on the same thread that owns consumer-side runtime state so receives and
+/// connection events are delivered coherently.
 /// </remarks>
 public sealed partial class RemoteClientNetChannel : IClientNetChannel
 {
@@ -41,7 +42,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// </summary>
     /// <param name="host">Server host name or IP address.</param>
     /// <param name="port">Server UDP port.</param>
-    /// <param name="connectionKey">Must match the server <see cref="ProtocolConstants.ConnectionKey"/>.</param>
+    /// <param name="connectionKey">Caller-supplied connection key. Must match the remote host's expected key.</param>
     /// <param name="logger">Logger for transport failures and deserialize errors.</param>
     public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
     {

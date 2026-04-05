@@ -1,10 +1,16 @@
 using Rex.Shared.Net;
 
-namespace Rex.Client.Tests;
+namespace Rex.Sandbox.Client.Tests;
 
 // Client process command line parsing.
 public sealed class CommandLineArgsTests
 {
+    private static readonly string[] ConnectLocalHost = ["--connect", "127.0.0.1"];
+    private static readonly string[] ConnectLocalHostPort27015 = ["--connect", "127.0.0.1", "--port", "27015"];
+    private static readonly string[] ConnectHPortTrailing = ["--connect", "h", "--port"];
+    private static readonly string[] ListenPortInvalid = ["--listen", "--port", "not-a-port"];
+    private static readonly string[] ListenOnly = ["--listen"];
+
     [Fact]
     // No args mean standalone mode and default port.
     public void TryParse_empty_defaults_to_standalone_and_default_port()
@@ -23,7 +29,7 @@ public sealed class CommandLineArgsTests
     // Connect flag switches to client mode with host.
     public void TryParse_connect_sets_client_mode()
     {
-        var ok = CommandLineArgs.TryParse(new[] { "--connect", "127.0.0.1" }, out var parsed, out _);
+        var ok = CommandLineArgs.TryParse(ConnectLocalHost, out var parsed, out _);
 
         Assert.True(ok);
         Assert.Equal(NetMode.Client, parsed!.Mode);
@@ -35,7 +41,7 @@ public sealed class CommandLineArgsTests
     public void TryParse_connect_and_port_parses_port()
     {
         var ok = CommandLineArgs.TryParse(
-            new[] { "--connect", "127.0.0.1", "--port", "27015" },
+            ConnectLocalHostPort27015,
             out var parsed,
             out _);
 
@@ -50,7 +56,7 @@ public sealed class CommandLineArgsTests
     // Trailing --port without a value is a parse error.
     public void TryParse_port_without_value_fails()
     {
-        var ok = CommandLineArgs.TryParse(new[] { "--connect", "h", "--port" }, out _, out var error);
+        var ok = CommandLineArgs.TryParse(ConnectHPortTrailing, out _, out var error);
 
         Assert.False(ok);
         Assert.Equal("Missing value for --port.", error);
@@ -61,7 +67,7 @@ public sealed class CommandLineArgsTests
     public void TryParse_port_non_integer_fails()
     {
         var ok = CommandLineArgs.TryParse(
-            new[] { "--listen", "--port", "not-a-port" },
+            ListenPortInvalid,
             out _,
             out var error);
 
@@ -73,7 +79,7 @@ public sealed class CommandLineArgsTests
     // Listen flag selects listen server mode.
     public void TryParse_listen_sets_listen_server_mode()
     {
-        var ok = CommandLineArgs.TryParse(new[] { "--listen" }, out var parsed, out _);
+        var ok = CommandLineArgs.TryParse(ListenOnly, out var parsed, out _);
 
         Assert.True(ok);
         Assert.Equal(NetMode.ListenServer, parsed!.Mode);

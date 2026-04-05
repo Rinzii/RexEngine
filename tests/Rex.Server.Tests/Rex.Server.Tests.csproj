@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>Rex.Server.Tests</RootNamespace>
-    <AssemblyName>Rex.Server.Tests</AssemblyName>
+    <RootNamespace>Rex.Sandbox.Server.Tests</RootNamespace>
+    <AssemblyName>Rex.Sandbox.Server.Tests</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Rex.Server\Rex.Server.csproj"/>
+    <ProjectReference Include="..\..\Rex.Sandbox.Server\Rex.Sandbox.Server.csproj"/>
   </ItemGroup>
 
 </Project>

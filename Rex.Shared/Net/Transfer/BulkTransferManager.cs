@@ -18,7 +18,7 @@ public sealed partial class BulkTransferManager
     /// <summary>
     /// Raised when a transfer has been fully reassembled.
     /// </summary>
-    public event Action<Guid, BulkDataType, byte[]>? TransferCompleted;
+    public event Action<Guid, byte, byte[]>? TransferCompleted;
 
     /// <summary>
     /// Creates a bulk transfer manager with its own logger.
@@ -31,7 +31,7 @@ public sealed partial class BulkTransferManager
     /// <summary>
     /// Sends a bulk payload from the server to one client.
     /// </summary>
-    public void SendBulkData<T>(IServerNetChannel channel, BulkDataType dataType, T data)
+    public void SendBulkData<T>(IServerNetChannel channel, byte dataType, T data)
     {
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
@@ -55,7 +55,7 @@ public sealed partial class BulkTransferManager
     /// <summary>
     /// Sends a bulk payload from the client to the server.
     /// </summary>
-    public void SendBulkData<T>(IClientNetChannel channel, BulkDataType dataType, T data)
+    public void SendBulkData<T>(IClientNetChannel channel, byte dataType, T data)
     {
         var raw = ProtoSerializer.Serialize(data);
         var originalSize = raw.Length;
@@ -167,7 +167,7 @@ public sealed partial class BulkTransferManager
     private sealed class IncomingTransfer
     {
         public Guid TransferId;
-        public BulkDataType DataType;
+        public byte DataType;
         public int TotalSize;
         public int OriginalSize;
         public bool IsCompressed;

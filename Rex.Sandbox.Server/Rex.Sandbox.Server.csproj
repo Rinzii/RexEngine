@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <!-- Sample-only: do not pack or publish; not a dependency surface for engine code (see Directory.Build.targets). -->
+        <IsPackable>false</IsPackable>
+        <IsPublishable>false</IsPublishable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="Rex.Sandbox.Server.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Rex.Server\Rex.Server.csproj"/>
+        <ProjectReference Include="..\Rex.Shared\Rex.Shared.csproj"/>
+        <ProjectReference Include="..\Rex.Sandbox.Shared\Rex.Sandbox.Shared.csproj"/>
+        <ProjectReference Include="..\Rex.Analyzers\Rex.Analyzers.csproj"
+                          OutputItemType="Analyzer"
+                          ReferenceOutputAssembly="false"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.5"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.5"/>
+    </ItemGroup>
+
+</Project>

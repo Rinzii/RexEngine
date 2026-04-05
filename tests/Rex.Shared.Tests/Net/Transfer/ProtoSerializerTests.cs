@@ -1,122 +1,153 @@
+using ProtoBuf;
 using Rex.Shared.Net.Transfer;
 
 namespace Rex.Shared.Tests.Net.Transfer;
 
-// protobuf-net helpers for bulk DTOs.
+// protobuf-net helpers for engine-owned generic transfer payloads.
 public sealed class ProtoSerializerTests
 {
     [Fact]
-    // MapData nested lists and maps round trip through bytes.
-    public void Serialize_and_Deserialize_array_round_trip_MapData()
+    // Nested records and maps round trip through bytes.
+    public void Serialize_and_Deserialize_array_round_trip()
     {
-        var original = new MapData
+        var original = new SamplePayload
         {
-            MapName = "test-map",
-            Width = 4,
-            Height = 3,
-            Tiles =
+            Name = "test-payload",
+            Revision = 4,
+            Chunks =
             [
-                new MapTile { X = 0, Y = 0, TileId = 1, Flags = 2 }
+                new SampleChunk { Index = 0, Label = "chunk-0", Flags = 2 }
             ],
-            Entities =
-            [
-                new MapEntity
-                {
-                    EntityId = 5,
-                    EntityType = "crate",
-                    X = 1f,
-                    Y = 2f,
-                    Z = 3f,
-                    RotationY = 90f
-                }
-            ],
-            Properties = new Dictionary<string, string> { ["mode"] = "deathmatch" }
+            Metadata = new Dictionary<string, string> { ["mode"] = "generic" }
         };
 
         var bytes = ProtoSerializer.Serialize(original);
-        var copy = ProtoSerializer.Deserialize<MapData>(bytes);
+        var copy = ProtoSerializer.Deserialize<SamplePayload>(bytes);
 
-        Assert.Equal(original.MapName, copy.MapName);
-        Assert.Equal(original.Width, copy.Width);
-        Assert.Equal(original.Height, copy.Height);
-        Assert.Single(copy.Tiles);
-        Assert.Equal(original.Tiles[0].TileId, copy.Tiles[0].TileId);
-        Assert.Single(copy.Entities);
-        Assert.Equal("crate", copy.Entities[0].EntityType);
-        Assert.Equal("deathmatch", copy.Properties["mode"]);
+        Assert.Equal(original.Name, copy.Name);
+        Assert.Equal(original.Revision, copy.Revision);
+        Assert.Single(copy.Chunks);
+        Assert.Equal(original.Chunks[0].Label, copy.Chunks[0].Label);
+        Assert.Equal("generic", copy.Metadata["mode"]);
     }
 
     [Fact]
     // ReadOnlyMemory overload matches byte array Deserialize.
     public void Deserialize_ReadOnlyMemory_matches_array_overload()
     {
-        var manifest = new AssetManifest
+        var manifest = new SampleManifest
         {
             Version = 3,
-            Assets =
+            Entries =
             [
-                new AssetEntry { Path = "/a/b", Size = 99, Hash = "abc" }
+                new SampleEntry { Path = "/a/b", Size = 99, Hash = "abc" }
             ]
         };
         var bytes = ProtoSerializer.Serialize(manifest);
-        var fromMemory = ProtoSerializer.Deserialize<AssetManifest>(bytes.AsMemory());
+        var fromMemory = ProtoSerializer.Deserialize<SampleManifest>(bytes.AsMemory());
         Assert.Equal(manifest.Version, fromMemory.Version);
-        Assert.Single(fromMemory.Assets);
-        Assert.Equal("/a/b", fromMemory.Assets[0].Path);
+        Assert.Single(fromMemory.Entries);
+        Assert.Equal("/a/b", fromMemory.Entries[0].Path);
     }
 
     [Fact]
-    // ServerConfigData fields and CVars map round trip through protobuf.
-    public void ServerConfigData_round_trip()
+    // Payloads with string maps round trip through protobuf.
+    public void SettingsPayload_round_trip()
     {
-        var original = new ServerConfigData
+        var original = new SettingsPayload
         {
-            ServerName = "test",
-            TickRate = 45,
-            MaxPlayers = 8,
-            MapName = "lobby",
-            CVars = new Dictionary<string, string> { ["sv_cheats"] = "0" }
+            DisplayName = "test",
+            Interval = 45,
+            Properties = new Dictionary<string, string> { ["feature"] = "off" }
         };
 
-        var copy = ProtoSerializer.Deserialize<ServerConfigData>(ProtoSerializer.Serialize(original));
+        var copy = ProtoSerializer.Deserialize<SettingsPayload>(ProtoSerializer.Serialize(original));
 
-        Assert.Equal(original.ServerName, copy.ServerName);
-        Assert.Equal(original.TickRate, copy.TickRate);
-        Assert.Equal(original.MaxPlayers, copy.MaxPlayers);
-        Assert.Equal(original.MapName, copy.MapName);
-        Assert.Equal("0", copy.CVars["sv_cheats"]);
+        Assert.Equal(original.DisplayName, copy.DisplayName);
+        Assert.Equal(original.Interval, copy.Interval);
+        Assert.Equal("off", copy.Properties["feature"]);
     }
 
     [Fact]
-    // EntityBulkState list entries and component byte blobs round trip.
-    public void EntityBulkState_round_trip()
+    // Nested byte blobs round trip through protobuf.
+    public void BlobCollection_round_trip()
     {
         var owner = Guid.Parse("22222222-2222-2222-2222-222222222222");
-        var original = new EntityBulkState
+        var original = new BlobCollection
         {
-            ServerTick = 100u,
-            Entities =
+            Revision = 100u,
+            Blobs =
             [
-                new BulkEntityData
+                new BlobEntry
                 {
-                    EntityId = 3,
-                    EntityType = "box",
-                    OwnerClientId = owner,
-                    X = 1f,
-                    Y = 2f,
-                    Z = 3f,
-                    RotationY = 45f,
-                    ComponentData = new Dictionary<string, byte[]> { ["a"] = [1, 2, 3] }
+                    EntryId = 3,
+                    OwnerId = owner,
+                    Data = new Dictionary<string, byte[]> { ["a"] = [1, 2, 3] }
                 }
             ]
         };
 
-        var copy = ProtoSerializer.Deserialize<EntityBulkState>(ProtoSerializer.Serialize(original));
+        var copy = ProtoSerializer.Deserialize<BlobCollection>(ProtoSerializer.Serialize(original));
 
-        Assert.Equal(original.ServerTick, copy.ServerTick);
-        Assert.Single(copy.Entities);
-        Assert.Equal(3, copy.Entities[0].EntityId);
-        Assert.Equal(owner, copy.Entities[0].OwnerClientId);
-        Assert.Equal(new byte[] { 1, 2, 3 }, copy.Entities[0].ComponentData["a"]);
+        Assert.Equal(original.Revision, copy.Revision);
+        Assert.Single(copy.Blobs);
+        Assert.Equal(3, copy.Blobs[0].EntryId);
+        Assert.Equal(owner, copy.Blobs[0].OwnerId);
+        Assert.Equal(new byte[] { 1, 2, 3 }, copy.Blobs[0].Data["a"]);
+    }
+
+    [ProtoContract]
+    private sealed class SamplePayload
+    {
+        [ProtoMember(1)] public string Name { get; set; } = string.Empty;
+        [ProtoMember(2)] public int Revision { get; set; }
+        [ProtoMember(3)] public List<SampleChunk> Chunks { get; set; } = new();
+        [ProtoMember(4)] public Dictionary<string, string> Metadata { get; set; } = new();
+    }
+
+    [ProtoContract]
+    private sealed class SampleChunk
+    {
+        [ProtoMember(1)] public int Index { get; set; }
+        [ProtoMember(2)] public string Label { get; set; } = string.Empty;
+        [ProtoMember(3)] public byte Flags { get; set; }
+    }
+
+    [ProtoContract]
+    private sealed class SampleManifest
+    {
+        [ProtoMember(1)] public int Version { get; set; }
+        [ProtoMember(2)] public List<SampleEntry> Entries { get; set; } = new();
+    }
+
+    [ProtoContract]
+    private sealed class SampleEntry
+    {
+        [ProtoMember(1)] public string Path { get; set; } = string.Empty;
+        [ProtoMember(2)] public long Size { get; set; }
+        [ProtoMember(3)] public string Hash { get; set; } = string.Empty;
+    }
+
+    [ProtoContract]
+    private sealed class SettingsPayload
+    {
+        [ProtoMember(1)] public string DisplayName { get; set; } = string.Empty;
+        [ProtoMember(2)] public int Interval { get; set; }
+        [ProtoMember(3)] public Dictionary<string, string> Properties { get; set; } = new();
+    }
+
+    [ProtoContract]
+    private sealed class BlobCollection
+    {
+        [ProtoMember(1)] public uint Revision { get; set; }
+        [ProtoMember(2)] public List<BlobEntry> Blobs { get; set; } = new();
+    }
+
+    [ProtoContract]
+    private sealed class BlobEntry
+    {
+        [ProtoMember(1)] public int EntryId { get; set; }
+        [ProtoMember(2)] public Guid OwnerId { get; set; }
+        [ProtoMember(3)] public Dictionary<string, byte[]> Data { get; set; } = new();
     }
 }

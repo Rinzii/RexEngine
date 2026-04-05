@@ -1,5 +1,6 @@
 using LiteNetLib;
 using Microsoft.Extensions.Logging.Abstractions;
+using ProtoBuf;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Transfer;
 
@@ -8,6 +9,8 @@ namespace Rex.Shared.Tests.Net.Transfer;
 // Chunked bulk send and inbound reassembly.
 public sealed class BulkTransferManagerTests
 {
+    private const byte TestDataType = 77;
+
     [Fact]
     // Two chunks applied second then first still yields the full byte array.
     public void HandleTransfer_manual_two_chunks_out_of_order_reassembles_payload()
@@ -20,7 +23,7 @@ public sealed class BulkTransferManagerTests
         byte[]? received = null;
         manager.TransferCompleted += (_, dataType, raw) =>
         {
-            Assert.Equal(BulkDataType.ResourceFile, dataType);
+            Assert.Equal(TestDataType, dataType);
             received = raw;
         };
 
@@ -29,7 +32,7 @@ public sealed class BulkTransferManagerTests
         Buffer.BlockCopy(payload, 0, first, 0, first.Length);
         Buffer.BlockCopy(payload, first.Length, second, 0, second.Length);
 
-        var init = new BulkTransferInitMessage(transferId, BulkDataType.ResourceFile, payload.Length, payload.Length,
+        var init = new BulkTransferInitMessage(transferId, TestDataType, payload.Length, payload.Length,
             false, 2);
         manager.HandleTransferInit(init);
         manager.HandleTransferChunk(new BulkTransferChunkMessage(transferId, 1, second));
@@ -40,20 +43,20 @@ public sealed class BulkTransferManagerTests
     }
 
     [Fact]
-    // SendBulkData over a fake channel then HandleTransfer reproduces MapData.
-    public void SendBulkData_small_MapData_round_trips_through_handler()
+    // SendBulkData over a fake channel then HandleTransfer reproduces a generic payload.
+    public void SendBulkData_small_payload_round_trips_through_handler()
     {
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
         var channel = new RecordingServerChannel();
-        var map = new MapData { MapName = "tiny" };
+        var payload = new SampleTransferPayload { Name = "tiny" };
 
-        MapData? received = null;
+        SampleTransferPayload? received = null;
         manager.TransferCompleted += (_, _, payload) =>
         {
-            received = ProtoSerializer.Deserialize<MapData>(payload);
+            received = ProtoSerializer.Deserialize<SampleTransferPayload>(payload);
         };
 
-        manager.SendBulkData(channel, BulkDataType.MapData, map);
+        manager.SendBulkData(channel, TestDataType, payload);
 
         var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         manager.HandleTransferInit(init);
@@ -63,7 +66,7 @@ public sealed class BulkTransferManagerTests
         }
 
         Assert.NotNull(received);
-        Assert.Equal("tiny", received!.MapName);
+        Assert.Equal("tiny", received!.Name);
     }
 
     [Fact]
@@ -82,19 +85,19 @@ public sealed class BulkTransferManagerTests
 
     [Fact]
     // IClientNetChannel SendBulkData path completes like the server overload.
-    public void SendBulkData_client_channel_round_trips_MapData()
+    public void SendBulkData_client_channel_round_trips_payload()
     {
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
         var channel = new RecordingClientChannel();
-        var map = new MapData { MapName = "client-path" };
+        var payload = new SampleTransferPayload { Name = "client-path" };
 
-        MapData? received = null;
+        SampleTransferPayload? received = null;
         manager.TransferCompleted += (_, _, payload) =>
         {
-            received = ProtoSerializer.Deserialize<MapData>(payload);
+            received = ProtoSerializer.Deserialize<SampleTransferPayload>(payload);
         };
 
-        manager.SendBulkData(channel, BulkDataType.MapData, map);
+        manager.SendBulkData(channel, TestDataType, payload);
 
         var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         manager.HandleTransferInit(init);
@@ -104,28 +107,28 @@ public sealed class BulkTransferManagerTests
         }
 
         Assert.NotNull(received);
-        Assert.Equal("client-path", received!.MapName);
+        Assert.Equal("client-path", received!.Name);
     }
 
     [Fact]
-    // Large repeating MapData compresses on the wire and reassembles correctly.
-    public void SendBulkData_compressed_payload_round_trips_large_MapData()
+    // Large repeating generic payload compresses on the wire and reassembles correctly.
+    public void SendBulkData_compressed_payload_round_trips_large_payload()
     {
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
         var channel = new RecordingServerChannel();
-        var map = new MapData { MapName = "heavy", Width = 1, Height = 1 };
+        var payload = new SampleTransferPayload { Name = "heavy" };
         for (var i = 0; i < 12_000; i++)
         {
-            map.Tiles.Add(new MapTile { X = i, Y = 0, TileId = 7, Flags = 0 });
+            payload.Numbers.Add(7);
         }
 
-        MapData? received = null;
+        SampleTransferPayload? received = null;
         manager.TransferCompleted += (_, _, payload) =>
         {
-            received = ProtoSerializer.Deserialize<MapData>(payload);
+            received = ProtoSerializer.Deserialize<SampleTransferPayload>(payload);
         };
 
-        manager.SendBulkData(channel, BulkDataType.MapData, map);
+        manager.SendBulkData(channel, TestDataType, payload);
 
         var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         Assert.True(init.IsCompressed, "expected Brotli to shrink this payload");
@@ -137,8 +140,8 @@ public sealed class BulkTransferManagerTests
         }
 
         Assert.NotNull(received);
-        Assert.Equal(12_000, received!.Tiles.Count);
-        Assert.Equal(7, received.Tiles[^1].TileId);
+        Assert.Equal(12_000, received!.Numbers.Count);
+        Assert.Equal(7, received.Numbers[^1]);
     }
 
     // Records outbound messages from SendBulkData.
@@ -207,5 +210,12 @@ public sealed class BulkTransferManagerTests
         public void PollEvents()
         {
         }
+    }
+
+    [ProtoContract]
+    private sealed class SampleTransferPayload
+    {
+        [ProtoMember(1)] public string Name { get; set; } = string.Empty;
+        [ProtoMember(2)] public List<int> Numbers { get; set; } = new();
     }
 }

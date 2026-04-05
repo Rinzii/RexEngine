@@ -4,7 +4,7 @@ using Rex.Shared.Net.Messages;
 
 namespace Rex.Shared.Tests.Net;
 
-// NetMessageRegistry dispatch after NetMessages.RegisterAll.
+// NetMessageRegistry dispatch after CoreNetMessages.RegisterAll.
 public sealed class NetMessageRegistryTests
 {
     public NetMessageRegistryTests()
@@ -13,10 +13,10 @@ public sealed class NetMessageRegistryTests
     }
 
     [Fact]
-    // Serialize then Deserialize returns the same ConnectRequest fields.
-    public void Deserialize_ConnectRequest_round_trips()
+    // Serialize then Deserialize returns the same DisconnectMessage fields.
+    public void Deserialize_DisconnectMessage_round_trips()
     {
-        var original = new ConnectRequestMessage(42, "tester");
+        var original = new DisconnectMessage("tester");
         var writer = new NetDataWriter();
         original.Serialize(writer);
 
@@ -24,10 +24,9 @@ public sealed class NetMessageRegistryTests
         reader.SetSource(writer.Data, 0, writer.Length);
 
         var decoded = NetMessageRegistry.Deserialize(reader);
-        var typed = Assert.IsType<ConnectRequestMessage>(decoded);
+        var typed = Assert.IsType<DisconnectMessage>(decoded);
 
-        Assert.Equal(original.ProtocolVersion, typed.ProtocolVersion);
-        Assert.Equal(original.PlayerName, typed.PlayerName);
+        Assert.Equal(original.Reason, typed.Reason);
     }
 
     [Fact]
@@ -73,21 +72,20 @@ public sealed class NetMessageRegistryTests
     }
 
     [Fact]
-    // NetMessages.RegisterAll stays safe when invoked again.
-    public void NetMessages_RegisterAll_twice_still_deserializes_ConnectRequest()
+    // CoreNetMessages.RegisterAll stays safe when invoked again.
+    public void CoreNetMessages_RegisterAll_twice_still_deserializes_DisconnectMessage()
     {
-        NetMessages.RegisterAll();
-        NetMessages.RegisterAll();
+        CoreNetMessages.RegisterAll();
+        CoreNetMessages.RegisterAll();
 
-        var original = new ConnectRequestMessage(7, "dup");
+        var original = new DisconnectMessage("dup");
         var writer = new NetDataWriter();
         original.Serialize(writer);
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
+        var decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
 
-        Assert.Equal(7, decoded.ProtocolVersion);
-        Assert.Equal("dup", decoded.PlayerName);
+        Assert.Equal("dup", decoded.Reason);
     }
 }

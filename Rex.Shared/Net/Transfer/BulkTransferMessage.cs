@@ -23,9 +23,9 @@ public sealed class BulkTransferInitMessage : INetMessage
     public Guid TransferId { get; }
 
     /// <summary>
-    /// Gets the bulk payload kind.
+    /// Gets the consumer-defined bulk payload kind.
     /// </summary>
-    public BulkDataType DataType { get; }
+    public byte DataType { get; }
 
     /// <summary>
     /// Gets the payload size after optional compression.
@@ -50,7 +50,7 @@ public sealed class BulkTransferInitMessage : INetMessage
     /// <summary>
     /// Creates a bulk transfer init payload.
     /// </summary>
-    public BulkTransferInitMessage(Guid transferId, BulkDataType dataType, int totalSize, int originalSize,
+    public BulkTransferInitMessage(Guid transferId, byte dataType, int totalSize, int originalSize,
         bool isCompressed, int chunkCount)
     {
         TransferId = transferId;
@@ -76,7 +76,7 @@ public sealed class BulkTransferInitMessage : INetMessage
     public static BulkTransferInitMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
-        var dataType = (BulkDataType)reader.GetByte();
+        var dataType = reader.GetByte();
         var totalSize = reader.GetInt();
         var originalSize = reader.GetInt();
         var isCompressed = reader.GetBool();

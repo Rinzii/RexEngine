@@ -2,7 +2,7 @@ using LiteNetLib;
 
 namespace Rex.Shared.Net;
 
-/// <summary>Outbound connection from game client code. Hides LiteNetLib vs in-memory.</summary>
+/// <summary>Outbound client-side connection abstraction. Hides LiteNetLib versus in-memory transports.</summary>
 public interface IClientNetChannel
 {
     ConnectionState State { get; set; }
