@@ -1,0 +1,9 @@
+<component name="ProjectRunConfigurationManager">
+    <configuration default="false" name="Rex Sandbox Server + Client" type="CompoundRunConfigurationType">
+        <toRun name="Rex Sandbox Server" type="LaunchSettings"/>
+        <toRun name="Rex Sandbox Client" type="LaunchSettings"/>
+        <method v="2">
+            <option name="Build"/>
+        </method>
+    </configuration>
+</component>

@@ -17,6 +17,9 @@ x64/
 [Bb]in/
 [Oo]bj/
 
+# Unified MSBuild artifacts output (Directory.Build.props UseArtifactsOutput)
+build/
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*

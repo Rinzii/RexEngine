@@ -6,7 +6,7 @@ on:
 
 permissions:
     contents: read
-    issues: read
+    issues: write
     pull-requests: write
 
 concurrency:
@@ -31,7 +31,6 @@ jobs:
                       const issueNumber = context.payload.issue.number;
                       const commenter = context.payload.comment.user.login;
                       const rawBody = context.payload.comment.body.trim();
-                      const qualifyingBaseBranch = 'main';
                       
                       async function postComment(body) {
                         await github.rest.issues.createComment({
@@ -68,6 +67,7 @@ jobs:
                           }
                       
                           const lowered = login.toLowerCase();
+                      
                           if (!seen.has(lowered)) {
                             seen.add(lowered);
                             reviewers.push(login);
@@ -81,44 +81,30 @@ jobs:
                         return { ok: true, reviewers };
                       }
                       
-                      async function hasMergedIntoBase(login, baseBranch) {
-                        let page = 1;
+                      async function getDefaultBranch() {
+                        const response = await github.rest.repos.get({
+                          owner,
+                          repo
+                        });
                       
-                        while (page <= 10) {
-                          const response = await github.rest.pulls.list({
-                            owner,
-                            repo,
-                            state: 'closed',
-                            sort: 'updated',
-                            direction: 'desc',
-                            per_page: 100,
-                            page
-                          });
+                        return response.data.default_branch;
+                      }
                       
-                          const pulls = response.data;
+                      async function hasMergedIntoDefaultBranch(login, defaultBranch) {
+                        const query = [
+                          `repo:${owner}/${repo}`,
+                          'is:pr',
+                          'is:merged',
+                          `author:${login}`,
+                          `base:${defaultBranch}`
+                        ].join(' ');
                       
-                          if (pulls.length === 0) {
-                            return false;
-                          }
+                        const response = await github.rest.search.issuesAndPullRequests({
+                          q: query,
+                          per_page: 1
+                        });
                       
-                          for (const pr of pulls) {
-                            if (!pr.user || pr.user.login.toLowerCase() !== login.toLowerCase()) {
-                              continue;
-                            }
-                      
-                            if (pr.base && pr.base.ref === baseBranch && pr.merged_at) {
-                              return true;
-                            }
-                          }
-                      
-                          if (pulls.length < 100) {
-                            return false;
-                          }
-                      
-                          page += 1;
-                        }
-                      
-                        return false;
+                        return response.data.total_count > 0;
                       }
                       
                       const parsed = parseCommand(rawBody);
@@ -128,11 +114,12 @@ jobs:
                         return;
                       }
                       
-                      const authorized = await hasMergedIntoBase(commenter, qualifyingBaseBranch);
+                      const defaultBranch = await getDefaultBranch();
+                      const authorized = await hasMergedIntoDefaultBranch(commenter, defaultBranch);
                       
                       if (!authorized) {
                         await postComment(
-                          `@${commenter} is not allowed to use this command. Only users with at least one pull request merged into ${qualifyingBaseBranch} may use it.`
+                          `@${commenter} is not allowed to use this command. Only users with at least one pull request merged into ${defaultBranch} may use it.`
                         );
                         return;
                       }

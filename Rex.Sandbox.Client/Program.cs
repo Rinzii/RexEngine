@@ -20,14 +20,17 @@ internal static class Program
         {
             builder.AddConsole();
 
-            if (Environment.GetEnvironmentVariable("REX_SANDBOX_CLIENT_LOG_LEVEL") is { } logLevelStr &&
-                Enum.TryParse<LogLevel>(logLevelStr, true, out var logLevel))
+            var logLevelEnv = Environment.GetEnvironmentVariable("REX_SANDBOX_CLIENT_LOG_LEVEL")?.Trim();
+            if (!string.IsNullOrEmpty(logLevelEnv) &&
+                Enum.TryParse<LogLevel>(logLevelEnv, true, out var logLevel))
             {
                 builder.SetMinimumLevel(logLevel);
             }
             else
             {
+                // Keep third-party / engine noise down, but still show Sandbox client lifecycle (connect, accept, etc.).
                 builder.SetMinimumLevel(LogLevel.Warning);
+                builder.AddFilter("Rex.Sandbox.Client", LogLevel.Information);
             }
         });
 
@@ -190,33 +193,83 @@ internal static class Program
 
     private static string? ResolveServerAssemblyPath()
     {
-        var configuredPath = Environment.GetEnvironmentVariable(ServerAssemblyEnvironmentVariable);
-        if (!string.IsNullOrWhiteSpace(configuredPath))
+        var configuredPath = Environment.GetEnvironmentVariable(ServerAssemblyEnvironmentVariable)?.Trim();
+        if (!string.IsNullOrEmpty(configuredPath))
         {
-            return File.Exists(configuredPath) ? configuredPath : null;
+            try
+            {
+                var fullConfigured = Path.GetFullPath(configuredPath);
+                return File.Exists(fullConfigured) ? fullConfigured : null;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
-        var siblingPath = Path.Combine(AppContext.BaseDirectory, "Rex.Sandbox.Server.dll");
-        if (File.Exists(siblingPath))
-        {
-            return siblingPath;
-        }
-
-        var outputDir =
-            new DirectoryInfo(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar,
-                Path.AltDirectorySeparatorChar));
-        var tfm = outputDir.Name;
-        var config = outputDir.Parent?.Name;
-        var repoRoot = outputDir.Parent?.Parent?.Parent?.Parent;
-
-        if (config == null || repoRoot == null)
+        var baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        if (string.IsNullOrEmpty(baseDir))
         {
             return null;
         }
 
-        var repoPath = Path.Combine(repoRoot.FullName, "Rex.Sandbox.Server", "bin", config, tfm,
-            "Rex.Sandbox.Server.dll");
-        return File.Exists(repoPath) ? repoPath : null;
+        var siblingPath = Path.Combine(baseDir, "Rex.Sandbox.Server.dll");
+        if (File.Exists(siblingPath))
+        {
+            try
+            {
+                return Path.GetFullPath(siblingPath);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        DirectoryInfo outputDir;
+        try
+        {
+            outputDir = new DirectoryInfo(baseDir);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+
+        // Artifacts layout: <repo>/build/bin/<Project>/<pivot>/ (see Directory.Build.props UseArtifactsOutput).
+        var projectDir = outputDir.Parent;
+        var binDir = projectDir?.Parent;
+        var buildRoot = binDir?.Parent;
+        if (projectDir != null && binDir != null && buildRoot != null
+            && string.Equals(binDir.Name, "bin", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(buildRoot.Name, "build", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(projectDir.Name, "Rex.Sandbox.Client", StringComparison.OrdinalIgnoreCase))
+        {
+            string artifactsServer;
+            try
+            {
+                artifactsServer = Path.Combine(binDir.FullName, "Rex.Sandbox.Server", outputDir.Name,
+                    "Rex.Sandbox.Server.dll");
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+
+            if (File.Exists(artifactsServer))
+            {
+                try
+                {
+                    return Path.GetFullPath(artifactsServer);
+                }
+                catch (Exception)
+                {
+                    return null;
+                }
+            }
+        }
+
+        return null;
     }
 
     private sealed class ShutdownHook : IDisposable

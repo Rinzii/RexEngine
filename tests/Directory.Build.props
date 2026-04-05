@@ -1,5 +1,11 @@
 <Project>
+  <!-- Without this, MSBuild stops here and never applies repo-root Directory.Build.props (e.g. UseArtifactsOutput). -->
   <PropertyGroup>
+    <_RexRepoDirectoryBuildProps>$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))</_RexRepoDirectoryBuildProps>
+  </PropertyGroup>
+  <Import Project="$(_RexRepoDirectoryBuildProps)" Condition="'$(_RexRepoDirectoryBuildProps)' != ''"/>
+  <PropertyGroup>
+    <_RexRepoDirectoryBuildProps/>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

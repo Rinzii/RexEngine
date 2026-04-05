@@ -1,7 +1,21 @@
 <Project>
-  <PropertyGroup>
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <!-- Performance CA rules (see SDK analysislevelperformance_* globalconfig). Exempt Roslyn projects where noise dominates. -->
-    <AnalysisLevelPerformance Condition="'$(MSBuildProjectName)' != 'Rex.Analyzers' and '$(MSBuildProjectName)' != 'Rex.Roslyn.Shared'">10.0-recommended</AnalysisLevelPerformance>
-  </PropertyGroup>
+    <PropertyGroup>
+        <!-- Centralize all bin/obj (and publish/package) under ./build per project (SDK artifacts layout). -->
+        <UseArtifactsOutput>true</UseArtifactsOutput>
+        <ArtifactsPath>$(MSBuildThisFileDirectory)build</ArtifactsPath>
+
+        <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+        <ImplicitUsings>disable</ImplicitUsings>
+
+        <!-- Make CI builds deterministic/source-link friendly when CI sets this property -->
+        <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    </PropertyGroup>
+
+    <!-- 
+    Performance CA rules (see SDK analysislevelperformance_* globalconfig). 
+    Exempt Roslyn projects as they will be super annoying and spam the console.
+    -->
+    <PropertyGroup Condition="'$(MSBuildProjectName)' != 'Rex.Analyzers' and '$(MSBuildProjectName)' != 'Rex.Roslyn.Shared'">
+        <AnalysisLevelPerformance>10.0-recommended</AnalysisLevelPerformance>
+    </PropertyGroup>
 </Project>
