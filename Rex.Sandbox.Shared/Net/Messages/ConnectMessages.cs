@@ -43,10 +43,16 @@ public sealed class ConnectResponseMessage : INetMessage
     public const ushort Id = 2;
 
     public ushort MessageId => Id;
+    /// <summary>
+    /// Writes this message to the network writer.
+    /// </summary>
     public MessageGroup Group => MessageGroup.Core;
     public bool Accepted { get; }
     public Guid ClientId { get; }
     public int TickRate { get; }
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
     public int LocalPlayerEntityId { get; }
     public string? RejectReason { get; }
 
@@ -70,6 +76,9 @@ public sealed class ConnectResponseMessage : INetMessage
         writer.Put(RejectReason ?? string.Empty);
     }
 
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
     public static ConnectResponseMessage Deserialize(NetDataReader reader)
     {
         var accepted = reader.GetBool();

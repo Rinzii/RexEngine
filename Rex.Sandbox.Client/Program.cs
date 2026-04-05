@@ -8,9 +8,7 @@ using Rex.Shared.Startup;
 
 namespace Rex.Sandbox.Client;
 
-/// <summary>
-/// Sandbox CLI entrypoint. This remains in-repo but models how a future game-side consumer would boot the engine.
-/// </summary>
+/// <summary>Sandbox sample CLI entry. Mirrors how a game-hosted client boots the engine.</summary>
 internal static class Program
 {
     private const string ServerAssemblyEnvironmentVariable = "REX_SANDBOX_SERVER_DLL";
@@ -35,7 +33,7 @@ internal static class Program
             }
             else
             {
-                // Keep third-party / engine noise down, but still show Sandbox client lifecycle (connect, accept, etc.).
+                // Keep third party and engine noise down, but still show Sandbox client lifecycle (connect, accept, etc.).
                 builder.SetMinimumLevel(LogLevel.Warning);
                 builder.AddFilter("Rex.Sandbox.Client", LogLevel.Information);
             }

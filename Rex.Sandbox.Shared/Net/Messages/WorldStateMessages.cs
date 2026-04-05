@@ -83,6 +83,9 @@ public sealed class EntityState
         writer.Put(RotationY);
     }
 
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
     public static EntityState Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();
@@ -100,7 +103,6 @@ public sealed class EntityState
 public sealed class EntitySpawnMessage : INetMessage
 {
     public const ushort Id = 6;
-
     public ushort MessageId => Id;
     public MessageGroup Group => MessageGroup.EntityEvent;
     public int EntityId { get; }
@@ -166,6 +168,9 @@ public sealed class EntityDestroyMessage : INetMessage
         writer.Put(EntityId);
     }
 
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
     public static EntityDestroyMessage Deserialize(NetDataReader reader)
     {
         var entityId = reader.GetInt();

@@ -3,7 +3,7 @@ using ProtoBuf;
 namespace Rex.Sandbox.Shared.Net.Transfer;
 
 /// <summary>
-/// Sandbox-owned bulk payload identifiers. A future external game would define its own transfer kinds.
+/// Bulk payload kinds for the Sandbox sample. A future external game would define its own transfer kinds.
 /// </summary>
 public enum SandboxBulkDataType : byte
 {

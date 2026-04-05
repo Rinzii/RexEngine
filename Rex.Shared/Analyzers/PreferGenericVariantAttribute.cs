@@ -7,8 +7,7 @@ namespace Rex.Shared.Analyzers;
 #endif
 
 /// <summary>
-///     Indicates that the marked method has an alternative version that takes the Type input as a generic,
-///     and warns the user to use the generic version instead if they use <see langword="typeof"/>.
+///     Warns when callers pass <see langword="typeof"/> while a generic overload exists. Call the generic overload instead to avoid extra allocations on those paths.
 /// </summary>
 /// <example>
 /// <code>
@@ -28,8 +27,11 @@ namespace Rex.Shared.Analyzers;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class PreferGenericVariantAttribute : Attribute
 {
+    /// <summary>Names the preferred generic overload for the analyzer.</summary>
     public readonly string GenericVariant;
 
+    /// <summary>Stores the optional overload hint for the analyzer.</summary>
+    /// <param name="genericVariant">Token owned by the analyzer that describes the replacement API.</param>
     public PreferGenericVariantAttribute(string genericVariant = null!)
     {
         GenericVariant = genericVariant;

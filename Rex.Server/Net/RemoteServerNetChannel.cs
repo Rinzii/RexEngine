@@ -5,17 +5,25 @@ using ConnectionState = Rex.Shared.Net.ConnectionState;
 
 namespace Rex.Server.Net;
 
-/// <summary>LiteNetLib-backed server transport for one remote client.</summary>
+/// <summary>Server transport for one remote client using LiteNetLib.</summary>
 public sealed class RemoteServerNetChannel : IServerNetChannel
 {
     private readonly NetPeer _peer;
     private readonly NetDataWriter _writer = new();
 
+    /// <inheritdoc />
     public Guid ClientId { get; }
+
+    /// <inheritdoc />
     public bool IsLocal => false;
+
+    /// <inheritdoc />
     public ConnectionState State { get; set; }
+
+    /// <inheritdoc />
     public int RoundTripTimeMs => _peer.Ping;
 
+    /// <summary>Binds send helpers to an accepted peer.</summary>
     /// <param name="peer">LiteNetLib peer for this client after accept.</param>
     /// <param name="clientId">Same id the host uses in sessions.</param>
     public RemoteServerNetChannel(NetPeer peer, Guid clientId)
@@ -25,6 +33,7 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
         State = ConnectionState.Connected;
     }
 
+    /// <inheritdoc />
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
         _writer.Reset();
@@ -32,12 +41,14 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
         _peer.Send(_writer, channel, delivery);
     }
 
+    /// <inheritdoc />
     public void Send(INetMessage message)
     {
         var (channel, delivery) = message.Group.GetDeliveryInfo();
         Send(message, channel, delivery);
     }
 
+    /// <inheritdoc />
     public void Disconnect(string reason)
     {
         State = ConnectionState.Disconnecting;

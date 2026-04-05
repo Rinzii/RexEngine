@@ -3,7 +3,7 @@ using Rex.Shared.Net.Transfer;
 
 namespace Rex.Sandbox.Shared.Tests.Net.Transfer;
 
-// protobuf-net helpers for Sandbox-owned bulk DTOs.
+// Protobuf net helpers for Sandbox sample bulk DTOs.
 public sealed class SandboxProtoSerializerTests
 {
     [Fact]

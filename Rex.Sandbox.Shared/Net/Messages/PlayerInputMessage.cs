@@ -41,6 +41,9 @@ public sealed class PlayerInputMessage : INetMessage
         writer.Put(ActionFlags);
     }
 
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
     public static PlayerInputMessage Deserialize(NetDataReader reader)
     {
         var tick = reader.GetUInt();

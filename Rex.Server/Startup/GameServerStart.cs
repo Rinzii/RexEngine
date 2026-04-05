@@ -6,14 +6,13 @@ using Rex.Shared.Startup;
 
 namespace Rex.Server.Startup;
 
-/// <summary>
-/// Starts a game server through engine owned startup services.
-/// </summary>
+/// <summary>Dedicated server entry in the engine.</summary>
 public static class GameServerStart
 {
-    /// <summary>
-    /// Parses startup options then composes and runs the server host.
-    /// </summary>
+    /// <summary>Parses argv, builds services and runs <see cref="ServerRuntimeHost"/> until shutdown.</summary>
+    /// <param name="args">Raw command line arguments.</param>
+    /// <param name="definition">Ports, names and defaults from the game.</param>
+    /// <returns>0 after a normal exit. 1 when argument parsing fails or startup throws.</returns>
     public static int Start(string[] args, GameServerStartDefinition definition)
     {
         GameStartDefinitionValidator.Validate(definition);
@@ -29,7 +28,8 @@ public static class GameServerStart
         services.AddSingleton(definition);
         services.AddSingleton(options);
         services.AddSingleton(loggerFactory);
-        services.AddSingleton(_ => loggerFactory.CreateLogger("Rex.Server.Startup"));
+        services.AddSingleton<ILogger>(sp =>
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger("Rex.Server.Startup"));
         services.AddSingleton(new ServerRuntimeOptions { TickRate = options.TickRate });
         services.AddSingleton<ServerRuntimeHost>();
         using var serviceProvider = services.BuildServiceProvider();

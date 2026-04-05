@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Rex.Client;
 using Rex.Client.Net;
 using Rex.Client.Runtime;
 using Rex.Client.Graphics;
@@ -11,13 +10,16 @@ using Rex.Shared.Startup;
 namespace Rex.Client.Startup;
 
 /// <summary>
-/// Starts a game client through engine owned startup services.
+/// Engine entry for game client startup.
 /// </summary>
 public static class GameClientStart
 {
     /// <summary>
-    /// Parses startup options then composes and runs the client host.
+    /// Parses command line arguments, wires dependency injection and blocks inside <see cref="ClientRuntimeHost"/> until shutdown.
     /// </summary>
+    /// <param name="args">Raw command line arguments.</param>
+    /// <param name="definition">Window, networking and identity defaults from the game.</param>
+    /// <returns>0 after a normal exit. 1 when argument parsing fails or startup throws.</returns>
     public static int Start(string[] args, GameClientStartDefinition definition)
     {
         GameStartDefinitionValidator.Validate(definition);
@@ -33,7 +35,8 @@ public static class GameClientStart
         services.AddSingleton(definition);
         services.AddSingleton(options);
         services.AddSingleton(loggerFactory);
-        services.AddSingleton(_ => loggerFactory.CreateLogger("Rex.Client.Startup"));
+        services.AddSingleton<ILogger>(sp =>
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger("Rex.Client.Startup"));
         services.AddSingleton(new ClientRuntimeOptions
         {
             TickRate = definition.TickRate,
@@ -42,7 +45,7 @@ public static class GameClientStart
             WindowWidth = definition.Window.Width,
             WindowHeight = definition.Window.Height
         });
-        // Register the window backend through DI so the runtime only depends on the interface.
+        // Window backend is registered in DI so ClientRuntimeHost depends only on IGameWindow.
         services.AddSingleton<IGameWindow, WindowCreator>();
         services.AddSingleton<ClientRuntimeHost>();
         using var serviceProvider = services.BuildServiceProvider();

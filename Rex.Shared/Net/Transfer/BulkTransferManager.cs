@@ -2,35 +2,25 @@ using Microsoft.Extensions.Logging;
 
 namespace Rex.Shared.Net.Transfer;
 
-/// <summary>
-/// Splits large payloads into chunks for transfer on a dedicated channel.
-/// </summary>
+/// <summary>Splits large payloads into chunks on the transfer channel.</summary>
 public sealed partial class BulkTransferManager
 {
-    /// <summary>
-    /// Chunk size used for transfer messages.
-    /// </summary>
+    /// <summary>Maximum payload bytes per chunk message.</summary>
     public const int MaxChunkSize = 4096;
 
     private readonly ILogger _logger;
     private readonly Dictionary<Guid, IncomingTransfer> _incomingTransfers = new();
 
-    /// <summary>
-    /// Raised when a transfer has been fully reassembled.
-    /// </summary>
+    /// <summary>Raised after an inbound transfer reassembles successfully.</summary>
     public event Action<Guid, byte, byte[]>? TransferCompleted;
 
-    /// <summary>
-    /// Creates a bulk transfer manager with its own logger.
-    /// </summary>
+    /// <summary>Scopes logs from <paramref name="loggerFactory"/> to this manager.</summary>
     public BulkTransferManager(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<BulkTransferManager>();
     }
 
-    /// <summary>
-    /// Sends a bulk payload from the server to one client.
-    /// </summary>
+    /// <summary>Sends a bulk payload to one client.</summary>
     public void SendBulkData<T>(IServerNetChannel channel, byte dataType, T data)
     {
         var raw = ProtoSerializer.Serialize(data);
@@ -52,9 +42,7 @@ public sealed partial class BulkTransferManager
         LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
-    /// <summary>
-    /// Sends a bulk payload from the client to the server.
-    /// </summary>
+    /// <summary>Sends a bulk payload to the server.</summary>
     public void SendBulkData<T>(IClientNetChannel channel, byte dataType, T data)
     {
         var raw = ProtoSerializer.Serialize(data);
@@ -76,9 +64,7 @@ public sealed partial class BulkTransferManager
         LogStartedBulkTransfer(transferId, dataType, originalSize, isCompressed, payload.Length, chunks.Count);
     }
 
-    /// <summary>
-    /// Starts tracking an inbound transfer after its init message arrives.
-    /// </summary>
+    /// <summary>Begins tracking an inbound transfer after the init message.</summary>
     public void HandleTransferInit(BulkTransferInitMessage init)
     {
         _incomingTransfers[init.TransferId] = new IncomingTransfer
@@ -96,9 +82,7 @@ public sealed partial class BulkTransferManager
         LogReceivingBulkTransfer(init.TransferId, init.DataType, init.ChunkCount, init.TotalSize);
     }
 
-    /// <summary>
-    /// Adds one chunk to an inbound transfer and finishes it when all chunks are present.
-    /// </summary>
+    /// <summary>Records one chunk and completes the transfer when all chunks arrive.</summary>
     public void HandleTransferChunk(BulkTransferChunkMessage chunk)
     {
         if (!_incomingTransfers.TryGetValue(chunk.TransferId, out var transfer))

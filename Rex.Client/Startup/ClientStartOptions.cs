@@ -11,6 +11,10 @@ public sealed record ClientStartOptions(bool Headless, NetMode Mode, string Conn
     /// <summary>
     /// Parses the client startup command line.
     /// </summary>
+    /// <param name="args">Tokens after the executable name.</param>
+    /// <param name="definition">Baseline host, port and mode defaults from the game.</param>
+    /// <param name="options">Filled when parsing succeeds.</param>
+    /// <param name="error">Human readable failure text when parsing fails.</param>
     public static bool TryParse(
         IReadOnlyList<string> args,
         GameClientStartDefinition definition,
@@ -38,18 +42,18 @@ public sealed record ClientStartOptions(bool Headless, NetMode Mode, string Conn
                     standalone = true;
                     break;
                 case "--connect" when !enumerator.MoveNext():
-                    options = default!;
+                    options = null!;
                     error = "Missing value for --connect.";
                     return false;
                 case "--connect":
                     connectAddress = enumerator.Current;
                     break;
                 case "--port" when !enumerator.MoveNext():
-                    options = default!;
+                    options = null!;
                     error = "Missing value for --port.";
                     return false;
                 case "--port" when !int.TryParse(enumerator.Current, out port) || port is <= 0 or > 65535:
-                    options = default!;
+                    options = null!;
                     error = "Invalid value for --port.";
                     return false;
             }

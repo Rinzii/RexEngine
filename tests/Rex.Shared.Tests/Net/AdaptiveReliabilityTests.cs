@@ -65,7 +65,7 @@ public sealed class AdaptiveReliabilityTests
     }
 
     [Fact]
-    // Non-entity groups never upgrade based on size.
+    // Groups other than Entity never upgrade based on size.
     public void Non_entity_ignores_payload_size()
     {
         var message = new PayloadCoreMessage(AdaptiveReliability.ReliableThreshold + 500);

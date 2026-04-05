@@ -6,19 +6,39 @@ using Rex.Shared.Timing;
 namespace Rex.Client.Runtime;
 
 /// <summary>
-/// Options that drive the client runtime loop.
+/// Tunables for <see cref="ClientRuntimeHost"/>.
 /// </summary>
 public sealed class ClientRuntimeOptions
 {
+    /// <summary>
+    /// Fixed simulation steps per second shared with the tick clock.
+    /// </summary>
     public int TickRate { get; init; }
+
+    /// <summary>
+    /// Skips window creation and presentation when true.
+    /// </summary>
     public bool Headless { get; set; }
+
+    /// <summary>
+    /// Initial window title when not headless.
+    /// </summary>
     public string WindowTitle { get; set; } = "Rex Client";
+
+    /// <summary>
+    /// Initial window width in pixels.
+    /// </summary>
     public int WindowWidth { get; set; } = 1280;
+
+    /// <summary>
+    /// Initial window height in pixels.
+    /// </summary>
     public int WindowHeight { get; set; } = 720;
 }
 
 /// <summary>
-/// Runs the reusable client frame loop.
+/// Client main loop. Owns optional windowing, drains fixed ticks through <see cref="OnFixedUpdate"/>, then runs
+/// variable frame callbacks through <see cref="OnUpdate"/> and <see cref="OnLateUpdate"/> before <see cref="OnRender"/>.
 /// </summary>
 public sealed partial class ClientRuntimeHost : IDisposable
 {
@@ -30,8 +50,10 @@ public sealed partial class ClientRuntimeHost : IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Creates a runtime host for a client process.
+    /// Captures options and prepares logging for the frame loop.
     /// </summary>
+    /// <param name="options">Headless flag dimensions and tick rate.</param>
+    /// <param name="loggerFactory">Factory used to create the host category logger.</param>
     public ClientRuntimeHost(ClientRuntimeOptions options, ILoggerFactory loggerFactory)
     {
         _options = options;
@@ -39,24 +61,51 @@ public sealed partial class ClientRuntimeHost : IDisposable
         _clock = new TickClock(options.TickRate);
     }
 
+    /// <summary>
+    /// Options captured at construction.
+    /// </summary>
     public ClientRuntimeOptions Options => _options;
+
+    /// <summary>
+    /// Simulation clock advanced by the main loop.
+    /// </summary>
     public TickClock Clock => _clock;
+
+    /// <summary>
+    /// True while <see cref="Run"/> is inside its main loop.
+    /// </summary>
     public bool IsRunning => _isRunning;
+
+    /// <summary>
+    /// Multiplier applied to frame deltas inside <see cref="FrameContext"/>.
+    /// </summary>
     public float TimeScale { get; set; } = 1f;
     /// <summary>
     /// Optional window backend resolved by the startup layer.
     /// </summary>
     public IGameWindow? Window { get; set; }
+    /// <summary>Invoked once at the start of <see cref="Run"/> before the main loop.</summary>
     public Action? OnInitialize { get; set; }
+
+    /// <summary>Invoked zero or more times per frame for fixed simulation steps.</summary>
     public Action? OnFixedUpdate { get; set; }
+
+    /// <summary>Invoked each frame after fixed steps and receives timing context.</summary>
     public Action<FrameContext>? OnUpdate { get; set; }
+
+    /// <summary>Invoked each frame after <see cref="OnUpdate"/>.</summary>
     public Action<FrameContext>? OnLateUpdate { get; set; }
+
+    /// <summary>Invoked each frame after <see cref="OnLateUpdate"/> for GPU work.</summary>
     public Action<FrameContext>? OnRender { get; set; }
+
+    /// <summary>Invoked once when <see cref="Run"/> finishes for any reason.</summary>
     public Action? OnShutdown { get; set; }
 
     /// <summary>
-    /// Runs the client loop until stop or cancellation.
+    /// Enters the main loop until <see cref="Stop"/>, a closed window or a canceled <paramref name="cancellationToken"/> ends it.
     /// </summary>
+    /// <param name="cancellationToken">Stops the loop when canceled.</param>
     public void Run(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
@@ -147,11 +196,13 @@ public sealed partial class ClientRuntimeHost : IDisposable
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
+            // Drain wall time into fixed ticks, then mirror the leftover interval as alpha on the tick clock.
             var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, () => OnFixedUpdate?.Invoke());
             var alpha = (float)(accumulator / _clock.TickInterval);
             _clock.SetAlpha(alpha);
             frameIndex++;
 
+            // Variable phase timing with hitch clamping plus a smoothed delta for stable motion or UI.
             var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
             var smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
@@ -185,6 +236,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
             }
             else
             {
+                // Headless clients still need a scheduling point without blocking on vsync.
                 Thread.Yield();
             }
         }
@@ -195,6 +247,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
         }
     }
 
+    /// <summary>Invokes a frame callback and logs failures without tearing down the loop.</summary>
     private static void InvokeUpdateCallback(Action<FrameContext>? callback, FrameContext ctx, Action<Exception> logFailure)
     {
         if (callback == null)

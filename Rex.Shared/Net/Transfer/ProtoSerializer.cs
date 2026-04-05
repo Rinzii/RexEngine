@@ -3,11 +3,11 @@ using ProtoBuf;
 namespace Rex.Shared.Net.Transfer;
 
 /// <summary>
-/// Protobuf-net serialize/deserialize helpers.
+/// Helpers for Protobuf serialization using the protobuf net stack.
 /// </summary>
 public static class ProtoSerializer
 {
-    /// <summary>Serializes using protobuf-net attributes on <typeparamref name="T"/>.</summary>
+    /// <summary>Serializes using protobuf net attributes on <typeparamref name="T"/>.</summary>
     public static byte[] Serialize<T>(T value)
     {
         using var ms = new MemoryStream();
@@ -23,7 +23,7 @@ public static class ProtoSerializer
         return Serializer.Deserialize<T>(ms);
     }
 
-    /// <summary>Same as array overload. Copies to a stream because protobuf-net wants a stream.</summary>
+    /// <summary>Same as array overload. Copies to a stream because protobuf net expects a stream.</summary>
     public static T Deserialize<T>(ReadOnlyMemory<byte> data)
     {
         using var ms = new MemoryStream(data.ToArray());

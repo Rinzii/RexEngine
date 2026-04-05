@@ -133,10 +133,8 @@ public struct HashCode
         }
     }
 
-    /// <summary>
-    /// Gets the resulting hashcode from the current instance.
-    /// </summary>
-    /// <returns>The resulting hashcode from the current instance.</returns>
+    /// <summary>Final 32-bit hash after all prior Add calls.</summary>
+    /// <returns>Combined hash value.</returns>
     public int ToHashCode()
     {
         var length = _length;

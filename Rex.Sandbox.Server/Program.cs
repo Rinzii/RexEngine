@@ -9,9 +9,7 @@ using Rex.Shared.Utility;
 
 namespace Rex.Sandbox.Server;
 
-/// <summary>
-/// Sandbox server CLI entrypoint.
-/// </summary>
+/// <summary>Sandbox server CLI entry.</summary>
 internal static class Program
 {
     internal static void Main(string[] args)

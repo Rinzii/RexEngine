@@ -3,12 +3,12 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Indicates that overriders of this method must always call the base function.
+///     Overrides must invoke the base implementation of this method.
 /// </summary>
 /// <param name="onlyOverrides">
 ///     If true, only base calls to <b>overrides</b> are necessary.
 ///     This is intended for base classes where the base function is always empty,
-///     so a base call from the first override may be ommitted.
+///     so a base call from the first override may be omitted.
 /// </param>
 /// <example>
 /// <code>
@@ -40,5 +40,6 @@ namespace Rex.Shared.Analyzers;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class MustCallBaseAttribute(bool onlyOverrides = false) : Attribute
 {
+    /// <summary>When true only overrides must call the base implementation.</summary>
     public bool OnlyOverrides { get; } = onlyOverrides;
 }

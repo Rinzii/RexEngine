@@ -3,11 +3,10 @@ using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net.Messages;
 
-/// <summary>
-/// Explicit disconnect notice sent before a channel closes.
-/// </summary>
+/// <summary>Disconnect notice sent before the channel closes.</summary>
 public sealed class DisconnectMessage : INetMessage
 {
+    /// <summary>Wire id for <see cref="DisconnectMessage"/>.</summary>
     public const ushort Id = 3;
 
     /// <inheritdoc />
@@ -16,14 +15,10 @@ public sealed class DisconnectMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Core;
 
-    /// <summary>
-    /// Gets the disconnect reason.
-    /// </summary>
+    /// <summary>Opaque reason forwarded to the peer.</summary>
     public string Reason { get; }
 
-    /// <summary>
-    /// Creates a disconnect payload.
-    /// </summary>
+    /// <summary>Builds a disconnect payload.</summary>
     public DisconnectMessage(string reason)
     {
         Reason = reason;
@@ -36,6 +31,7 @@ public sealed class DisconnectMessage : INetMessage
         writer.Put(Reason);
     }
 
+    /// <summary>Parses the body after the header.</summary>
     public static DisconnectMessage Deserialize(NetDataReader reader)
     {
         var reason = reader.GetString();

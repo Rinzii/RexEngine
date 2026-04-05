@@ -4,7 +4,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
-// In-memory client and server channel pair for tests.
+// In memory client and server channel pair for tests.
 public sealed class LocalNetChannelPairTests
 {
     [Fact]

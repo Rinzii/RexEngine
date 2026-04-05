@@ -3,16 +3,14 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Marker attribute specifying that content <b>must not</b> implement this interface itself.
+///     Game content must not implement this interface directly.
 /// </summary>
 /// <remarks>
 /// <para>
-///     Interfaces with this attribute may have members added by the engine at any time,
-///     so implementing them yourself would not be API-stable.
+///     The engine can add members on minor updates, so a manual implementation drifts from the real contract.
 /// </para>
 /// <para>
-///     Currently, nothing enforces this, but your codebase may spontaneously cease building in any minor version if
-///     you inherit from or implement anything marked with this attribute.
+///     No analyzer enforces it today. Following the rule still avoids breaks when engine interfaces expand.
 /// </para>
 /// </remarks>
 [AttributeUsage(AttributeTargets.Interface)]

@@ -2,7 +2,7 @@ using Rex.Shared.Simulation;
 
 namespace Rex.Shared.Tests.Simulation;
 
-// Per-tick dirty entity ids for delta snapshots.
+// Dirty entity ids per tick for delta snapshots.
 public sealed class DirtyTrackerTests
 {
     [Fact]

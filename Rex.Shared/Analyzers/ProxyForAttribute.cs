@@ -4,13 +4,10 @@ namespace Rex.Shared.Analyzers;
 
 /// <summary>
 /// <para>
-///     Indicates that a method is a proxy method that can and should be used as a shortcut
-///     for calling a method in another class. This will cause a compiler warning on any code
-///     within the descendants of this class that attempts to call the target method directly
-///     instead of using the proxy method.
+///     Forwards to a method on another type. Descendants should call this proxy instead of the target or the analyzer warns.
 /// </para>
 /// <para>
-///     The proxy method must have the same parameters as the target method.
+///     Parameter list must match the target signature.
 /// </para>
 /// </summary>
 /// <param name="type"><see cref="Type"/> containing the target method.</param>

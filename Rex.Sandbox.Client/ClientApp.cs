@@ -13,7 +13,7 @@ using Rex.Shared.Timing;
 namespace Rex.Sandbox.Client;
 
 /// <summary>
-/// Sandbox-owned client application that exercises the reusable engine runtime as an internal consumer.
+/// Client application for the Sandbox sample. It exercises the reusable engine runtime as an internal consumer.
 /// </summary>
 public sealed partial class ClientApp : IDisposable
 {
@@ -73,13 +73,11 @@ public sealed partial class ClientApp : IDisposable
         get => _runtime.Window;
         set => _runtime.Window = value;
     }
-
     public ISandboxWorldRenderer? Renderer
     {
         get => _renderer;
         set => _renderer = value;
     }
-
     public ClientApp(NetMode mode, ILoggerFactory loggerFactory, int tickRate = ProtocolConstants.DefaultTickRate)
     {
         _mode = mode;
@@ -123,6 +121,9 @@ public sealed partial class ClientApp : IDisposable
         _runtime.Stop();
     }
 
+    /// <summary>
+    /// Releases resources owned by this instance.
+    /// </summary>
     public void Dispose()
     {
         _renderer?.Dispose();

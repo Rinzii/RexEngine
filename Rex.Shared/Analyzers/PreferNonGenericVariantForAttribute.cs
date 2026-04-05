@@ -7,7 +7,7 @@ namespace Rex.Shared.Analyzers;
 #endif
 
 /// <summary>
-///     Indicates that the user should prefer to use non-generic, special methods for the given generic type arguments.
+///     Prefer non-generic overloads when the type arguments match <see cref="ForTypes"/> instead of the generic overload.
 /// </summary>
 /// <example>
 /// <code>
@@ -19,7 +19,7 @@ namespace Rex.Shared.Analyzers;
 ///         public static string DescribeCupcake(Cupcake food);
 ///     }
 ///
-///     // Warning RA0020: Use the non-generic variant of this method for type Cupcake.
+///     // Warning RA0020: Use the non-generic overload for Cupcake instead of the generic method.
 ///     MyClass.DescribeFood<Cupcake>(new Cupcake());
 ///
 ///     // No warning
@@ -31,10 +31,11 @@ namespace Rex.Shared.Analyzers;
 public sealed class PreferNonGenericVariantForAttribute : Attribute
 {
     /// <summary>
-    ///     The types to recommend using non-generic methods for.
+    ///     Each entry names a type argument that should use a non-generic overload.
     /// </summary>
     public readonly Type[] ForTypes;
 
+    /// <summary>Type arguments that steer the analyzer toward non-generic overloads.</summary>
     public PreferNonGenericVariantForAttribute(params Type[] forTypes)
     {
         ForTypes = forTypes;

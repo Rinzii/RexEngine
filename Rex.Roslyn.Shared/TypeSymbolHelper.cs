@@ -45,8 +45,8 @@ public static class TypeSymbolHelper
     }
 
     /// <summary>
-    /// Gets all Members of a symbol, including those that are inherited.
-    /// We need this because sometimes Components have abstract parents with autonetworked datafields.
+    /// All members on <paramref name="type"/> and its base types, walking upward.
+    /// Covers components whose abstract bases declare autonetworked data fields.
     /// </summary>
     public static IEnumerable<ISymbol> GetAllMembersIncludingInherited(INamedTypeSymbol type)
     {

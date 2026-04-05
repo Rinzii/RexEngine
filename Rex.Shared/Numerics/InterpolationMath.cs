@@ -1,6 +1,6 @@
 namespace Rex.Shared.Numerics;
 
-/// <summary>Inverse lerp, range remap, and smooth curves not provided on <see cref="Math"/> or primitive static APIs.</summary>
+/// <summary>Inverse lerp, range remap and smooth curves not provided on <see cref="Math"/> or primitive static APIs.</summary>
 public static class InterpolationMath
 {
     /// <summary>Linear weight of <paramref name="value"/> between <paramref name="a"/> and <paramref name="b"/>. Unclamped. Returns 0 when <paramref name="a"/> equals <paramref name="b"/>.</summary>

@@ -4,7 +4,7 @@ using Rex.Sandbox.Shared.Net.Messages;
 namespace Rex.Sandbox.Shared.Simulation;
 
 /// <summary>
-/// Sandbox-owned simulation tuning shared between the authoritative world and client prediction.
+/// Simulation tuning for the Sandbox sample, shared between the authoritative world and client prediction.
 /// </summary>
 public static class MovementConstants
 {
@@ -50,14 +50,12 @@ public sealed class GameWorld
     {
         _entities.Remove(entityId);
     }
-
     public void ProcessInput(int entityId, PlayerInputMessage input)
     {
         if (!_entities.TryGetValue(entityId, out var current))
         {
             return;
         }
-
         var newX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, current.X);
         var newZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, current.Z);
         var newRotY = input.LookY;
@@ -76,7 +74,6 @@ public sealed class GameWorld
         var entities = new List<EntityState>(_entities.Values);
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }
-
     public WorldSnapshotMessage BuildDeltaSnapshot(uint serverTick, uint lastProcessedInputTick,
         HashSet<int> dirtyEntityIds)
     {

@@ -1,16 +1,22 @@
 namespace Rex.Shared.Timing;
 
-/// <summary>
-/// Immutable snapshot for one display iteration after every fixed simulation step for this iteration has run.
-/// Same role as the Unity variable-rate phase (<c>Update</c> and <c>LateUpdate</c>) plus fixed-step metadata.
-/// </summary>
+/// <summary>Immutable snapshot after all fixed steps for one display iteration. Carries timing for the variable display phase and metadata for the fixed batch that just finished.</summary>
 /// <remarks>
-/// Rex runs fixed steps, sets interpolation alpha, runs <c>OnUpdate</c>, runs <c>LateUpdate</c>, then renders.
-/// Prefer <see cref="ScaledDeltaTime"/> for gameplay that respects pause or slow-mo.
-/// Use <see cref="UnscaledDeltaTime"/> for UI and real-time counters.
+/// Typical hosts run fixed steps, set interpolation alpha, call <c>OnUpdate</c> and <c>OnLateUpdate</c>, then present.
+/// Prefer <see cref="ScaledDeltaTime"/> for gameplay that respects pause or slow motion.
+/// Use <see cref="UnscaledDeltaTime"/> for UI and counters that follow wall clock time.
 /// </remarks>
 public readonly struct FrameContext
 {
+    /// <summary>Builds one frame snapshot after fixed simulation work for this display iteration.</summary>
+    /// <param name="clock">Clock whose <see cref="TickClock.Alpha"/> matches <paramref name="interpolationAlpha"/>.</param>
+    /// <param name="unscaledDeltaTime">Wall clock seconds for this display iteration before <paramref name="timeScale"/> is applied.</param>
+    /// <param name="unscaledSmoothDeltaTime">Smoothed wall delta before <paramref name="timeScale"/> is applied.</param>
+    /// <param name="timeScale">Multiplier for scaled deltas. Use 0 to pause simulation time.</param>
+    /// <param name="fixedStepsThisFrame">How many fixed ticks ran during this iteration.</param>
+    /// <param name="interpolationAlpha">Blend between previous and current fixed state for rendering.</param>
+    /// <param name="frameIndex">Monotonic index of the display frame since the loop started.</param>
+    /// <param name="elapsedRealtimeSeconds">Wall seconds since the main loop started.</param>
     public FrameContext(
         TickClock clock,
         float unscaledDeltaTime,
@@ -36,10 +42,10 @@ public readonly struct FrameContext
     /// <summary>Simulation clock after fixed steps. <see cref="TickClock.Alpha"/> matches <see cref="InterpolationAlpha"/>.</summary>
     public TickClock Clock { get; }
 
-    /// <summary>Wall-frame duration in seconds before <see cref="TimeScale"/>. The loop already clamped huge hitches.</summary>
+    /// <summary>Wall clock duration in seconds for this iteration before <see cref="TimeScale"/>. The loop already clamped huge hitches.</summary>
     public float UnscaledDeltaTime { get; }
 
-    /// <summary>Multiplier for <see cref="ScaledDeltaTime"/>. Use 0 for pause or a value below 1 for slow-mo.</summary>
+    /// <summary>Multiplier for <see cref="ScaledDeltaTime"/>. Use 0 for pause or a value below 1 for slow motion.</summary>
     public float TimeScale { get; }
 
     /// <summary>Product of <see cref="UnscaledDeltaTime"/> and <see cref="TimeScale"/>.</summary>
@@ -57,7 +63,7 @@ public readonly struct FrameContext
     /// <summary>Blend between last and current fixed state for rendering. Same value as <see cref="TickClock.Alpha"/>.</summary>
     public float InterpolationAlpha { get; }
 
-    /// <summary>Monotonic display-frame counter since the loop started. The first variable phase is 1.</summary>
+    /// <summary>Monotonic counter of display frames since the loop started. The first variable phase is 1.</summary>
     public ulong FrameIndex { get; }
 
     /// <summary>Wall seconds since the main loop started.</summary>

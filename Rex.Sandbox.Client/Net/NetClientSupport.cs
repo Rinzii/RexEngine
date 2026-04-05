@@ -14,7 +14,7 @@ using ConnectionState = Rex.Shared.Net.ConnectionState;
 namespace Rex.Sandbox.Client.Net;
 
 /// <summary>
-/// Sandbox-owned networking controller for the built-in sample consumer.
+/// Networking controller for the Sandbox sample consumer that ships with this repository.
 /// </summary>
 public sealed partial class GameClient
 {
@@ -276,7 +276,6 @@ public sealed class ClientWorldState
         _previousSnapshot = _currentSnapshot;
         _currentSnapshot = snapshot;
     }
-
     public IReadOnlyList<EntityState> GetInterpolatedState(float alpha)
     {
         if (_currentSnapshot == null)

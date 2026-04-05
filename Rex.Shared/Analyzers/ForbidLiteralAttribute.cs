@@ -3,9 +3,7 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Marks that values used for this parameter should not be literal values.
-///     This helps prevent magic numbers/strings/etc, by indicating that values
-///     should either be wrapped (for validation) or defined as constants or readonly statics.
+///     Forbids literal arguments at calls. Use named constants, readonly static fields or validated wrappers instead of raw literals.
 /// </summary>
 /// <example>
 /// <code>

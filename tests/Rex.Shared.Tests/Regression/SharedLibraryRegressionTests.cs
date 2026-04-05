@@ -6,7 +6,7 @@ using Rex.Shared.Utility;
 
 namespace Rex.Shared.Tests.Regression;
 
-// Locks non-network shared library behavior covered by sibling test types.
+// Locks shared library behavior that does not involve the network, covered by sibling test types.
 public sealed class SharedLibraryRegressionTests
 {
     [Fact]

@@ -71,7 +71,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
             }
 
             // Find the value passed for this parameter.
-            // We use GetConstantValue to resolve compile-time values - i.e. the result of nameof()
+            // GetConstantValue resolves constant expressions such as nameof() results.
             if (op.Value.ConstantValue is not { HasValue: true, Value: string fieldName })
             {
                 continue;

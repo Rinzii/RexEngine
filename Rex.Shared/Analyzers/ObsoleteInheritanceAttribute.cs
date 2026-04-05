@@ -3,10 +3,10 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Indicates that the ability to <i>inherit</i> this type is obsolete, and attempting to do so should give a warning.
+///     Subclassing this type is obsolete and should surface a warning.
 /// </summary>
 /// <remarks>
-///     This is useful to gracefully deal with types that should never have had <see cref="VirtualAttribute"/>.
+///     For types that should not have carried <see cref="VirtualAttribute"/>.
 /// </remarks>
 /// <example>
 /// <code>
@@ -26,10 +26,13 @@ public sealed class ObsoleteInheritanceAttribute : Attribute
     /// </summary>
     public string? Message { get; }
 
+    /// <summary>Uses the default analyzer message.</summary>
     public ObsoleteInheritanceAttribute()
     {
     }
 
+    /// <summary>Sets custom diagnostic text.</summary>
+    /// <param name="message">Text shown in the diagnostic.</param>
     public ObsoleteInheritanceAttribute(string message)
     {
         Message = message;

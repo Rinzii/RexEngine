@@ -3,10 +3,7 @@ using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net;
 
-/// <summary>
-/// Picks channel and delivery for a message. High-rate replication payloads can be upgraded to reliable ordered delivery
-/// when they exceed a practical size threshold.
-/// </summary>
+/// <summary>Picks channel and delivery. Large entity payloads upgrade from sequenced snapshot to reliable ordered past a size threshold.</summary>
 public static class AdaptiveReliability
 {
     /// <summary>Serialized size above this uses reliable ordered instead of sequenced snapshot delivery.</summary>

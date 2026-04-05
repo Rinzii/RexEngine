@@ -14,8 +14,11 @@ public sealed class ReadyChildProcess : IDisposable
     private bool _disposed;
 
     /// <summary>
-    /// Binds process output to readiness tracking.
+    /// Subscribes to stdout and stderr until <paramref name="readyLine"/> appears.
     /// </summary>
+    /// <param name="process">Child whose output lines are scanned.</param>
+    /// <param name="logger">Receives forwarded child lines.</param>
+    /// <param name="readyLine">Token substring that marks readiness.</param>
     public ReadyChildProcess(Process process, ILogger logger, string readyLine)
     {
         Process = process;
@@ -26,13 +29,16 @@ public sealed class ReadyChildProcess : IDisposable
     }
 
     /// <summary>
-    /// The child process that is being observed.
+    /// Child process bound at construction.
     /// </summary>
+    /// <value>The same instance passed to the constructor.</value>
     public Process Process { get; }
 
     /// <summary>
-    /// Waits until the process prints the ready token.
+    /// Blocks until the ready token appears or <paramref name="timeout"/> elapses.
     /// </summary>
+    /// <param name="timeout">Upper bound on the wait.</param>
+    /// <returns>True when output contained the ready token before the timeout.</returns>
     public bool WaitUntilReady(TimeSpan timeout)
     {
         return _readySignal.Wait(timeout);
@@ -57,6 +63,7 @@ public sealed class ReadyChildProcess : IDisposable
 
     private void OnOutputDataReceived(object sender, DataReceivedEventArgs e)
     {
+        // Async streams often emit empty lines between real output.
         if (string.IsNullOrWhiteSpace(e.Data))
         {
             return;
@@ -73,6 +80,7 @@ public sealed class ReadyChildProcess : IDisposable
     {
         if (!string.IsNullOrWhiteSpace(e.Data))
         {
+            // Stderr is logged even when the child has not printed the ready token yet.
             ReadyChildProcessLog.ChildStderr(_logger, e.Data);
         }
     }

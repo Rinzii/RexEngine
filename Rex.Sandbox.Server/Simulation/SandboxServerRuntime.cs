@@ -22,7 +22,7 @@ public sealed class GameServerConfig
     public string ConnectionKey { get; init; } = SandboxProtocolConstants.ConnectionKey;
 }
 
-/// <summary>Per-client state tracked by the Sandbox server host.</summary>
+/// <summary>Tracks each Sandbox client's state on the server host.</summary>
 public sealed class ClientSession
 {
     public IServerNetChannel Channel { get; }
@@ -51,7 +51,7 @@ public sealed class ClientSession
 }
 
 /// <summary>
-/// Transport-agnostic Sandbox host. This sample policy sits outside the reusable engine layer.
+/// Sandbox sample host that does not depend on a specific transport. This sample policy sits outside the reusable engine layer.
 /// </summary>
 public sealed partial class GameServerHost
 {
@@ -75,7 +75,6 @@ public sealed partial class GameServerHost
     public RexNetStatistics Statistics => _statistics;
     public BulkTransferManager? TransferManager => _transferManager;
     public IReadOnlyDictionary<Guid, ClientSession> Sessions => _sessions;
-
     public GameServerHost(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;
@@ -216,7 +215,6 @@ public sealed partial class GameServerHost
         _currentTick++;
         BroadcastSnapshots();
     }
-
     public void Shutdown()
     {
         if (!_isRunning)

@@ -2,7 +2,7 @@ using Rex.Shared.Timing;
 
 namespace Rex.Shared.Tests.Timing;
 
-// One variable-rate frame after fixed steps.
+// One variable rate frame after fixed steps.
 public sealed class FrameContextTests
 {
     [Fact]

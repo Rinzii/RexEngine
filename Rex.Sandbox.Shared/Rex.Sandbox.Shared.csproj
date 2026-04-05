@@ -7,6 +7,7 @@
         <!-- Sample-only: do not pack or publish; not a dependency surface for engine code (see Directory.Build.targets). -->
         <IsPackable>false</IsPackable>
         <IsPublishable>false</IsPublishable>
+        <NoWarn>$(NoWarn);CS1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

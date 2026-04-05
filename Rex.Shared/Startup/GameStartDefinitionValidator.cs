@@ -6,8 +6,12 @@ namespace Rex.Shared.Startup;
 public static class GameStartDefinitionValidator
 {
     /// <summary>
-    /// Validates a client startup definition.
+    /// Throws when any required client startup field is missing or invalid.
     /// </summary>
+    /// <param name="definition">Client bootstrap metadata from the game.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="definition"/> or a nested object is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a string field is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a numeric field is outside allowed bounds.</exception>
     public static void Validate(GameClientStartDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
@@ -20,8 +24,12 @@ public static class GameStartDefinitionValidator
     }
 
     /// <summary>
-    /// Validates a server startup definition.
+    /// Throws when any required server startup field is missing or invalid.
     /// </summary>
+    /// <param name="definition">Server bootstrap metadata from the game.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="definition"/> or a nested object is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a string field is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when a numeric field is outside allowed bounds.</exception>
     public static void Validate(GameServerStartDefinition definition)
     {
         ArgumentNullException.ThrowIfNull(definition);
