@@ -6,9 +6,12 @@ namespace Rex.Shared.Profiling.Tracy;
 
 using static global::Tracy.PInvoke;
 
+/// <summary>
+/// Static helper to interact with the Tracy profiler.
+/// </summary>
 public static class TracyProfiler
 {
-    public static bool ProfilerEnabled { get; } = true;
+    private static bool ProfilerEnabled { get; } = true;
 
     private record struct CStringCacheEntry(CString Value, long LastAccessedTimestamp);
     private record struct SourceLocationKey(string FilePath, int LineNumber, string MemberName, string? ZoneName);
@@ -16,6 +19,10 @@ public static class TracyProfiler
     private static ConcurrentDictionary<string, CStringCacheEntry> CStringCache { get; } = new();
     private static ConcurrentDictionary<SourceLocationKey, ulong> SourceLocationCache { get; } = new();
 
+    /// <summary>
+    /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
+    /// </summary>
+    /// <param name="name">Optional name for the frame mark. If provided, it will be displayed in the profiler UI alongside the frame timing information.</param>
     public static void MarkFrameCompleted(string? name = null)
     {
         if (!ProfilerEnabled)
@@ -27,6 +34,17 @@ public static class TracyProfiler
         TracyEmitFrameMark(nameStr);
     }
 
+    /// <summary>
+    /// Begins a profiling zone with the specified parameters. Returns a <see cref="TracyProfilerScope"/> that will automatically end the zone when disposed. If profiling is disabled, returns null.
+    /// </summary>
+    /// <param name="zoneName">Optional name for the zone. If provided, it will be displayed in the profiler UI to help identify the zone.</param>
+    /// <param name="active">Whether the zone is active. If false, the zone will be ignored by the profiler and will not contribute to profiling data.</param>
+    /// <param name="color">Optional color for the zone in the profiler UI, specified as a 32-bit unsigned integer in ARGB format. If not provided, a default color will be used.</param>
+    /// <param name="text">Optional text to display in the profiler UI when hovering over the zone. If provided, it will be shown as a tooltip to provide additional context about the zone.</param>
+    /// <param name="lineNumber">Automatically captured line number of the caller. Used for caching source location information in the profiler.</param>
+    /// <param name="filePath">Automatically captured file path of the caller. Used for caching source location information in the profiler.</param>
+    /// <param name="memberName">Automatically captured member name of the caller. Used for caching source location information in the profiler.</param>
+    /// <returns>A <see cref="TracyProfilerScope"/> that will end the zone when disposed, or null if profiling is disabled.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static TracyProfilerScope? BeginZone(
         string? zoneName = null,
