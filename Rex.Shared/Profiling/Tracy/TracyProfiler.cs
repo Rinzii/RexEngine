@@ -73,7 +73,7 @@ public static class TracyProfiler
 
         CString nameStr = string.IsNullOrEmpty(name) ? default : GetOrCreateCString(name);
         TracyEmitFrameMark(nameStr);
-        
+
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
     }
