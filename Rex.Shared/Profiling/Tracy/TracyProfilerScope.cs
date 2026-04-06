@@ -1,4 +1,4 @@
-﻿using bottlenoselabs.C2CS.Runtime;
+using bottlenoselabs.C2CS.Runtime;
 
 namespace Rex.Shared.Profiling.Tracy;
 
