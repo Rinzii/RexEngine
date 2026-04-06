@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using bottlenoselabs.C2CS.Runtime;
 
@@ -7,17 +8,40 @@ namespace Rex.Shared.Profiling.Tracy;
 using static global::Tracy.PInvoke;
 
 /// <summary>
+/// Configuration settings for the Tracy profiler.
+/// </summary>
+public sealed class TracyConfiguration
+{
+    /// <summary>
+    /// Whether to enable the Tracy profiler and collect profiling data.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Interval at which to clean up unused cached C strings. This helps prevent unbounded memory growth from caching C strings for source locations and zone names. The cleanup process will remove any cached entries that have not been accessed within the last <see cref="CStringCacheEntryLifetimeSeconds"/> seconds.
+    /// </summary>
+    public TimeSpan CStringCacheCleanupInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Lifetime in seconds for cached C string entries. Cached entries that have not been accessed within this time frame will be removed during the cleanup process.
+    /// </summary>
+    public uint CStringCacheEntryLifetimeSeconds { get; set; } = 60;
+}
+
+/// <summary>
 /// Static helper to interact with the Tracy profiler.
 /// </summary>
 public static class TracyProfiler
 {
-    private const bool ProfilerEnabled = false;
-
-    private record struct CStringCacheEntry(CString Value, long LastAccessedTimestamp);
-    private record struct SourceLocationKey(string FilePath, int LineNumber, string MemberName, string? ZoneName);
-
     private static ConcurrentDictionary<string, CStringCacheEntry> CStringCache { get; } = new();
     private static ConcurrentDictionary<SourceLocationKey, ulong> SourceLocationCache { get; } = new();
+
+    private static readonly Stopwatch CleanupStopwatch = Stopwatch.StartNew();
+
+    /// <summary>
+    /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
+    /// </summary>
+    public static TracyConfiguration Configuration { get; private set; } = new();
 
     /// <summary>
     /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
@@ -25,13 +49,15 @@ public static class TracyProfiler
     /// <param name="name">Optional name for the frame mark. If provided, it will be displayed in the profiler UI alongside the frame timing information.</param>
     public static void MarkFrameCompleted(string? name = null)
     {
-        if (!ProfilerEnabled)
+        if (!Configuration.Enabled)
         {
             return;
         }
 
         var nameStr = name?.Length > 0 ? GetOrCreateCString(name) : null;
         TracyEmitFrameMark(nameStr);
+
+        CheckAndCleanupCStringCache();
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
@@ -58,7 +84,7 @@ public static class TracyProfiler
         [CallerFilePath] string filePath = "",
         [CallerMemberName] string memberName = "")
     {
-        if (!ProfilerEnabled)
+        if (!Configuration.Enabled)
         {
             return null;
         }
@@ -93,6 +119,31 @@ public static class TracyProfiler
         return profilerScope;
     }
 
+    /// <summary>
+    /// Enables the Tracy profiler with the specified configuration. If the profiler is already enabled, this will update the configuration settings.
+    /// </summary>
+    /// <param name="configuration">The configuration settings to apply to the Tracy profiler. This includes options for enabling/disabling profiling and configuring cache cleanup behavior.</param>
+    public static void EnableProfiler(TracyConfiguration configuration)
+    {
+        Configuration = configuration;
+    }
+
+    /// <summary>
+    /// Disables the Tracy profiler and clears all cached data.
+    /// </summary>
+    public static void DisableProfiler()
+    {
+        Configuration.Enabled = false;
+
+        foreach (var entry in CStringCache.Values)
+        {
+            entry.Value.Dispose();
+        }
+
+        CStringCache.Clear();
+        SourceLocationCache.Clear();
+    }
+
     private static CString GetOrCreateCString(string value)
     {
         if (CStringCache.TryGetValue(value, out var entry))
@@ -106,4 +157,34 @@ public static class TracyProfiler
         CStringCache.TryAdd(value, newEntry);
         return cString;
     }
+
+    private static void CheckAndCleanupCStringCache()
+    {
+        if (CleanupStopwatch.Elapsed < Configuration.CStringCacheCleanupInterval)
+        {
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        var threshold = now - Configuration.CStringCacheEntryLifetimeSeconds;
+
+        foreach (var kvp in CStringCache)
+        {
+            if (kvp.Value.LastAccessedTimestamp >= threshold)
+            {
+                continue;
+            }
+
+            if (CStringCache.TryRemove(kvp.Key, out var removed))
+            {
+                removed.Value.Dispose();
+            }
+        }
+
+        CleanupStopwatch.Restart();
+    }
+
+    private record struct CStringCacheEntry(CString Value, long LastAccessedTimestamp);
+
+    private record struct SourceLocationKey(string FilePath, int LineNumber, string MemberName, string? ZoneName);
 }
