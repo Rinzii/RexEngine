@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using bottlenoselabs.C2CS.Runtime;
 
@@ -16,16 +14,6 @@ public sealed class TracyConfiguration
     /// Whether to enable the Tracy profiler and collect profiling data.
     /// </summary>
     public bool Enabled { get; set; }
-
-    /// <summary>
-    /// Interval at which to clean up unused cached C strings. This helps prevent unbounded memory growth from caching C strings for source locations and zone names. The cleanup process will remove any cached entries that have not been accessed within the last <see cref="CStringCacheEntryLifetimeSeconds"/> seconds.
-    /// </summary>
-    public TimeSpan CStringCacheCleanupInterval { get; set; } = TimeSpan.FromSeconds(5);
-
-    /// <summary>
-    /// Lifetime in seconds for cached C string entries. Cached entries that have not been accessed within this time frame will be removed during the cleanup process.
-    /// </summary>
-    public uint CStringCacheEntryLifetimeSeconds { get; set; } = 60;
 }
 
 /// <summary>
@@ -33,11 +21,6 @@ public sealed class TracyConfiguration
 /// </summary>
 public static class TracyProfiler
 {
-    private static ConcurrentDictionary<string, CStringCacheEntry> CStringCache { get; } = new();
-    private static ConcurrentDictionary<SourceLocationKey, ulong> SourceLocationCache { get; } = new();
-
-    private static readonly Stopwatch CleanupStopwatch = Stopwatch.StartNew();
-
     /// <summary>
     /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
     /// </summary>
@@ -54,10 +37,8 @@ public static class TracyProfiler
             return;
         }
 
-        var nameStr = name?.Length > 0 ? GetOrCreateCString(name) : null;
+        var nameStr = name?.Length > 0 ? CString.FromString(name) : null;
         TracyEmitFrameMark(nameStr);
-
-        CheckAndCleanupCStringCache();
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
@@ -89,22 +70,18 @@ public static class TracyProfiler
             return null;
         }
 
-        var key = new SourceLocationKey(filePath, lineNumber, memberName, zoneName);
-        var srcLoc = SourceLocationCache.GetOrAdd(key, static k =>
-        {
-            var sourceStr = GetOrCreateCString(k.FilePath);
-            var funcStr = GetOrCreateCString(k.MemberName);
-            var zoneNameStr = k.ZoneName != null ? GetOrCreateCString(k.ZoneName) : null;
+        var sourceStr = CString.FromString(filePath);
+        var funcStr = CString.FromString(memberName);
+        var zoneNameStr = zoneName != null ? CString.FromString(zoneName) : null;
 
-            return TracyAllocSrclocName(
-                (uint)k.LineNumber,
-                sourceStr,
-                (ulong)k.FilePath.Length,
-                funcStr,
-                (ulong)k.MemberName.Length,
-                zoneNameStr,
-                (ulong)(k.ZoneName?.Length ?? 0));
-        });
+        var srcLoc = TracyAllocSrclocName(
+            (uint)lineNumber,
+            sourceStr,
+            (ulong)filePath.Length,
+            funcStr,
+            (ulong)memberName.Length,
+            zoneNameStr,
+            (ulong)(zoneName?.Length ?? 0));
 
         var context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
         var profilerScope = new TracyProfilerScope(context);
@@ -134,57 +111,5 @@ public static class TracyProfiler
     public static void DisableProfiler()
     {
         Configuration.Enabled = false;
-
-        foreach (var entry in CStringCache.Values)
-        {
-            entry.Value.Dispose();
-        }
-
-        CStringCache.Clear();
-        SourceLocationCache.Clear();
     }
-
-    private static CString GetOrCreateCString(string value)
-    {
-        if (CStringCache.TryGetValue(value, out var entry))
-        {
-            entry.LastAccessedTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-            return entry.Value;
-        }
-
-        var cString = new CString(value);
-        var newEntry = new CStringCacheEntry(cString, DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        CStringCache.TryAdd(value, newEntry);
-        return cString;
-    }
-
-    private static void CheckAndCleanupCStringCache()
-    {
-        if (CleanupStopwatch.Elapsed < Configuration.CStringCacheCleanupInterval)
-        {
-            return;
-        }
-
-        var now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-        var threshold = now - Configuration.CStringCacheEntryLifetimeSeconds;
-
-        foreach (var kvp in CStringCache)
-        {
-            if (kvp.Value.LastAccessedTimestamp >= threshold)
-            {
-                continue;
-            }
-
-            if (CStringCache.TryRemove(kvp.Key, out var removed))
-            {
-                removed.Value.Dispose();
-            }
-        }
-
-        CleanupStopwatch.Restart();
-    }
-
-    private record struct CStringCacheEntry(CString Value, long LastAccessedTimestamp);
-
-    private record struct SourceLocationKey(string FilePath, int LineNumber, string MemberName, string? ZoneName);
 }
