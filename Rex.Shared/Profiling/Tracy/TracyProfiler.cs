@@ -81,7 +81,8 @@ public static class TracyProfiler
             funcStr,
             (ulong)memberName.Length,
             zoneNameStr,
-            (ulong)(zoneName?.Length ?? 0));
+            (ulong)(zoneName?.Length ?? 0),
+            color);
 
         var context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
         var profilerScope = new TracyProfilerScope(context);
@@ -90,8 +91,6 @@ public static class TracyProfiler
         {
             profilerScope.SetText(text);
         }
-
-        profilerScope.SetColor(color);
 
         return profilerScope;
     }
