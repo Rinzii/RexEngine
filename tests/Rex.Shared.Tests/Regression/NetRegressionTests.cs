@@ -7,7 +7,7 @@ using Rex.Shared.Tests.Net;
 
 namespace Rex.Shared.Tests.Regression;
 
-// Critical wire and in-memory transport invariants.
+// Critical wire and in memory transport invariants.
 public sealed class NetRegressionTests
 {
     public NetRegressionTests()

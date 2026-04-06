@@ -1,7 +1,7 @@
 namespace Rex.Sandbox.Shared.Net;
 
 /// <summary>
-/// Sandbox-owned protocol values. These model what a future external game repository would own for its own wire contract.
+/// Protocol values for the Sandbox sample. They model what a future external game repository would own for its wire contract.
 /// </summary>
 public static class SandboxProtocolConstants
 {

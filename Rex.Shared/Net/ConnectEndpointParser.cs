@@ -1,6 +1,6 @@
 namespace Rex.Shared.Net;
 
-/// <summary>Parses CLI connect strings into host and port. Supports bracketed IPv6, hostnames, and IPv4.</summary>
+/// <summary>Parses CLI connect strings into host and port. Supports bracketed IPv6, hostnames and IPv4.</summary>
 public static class ConnectEndpointParser
 {
     /// <summary>Parses <paramref name="connectAddress"/> or returns defaults when null or whitespace.</summary>

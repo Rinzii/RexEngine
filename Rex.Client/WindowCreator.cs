@@ -1,5 +1,4 @@
 using Rex.Client.Graphics;
-using Rex.Shared.Analyzers;
 using Silk.NET.Windowing;
 using Silk.NET.OpenGL;
 using Silk.NET.Input;
@@ -7,35 +6,58 @@ using Silk.NET.Maths;
 
 namespace Rex.Client;
 
+/// <summary>Silk.NET window registered in DI as <see cref="IGameWindow"/>.</summary>
 public sealed class WindowCreator : IGameWindow
 {
     private IWindow? WindowHandle { get; set; }
+
+    /// <inheritdoc />
     public string Title { get; set; } = string.Empty;
+
+    /// <inheritdoc />
     public int Width { get; private set; }
+
+    /// <inheritdoc />
     public int Height { get; private set; }
+
+    /// <inheritdoc />
     public bool IsOpen { get; private set; }
 
-    // TODO: Use these. They mirror what Silk.NET provides for Windowing.
-    // TODO: Remove all of these disable stuff once we are actually using them.
-#pragma warning disable CS0067 // Event is never used
+    // TODO(IanP): Wire Silk resize and input events once the client loop consumes them.
+#pragma warning disable CS0067
     // ReSharper disable EventNeverSubscribedTo.Local
     // ReSharper disable EventNeverSubscribedTo.Global
+    /// <summary>Forwarded host resize in pixels.</summary>
     public event Action<Vector2D<int>>? OnResize;
+
+    /// <summary>Forwarded framebuffer resize in pixels.</summary>
     public event Action<Vector2D<int>>? OnFramebufferResize;
+
+    /// <summary>Raised when the host window is closing.</summary>
     public event Action? OnClosing;
+
+    /// <summary>Raised when keyboard focus changes.</summary>
     public event Action<bool>? OnFocusChanged;
+
+    /// <summary>Raised once after the native window loads.</summary>
     public event Action? OnLoad;
+
+    /// <summary>Raised each host update tick with delta seconds.</summary>
     public event Action<double>? OnUpdate;
+
+    /// <summary>Raised each host render tick with delta seconds.</summary>
     public event Action<double>? OnRender;
     // ReSharper restore EventNeverSubscribedTo.Global
     // ReSharper restore EventNeverSubscribedTo.Local
-#pragma warning restore CS0067 // Event is never used
+#pragma warning restore CS0067
 
+    /// <inheritdoc />
     public void Dispose()
     {
         WindowHandle?.Dispose();
     }
 
+    /// <inheritdoc />
     public void Open(string title, int width, int height)
     {
         Title = title;
@@ -58,17 +80,20 @@ public sealed class WindowCreator : IGameWindow
         IsOpen = true;
     }
 
+    /// <inheritdoc />
     public void Close()
     {
         WindowHandle?.Close();
         IsOpen = false;
     }
 
+    /// <inheritdoc />
     public void PollEvents()
     {
         throw new NotImplementedException();
     }
 
+    /// <inheritdoc />
     public void SwapBuffers()
     {
         throw new NotImplementedException();
@@ -102,6 +127,3 @@ public sealed class WindowCreator : IGameWindow
         }
     }
 }
-
-
-

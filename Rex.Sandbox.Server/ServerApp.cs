@@ -8,7 +8,7 @@ using Rex.Shared.Timing;
 namespace Rex.Sandbox.Server;
 
 /// <summary>
-/// Sandbox-owned dedicated server loop. The reusable server transport stays in `Rex.Server`.
+/// Dedicated server loop for the Sandbox sample. The reusable server transport stays in `Rex.Server`.
 /// </summary>
 public sealed partial class ServerApp : IDisposable
 {
@@ -40,7 +40,6 @@ public sealed partial class ServerApp : IDisposable
         get => _runtime.OnLateUpdate;
         set => _runtime.OnLateUpdate = value;
     }
-
     public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
     {
         _config = config;
@@ -67,6 +66,9 @@ public sealed partial class ServerApp : IDisposable
         _runtime.Stop();
     }
 
+    /// <summary>
+    /// Releases resources owned by this instance.
+    /// </summary>
     public void Dispose()
     {
         _runtime.Dispose();

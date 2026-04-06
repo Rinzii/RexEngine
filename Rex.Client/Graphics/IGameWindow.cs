@@ -1,26 +1,34 @@
 namespace Rex.Client.Graphics;
 
-// TODO: This is a very basic interface and will likely need to be expanded and improved.
+// TODO(IanP): Support multiple monitors, DPI and multiple windows.
 
-/// <summary>Window and GL context lifecycle. SDL or other backends implement this.</summary>
+/// <summary>Window surface and GL context lifecycle for a client process.</summary>
 public interface IGameWindow : IDisposable
 {
-    /// <summary>Title shown in the window chrome.</summary>
+    /// <summary>Text shown in the platform window chrome.</summary>
     string Title { get; set; }
 
+    /// <summary>Drawable width in pixels.</summary>
     int Width { get; }
+
+    /// <summary>Drawable height in pixels.</summary>
     int Height { get; }
+
+    /// <summary>True while the native window is open.</summary>
     bool IsOpen { get; }
 
-    /// <summary>Creates and shows the window.</summary>
+    /// <summary>Opens the native window and blocks in the platform run loop when the backend needs it.</summary>
+    /// <param name="title">Initial <see cref="Title"/>.</param>
+    /// <param name="width">Initial client width in pixels.</param>
+    /// <param name="height">Initial client height in pixels.</param>
     void Open(string title, int width, int height);
 
-    /// <summary>Pumps platform events such as input, resize, and close.</summary>
+    /// <summary>Pumps input, resize and close notifications from the OS.</summary>
     void PollEvents();
 
-    /// <summary>Presents the rendered frame to the screen.</summary>
+    /// <summary>Presents the current back buffer.</summary>
     void SwapBuffers();
 
-    /// <summary>Closes and destroys the window.</summary>
+    /// <summary>Closes the window and releases native resources.</summary>
     void Close();
 }

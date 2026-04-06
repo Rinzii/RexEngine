@@ -3,11 +3,10 @@ using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net.Messages;
 
-/// <summary>
-/// Client ack that tells the server which snapshot tick it has applied.
-/// </summary>
+/// <summary>Client ack for the highest snapshot tick applied locally.</summary>
 public sealed class StateAckMessage : INetMessage
 {
+    /// <summary>Wire id for <see cref="StateAckMessage"/>.</summary>
     public const ushort Id = 8;
 
     /// <inheritdoc />
@@ -16,14 +15,10 @@ public sealed class StateAckMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Core;
 
-    /// <summary>
-    /// Gets the latest server tick known by the client.
-    /// </summary>
+    /// <summary>Highest server tick the client has applied locally.</summary>
     public uint AcknowledgedTick { get; }
 
-    /// <summary>
-    /// Creates a snapshot ack payload.
-    /// </summary>
+    /// <summary>Builds a snapshot ack payload.</summary>
     public StateAckMessage(uint acknowledgedTick)
     {
         AcknowledgedTick = acknowledgedTick;
@@ -36,6 +31,7 @@ public sealed class StateAckMessage : INetMessage
         writer.Put(AcknowledgedTick);
     }
 
+    /// <summary>Parses the body after the header.</summary>
     public static StateAckMessage Deserialize(NetDataReader reader)
     {
         var acknowledgedTick = reader.GetUInt();

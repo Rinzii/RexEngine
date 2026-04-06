@@ -43,7 +43,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
             compilationContext.RegisterSymbolStartAction(symbolContext =>
                 {
                     var typeSymbol = (INamedTypeSymbol)symbolContext.Symbol;
-                    // Only deal with non-static classes, doesn't make sense to have dependencies in anything else.
+                    // Only instance classes carry dependencies; skip static types.
                     if (typeSymbol.TypeKind != TypeKind.Class || typeSymbol.IsStatic)
                     {
                         return;
@@ -75,7 +75,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            // Can't have [Dependency]s for non-reference types.
+            // Cannot use [Dependency] on types that are not reference types.
             if (!fieldSymbol.Type.IsReferenceType)
             {
                 return;

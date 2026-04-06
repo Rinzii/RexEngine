@@ -1,13 +1,18 @@
 namespace Rex.Shared.Startup;
 
 /// <summary>
-/// Finds a server assembly for local startup.
+/// Locates the game server binary next to a client build or through env override.
 /// </summary>
 public static class RuntimeAssemblyLocator
 {
     /// <summary>
     /// Resolves a server assembly path from environment values or build output.
     /// </summary>
+    /// <param name="environmentVariable">Optional absolute path override read from the environment.</param>
+    /// <param name="serverAssemblyFileName">File name searched next to the client output.</param>
+    /// <param name="clientProjectName">Expected client project folder name under build artifacts.</param>
+    /// <param name="serverProjectName">Sibling server project folder name under the same build configuration.</param>
+    /// <returns>Full path when a candidate exists. Null when nothing matched.</returns>
     public static string? ResolveServerAssemblyPath(
         string environmentVariable,
         string serverAssemblyFileName,

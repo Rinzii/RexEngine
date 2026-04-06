@@ -2,35 +2,53 @@ using Rex.Shared.Utility;
 
 namespace Rex.Shared.Simulation;
 
-/// <summary>Tracks which entities changed each tick for delta snapshots.</summary>
+/// <summary>
+/// Records which entity ids changed on each simulation tick so networking can send deltas across an ack window.
+/// </summary>
+/// <remarks>
+/// Backed by a <see cref="TickRingBuffer{T}"/> of hash sets per tick. When the tick span in
+/// <see cref="GetDirtyEntities"/> reaches the ring capacity the method returns null so the caller can send a full snapshot instead of a partial delta.
+/// </remarks>
 public sealed class DirtyTracker
 {
     private readonly TickRingBuffer<HashSet<int>> _dirtyBuffer;
 
+    /// <summary>
+    /// Builds a ring with one reusable hash set per slot.
+    /// </summary>
+    /// <param name="bufferSize">Number of ticks kept. Must be larger than the longest ack gap you want to express as deltas.</param>
     public DirtyTracker(int bufferSize = 256)
     {
-        // Each tick gets a HashSet of entity ids that changed that tick.
+        // One set per ring slot. Slots are rebound in PrepareSlot when the tick advances.
         _dirtyBuffer = new TickRingBuffer<HashSet<int>>(bufferSize, static () => new HashSet<int>());
     }
 
-    /// <summary>Record that <paramref name="entityId"/> changed during <paramref name="tick"/>.</summary>
+    /// <summary>Adds <paramref name="entityId"/> to the dirty set for <paramref name="tick"/>.</summary>
     public void MarkDirty(int entityId, uint tick)
     {
         PrepareSlot(tick).Value.Add(entityId);
     }
 
-    /// <summary>Call at tick start so each slot only holds current-tick dirt.</summary>
+    /// <summary>Clears the set for <paramref name="tick"/> at tick boundary before new writes.</summary>
     public void ClearTick(uint tick)
     {
         PrepareSlot(tick).Value.Clear();
     }
 
-    /// <summary>Returns null if the range is too old (caller should send full state).</summary>
+    /// <summary>
+    /// Unions every dirty id for ticks strictly after <paramref name="fromTick"/> through <paramref name="toTick"/>.
+    /// </summary>
+    /// <param name="fromTick">Peer baseline. Usually the last tick they already applied.</param>
+    /// <param name="toTick">Inclusive end of the range on the authority.</param>
+    /// <returns>
+    /// Empty set when <paramref name="toTick"/> is not greater than <paramref name="fromTick"/>. Null when the span is
+    /// not fully covered by the ring so the caller should send a full state instead of a delta.
+    /// </returns>
     public HashSet<int>? GetDirtyEntities(uint fromTick, uint toTick)
     {
         if (toTick <= fromTick)
         {
-            return new HashSet<int>();
+            return [];
         }
 
         var range = toTick - fromTick;
@@ -40,7 +58,7 @@ public sealed class DirtyTracker
         }
 
         var result = new HashSet<int>();
-        // Walk each tick in the ack gap. Skip empty or stale ring slots (wrong tick means reused bucket).
+        // Only trust a slot when Entry.Tick matches. Otherwise, the bucket was recycled for another tick.
         for (var tick = fromTick + 1; tick <= toTick; tick++)
         {
             var slot = _dirtyBuffer.GetSlot(tick);
@@ -58,10 +76,12 @@ public sealed class DirtyTracker
         return result;
     }
 
+    /// <summary>
+    /// Binds the ring slot for <paramref name="tick"/> and clears it when the slot still carried an older tick.
+    /// </summary>
     private TickRingBuffer<HashSet<int>>.Entry PrepareSlot(uint tick)
     {
         var slot = _dirtyBuffer.GetSlot(tick);
-        // Ring reuse. If the bucket still holds an old tick, reset it.
         if (!slot.IsAssigned || slot.Tick != tick)
         {
             slot.Tick = tick;

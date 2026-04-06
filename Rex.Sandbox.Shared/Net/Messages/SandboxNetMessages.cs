@@ -4,12 +4,11 @@ using Rex.Shared.Net;
 namespace Rex.Sandbox.Shared.Net.Messages;
 
 /// <summary>
-/// Registers the Sandbox protocol on top of the engine-owned core message set.
+/// Registers the Sandbox protocol on top of the core message set from the engine.
 /// </summary>
 public static class SandboxNetMessages
 {
     private static bool _registered;
-
     public static void RegisterAll()
     {
         CoreNetMessages.RegisterAll();

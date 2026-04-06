@@ -74,7 +74,7 @@ public sealed class PrototypeFixer : CodeFixProvider
         }
         else
         {
-            // Otherwise just remove the argument
+            // Otherwise, just remove the argument.
             var newArgListSyntax = argListSyntax.WithArguments(argListSyntax.Arguments.Remove(syntax));
             root = root!.ReplaceNode(argListSyntax, newArgListSyntax);
         }

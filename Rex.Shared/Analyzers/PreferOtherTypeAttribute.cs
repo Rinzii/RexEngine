@@ -7,11 +7,10 @@ namespace Rex.Shared.Analyzers;
 #endif
 
 /// <summary>
-///     Marks that use of a generic Type should be replaced with a specific other Type
-///     when the type argument T is a certain Type.
+///     Warns when the sole generic argument equals <paramref name="genericType"/>. Instantiate with <paramref name="replacementType"/> instead.
 /// </summary>
-/// <param name="genericType">The type that, when used as the sole generic argument, should trigger the warning.</param>
-/// <param name="replacementType">The type that you should replace the usage with.</param>
+/// <param name="genericType">Type argument that triggers the warning.</param>
+/// <param name="replacementType">Concrete type the analyzer suggests.</param>
 /// <example>
 /// <code>
 /// <![CDATA[
@@ -31,6 +30,9 @@ namespace Rex.Shared.Analyzers;
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = true)]
 public sealed class PreferOtherTypeAttribute(Type genericType, Type replacementType) : Attribute
 {
+    /// <summary>Generic type parameter that triggers the replacement warning.</summary>
     public readonly Type GenericArgument = genericType;
+
+    /// <summary>Preferred concrete type for the analyzer to suggest.</summary>
     public readonly Type ReplacementType = replacementType;
 }

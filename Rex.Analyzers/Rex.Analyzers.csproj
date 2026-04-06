@@ -9,7 +9,7 @@
         <LangVersion>latest</LangVersion>
         <DefineConstants>$(DefineConstants);REX_ANALYZERS_IMPL</DefineConstants>
         <PolySharpIncludeGeneratedTypes>System.Index;System.Range;System.Runtime.CompilerServices.IsExternalInit;System.Diagnostics.CodeAnalysis.NotNullWhenAttribute;System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute</PolySharpIncludeGeneratedTypes>
-        <NoWarn>RS2007;RS2008;RS1038</NoWarn>
+        <NoWarn>RS2007;RS2008;RS1038;CS1591</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

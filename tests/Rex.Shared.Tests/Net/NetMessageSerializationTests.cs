@@ -5,7 +5,7 @@ using Rex.Shared.Net.Transfer;
 
 namespace Rex.Shared.Tests.Net;
 
-// Wire format round trips through NetMessageRegistry for engine-owned INetMessage types.
+// Wire format round trips through NetMessageRegistry for INetMessage types from the engine.
 public sealed class NetMessageSerializationTests
 {
     public NetMessageSerializationTests()

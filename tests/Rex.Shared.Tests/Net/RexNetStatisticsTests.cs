@@ -2,7 +2,7 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Tests.Net;
 
-// Send and receive counters and per-type snapshots.
+// Send and receive counters and snapshots by message type.
 public sealed class RexNetStatisticsTests
 {
     [Fact]
@@ -44,7 +44,7 @@ public sealed class RexNetStatisticsTests
     }
 
     [Fact]
-    // Reset drops all totals and per-type maps.
+    // Reset drops all totals and maps keyed by message type.
     public void Reset_clears_everything()
     {
         var stats = new RexNetStatistics();

@@ -3,10 +3,10 @@ namespace Rex.Shared.Numerics;
 /// <summary>Approximate comparisons for floating scalars. Use when exact equality is not meaningful.</summary>
 public static class FloatingPointMath
 {
-    /// <summary>Default tolerance for world-scale single-precision checks.</summary>
+    /// <summary>Default tolerance for world scale single precision checks.</summary>
     public const float DefaultFloatTolerance = 1e-5f;
 
-    /// <summary>Default tolerance for double-precision checks.</summary>
+    /// <summary>Default tolerance for double precision checks.</summary>
     public const double DefaultDoubleTolerance = 1e-9;
 
     /// <summary>True when the absolute difference is at most <paramref name="tolerance"/>.</summary>

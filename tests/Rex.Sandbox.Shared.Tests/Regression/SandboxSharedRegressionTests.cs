@@ -2,7 +2,7 @@ using Rex.Sandbox.Shared.Simulation;
 
 namespace Rex.Sandbox.Shared.Tests.Regression;
 
-// Locks small Sandbox shared behaviors that should stay consumer-owned.
+// Locks small Sandbox shared behaviors that the consumer should keep owning.
 public sealed class SandboxSharedRegressionTests
 {
     [Fact]

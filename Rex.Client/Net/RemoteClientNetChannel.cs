@@ -7,12 +7,11 @@ using ConnectionState = Rex.Shared.Net.ConnectionState;
 namespace Rex.Client.Net;
 
 /// <summary>
-/// LiteNetLib-backed client transport for remote servers.
+/// Client transport for remote servers using LiteNetLib.
 /// </summary>
 /// <remarks>
 /// Subscribes to <see cref="EventBasedNetListener"/> callbacks on construction.
-/// Call <see cref="PollEvents"/> regularly on the same thread that owns consumer-side runtime state so receives and
-/// connection events are delivered coherently.
+/// Call <see cref="PollEvents"/> regularly on the same thread that processes receives and connection events for this channel.
 /// </remarks>
 public sealed partial class RemoteClientNetChannel : IClientNetChannel
 {
@@ -30,19 +29,35 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     // Non-null only while the server peer is connected.
     private NetPeer? _serverPeer;
 
+    /// <summary>
+    /// LiteNetLib handshake and session state for this channel.
+    /// </summary>
     public ConnectionState State { get; set; }
-    public int RoundTripTimeMs => _serverPeer?.Ping ?? 0;
-
-    public event Action<INetMessage>? MessageReceived;
-    public event Action? Connected;
-    public event Action<string>? Disconnected;
 
     /// <summary>
-    /// Creates a channel that will connect to the given host and port using the LiteNetLib connection key.
+    /// Last ping in milliseconds or zero when disconnected.
     /// </summary>
+    public int RoundTripTimeMs => _serverPeer?.Ping ?? 0;
+
+    /// <summary>
+    /// Raised when a payload is deserialized from the server.
+    /// </summary>
+    public event Action<INetMessage>? MessageReceived;
+
+    /// <summary>
+    /// Raised after the server accepts this client.
+    /// </summary>
+    public event Action? Connected;
+
+    /// <summary>
+    /// Raised when the transport stops or the peer drops.
+    /// </summary>
+    public event Action<string>? Disconnected;
+
+    /// <summary>Outgoing LiteNetLib client to <paramref name="host"/> and <paramref name="port"/> with <paramref name="connectionKey"/>.</summary>
     /// <param name="host">Server host name or IP address.</param>
     /// <param name="port">Server UDP port.</param>
-    /// <param name="connectionKey">Caller-supplied connection key. Must match the remote host's expected key.</param>
+    /// <param name="connectionKey">Connection key from the caller. Must match the remote host's expected key.</param>
     /// <param name="logger">Logger for transport failures and deserialize errors.</param>
     public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
     {
@@ -64,8 +79,8 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// Starts the client socket and begins the LiteNetLib connect handshake.
     /// </summary>
     /// <remarks>
-    /// On failure, sets <see cref="State"/> to disconnected and raises <see cref="Disconnected"/>.
-    /// On success, <see cref="Connected"/> fires when the server accepts (after future <see cref="PollEvents"/> calls).
+    /// A failed <c>Start</c> sets <see cref="State"/> to disconnected and raises <see cref="Disconnected"/>.
+    /// After the server accepts the peer <see cref="Connected"/> fires when <see cref="PollEvents"/> delivers the connect event.
     /// </remarks>
     public void Connect()
     {
@@ -84,6 +99,9 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// <summary>
     /// Serializes <paramref name="message"/> and sends it on the given LiteNetLib channel and delivery mode.
     /// </summary>
+    /// <param name="message">Payload to serialize.</param>
+    /// <param name="channel">LiteNetLib channel id.</param>
+    /// <param name="delivery">Reliability and ordering mode.</param>
     /// <remarks>
     /// Does nothing when there is no connected server peer.
     /// The message id header is written by each <see cref="INetMessage"/> implementation as part of <see cref="INetMessage.Serialize"/>.

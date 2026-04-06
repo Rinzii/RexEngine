@@ -11,12 +11,20 @@ public sealed class RexNetStatistics
     private readonly Dictionary<ushort, long> _bytesByType = new();
     private readonly Lock _lock = new();
 
+    /// <summary>Total payload bytes sent.</summary>
     public long BytesSent => Interlocked.Read(ref _bytesSent);
+
+    /// <summary>Total payload bytes received.</summary>
     public long BytesReceived => Interlocked.Read(ref _bytesReceived);
+
+    /// <summary>Outbound message count.</summary>
     public long MessagesSent => Interlocked.Read(ref _messagesSent);
+
+    /// <summary>Inbound message count.</summary>
     public long MessagesReceived => Interlocked.Read(ref _messagesReceived);
 
-    /// <summary>Adds send-side totals and per-type counts. Thread safe.</summary>
+    /// <summary>Adds outbound byte and message totals plus per-type message counts.</summary>
+    /// <remarks>Interlocked fields update aggregates. A lock guards per-type dictionary updates.</remarks>
     public void RecordSent(ushort messageId, int bytes)
     {
         Interlocked.Add(ref _bytesSent, bytes);
@@ -32,8 +40,9 @@ public sealed class RexNetStatistics
         }
     }
 
-    /// <summary>Adds receive totals and per-type message counts. Byte totals only when you pass a real id.</summary>
+    /// <summary>Adds inbound totals and counts for each message type. Byte totals apply only when messageId is non-zero.</summary>
     /// <param name="messageId">Type id when known. Callers may pass 0 before deserialize.</param>
+    /// <param name="bytes">Payload length for this receive when known.</param>
     public void RecordReceived(ushort messageId, int bytes)
     {
         Interlocked.Add(ref _bytesReceived, bytes);

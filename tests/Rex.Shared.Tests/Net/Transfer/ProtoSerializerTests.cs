@@ -3,7 +3,7 @@ using Rex.Shared.Net.Transfer;
 
 namespace Rex.Shared.Tests.Net.Transfer;
 
-// protobuf-net helpers for engine-owned generic transfer payloads.
+// Protobuf net helpers for generic transfer payloads from the engine.
 public sealed class ProtoSerializerTests
 {
     [Fact]

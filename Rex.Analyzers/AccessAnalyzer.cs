@@ -86,7 +86,7 @@ public class AccessAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        // Should we ignore the access attempt due to the accessing type being auto-generated?
+        // Should we ignore the access attempt because the accessing type is generated code?
         if (accessingType.GetAttributes().FirstOrDefault(a =>
                 a.AttributeClass != null &&
                 a.AttributeClass.Equals(autoGenAttribute, SymbolEqualityComparer.Default)) is { } attr)
@@ -100,7 +100,7 @@ public class AccessAnalyzer : DiagnosticAnalyzer
         // Check whether this is a "self" access, including inheritors.
         var selfAccess = InheritsFromOrEquals(accessingType, accessedType);
 
-        // Helper function to deduplicate attribute-checking code.
+        // Helper to deduplicate attribute checking code.
         bool CheckAttributeFriendship(AttributeData attribute, bool isMemberAttribute)
         {
             // If the attribute isn't the friend attribute, we don't care about it.
@@ -150,12 +150,12 @@ public class AccessAnalyzer : DiagnosticAnalyzer
             // By default, we will check the "other" permissions unless we find we're dealing with a friend or self.
             var permissionCheck = others;
 
-            // Human-readable relation between accessing and accessed types.
+            // Short label for the relation between accessing and accessed types.
             var accessingRelation = "other-type";
 
             if (!selfAccess)
             {
-                // This is not a self-access, so we need to determine whether the accessing type is a friend.
+                // This is not self access, so we need to determine whether the accessing type is a friend.
                 // Check all types allowed in the friend attribute. (We assume there's only one constructor arg.)
                 var types = attribute.ConstructorArguments[0].Values;
 
@@ -181,7 +181,7 @@ public class AccessAnalyzer : DiagnosticAnalyzer
             }
             else
             {
-                // Self-access, so simply set the permissions check to self.
+                // Self access, so simply set the permissions check to self.
                 permissionCheck = self;
                 accessingRelation = "same-type";
             }

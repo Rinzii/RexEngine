@@ -1,7 +1,7 @@
 <Project>
   <!--
     Rex.Sandbox.* is sample-only. Engine and product code must not take a project reference to it.
-    Override with AllowSandboxProjectReferences=true only for deliberate, documented exceptions.
+    Override with AllowSandboxProjectReferences=true only for deliberate exceptions.
   -->
   <Target Name="RexEnforceSandboxReferenceIsolation" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

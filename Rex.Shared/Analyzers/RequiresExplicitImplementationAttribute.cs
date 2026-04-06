@@ -3,9 +3,8 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Indicates that a given interface must always be implemented using explicit interface implementation syntax.
-///     This allows the programmer to indicate that the interface's implementation is not itself ever public API,
-///     and is useful for things like initialization methods.
+///     Implement this interface with explicit interface implementation syntax only.
+///     Keeps members off the public surface, for example on initialization helpers.
 /// </summary>
 /// <example>
 /// <code>

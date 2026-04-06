@@ -8,14 +8,11 @@ namespace Rex.Shared.Analyzers;
 
 /// <summary>
 /// <para>
-///     Access is a way to describe how other classes are allowed to use a field in more precise terms than "can use"
-///     and "cannot use". Think of it like friend classes from C++.
+///     Field, method and property permissions finer than plain public or private. Same idea as C++ friend classes.
 /// </para>
 /// <para>
-///     Access controls field, method, and property usage for three different kinds of users:
-///     Self (the declaring class), Friend (classes explicitly named as friends by the access attribute),
-///     and Other (classes that aren't the other two). Using <see cref="AccessPermissions"/> you can define what
-///     operations each of the users is allowed.
+///     Three roles. Self is the declaring type. Friend lists explicit types on this attribute. Other is everyone else.
+///     Pick allowed operations per role with <see cref="AccessPermissions"/>.
 /// </para>
 /// </summary>
 /// <example>
@@ -56,18 +53,22 @@ namespace Rex.Shared.Analyzers;
 public sealed class AccessAttribute : Attribute
 {
     /// <summary>
-    ///     The list of types considered "friends" of the type with this attribute.
-    ///     These types get elevated permissions.
+    ///     Types that count as friends and receive <see cref="Friend"/> permissions instead of <see cref="Other"/>.
     /// </summary>
     /// <seealso cref="Friend"/>
     public readonly Type[] Friends;
 
+    /// <summary>Default bitmask applied to <see cref="Self"/>.</summary>
     public const AccessPermissions SelfDefaultPermissions = AccessPermissions.ReadWriteExecute;
+
+    /// <summary>Default bitmask applied to <see cref="Friend"/>.</summary>
     public const AccessPermissions FriendDefaultPermissions = AccessPermissions.ReadWriteExecute;
+
+    /// <summary>Default bitmask applied to <see cref="Other"/>.</summary>
     public const AccessPermissions OtherDefaultPermissions = AccessPermissions.Read;
 
     /// <summary>
-    ///     Access permissions for the type itself, or the type containing the member.
+    ///     Access permissions for the declaring type or the type that owns the member.
     /// </summary>
     public AccessPermissions Self { get; set; } = SelfDefaultPermissions;
 
@@ -81,6 +82,10 @@ public sealed class AccessAttribute : Attribute
     /// </summary>
     public AccessPermissions Other { get; set; } = OtherDefaultPermissions;
 
+    /// <summary>
+    ///     Registers <paramref name="friends"/> as types that receive <see cref="Friend"/> permissions.
+    /// </summary>
+    /// <param name="friends">Types that receive <see cref="Friend"/> permissions.</param>
     public AccessAttribute(params Type[] friends)
     {
         Friends = friends;

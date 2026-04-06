@@ -3,8 +3,7 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Indicates that inheriting a given type doesn't work unless you specify <see cref="SerializableAttribute"/>
-///     on the child.
+///     Derived types must carry <see cref="SerializableAttribute"/> or the analyzer warns about missing serialization markers.
 /// </summary>
 /// <example>
 /// <code>

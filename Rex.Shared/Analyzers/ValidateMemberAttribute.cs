@@ -3,13 +3,10 @@ using System;
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
-///     Verifies that a string parameter matches the name
-///     of a member of the first type argument.
+///     String parameter must equal a member name on the first generic type argument.
 /// </summary>
 /// <remarks>
-///     This just does a string comparison with the member name.
-///     An identically-named member on a different class will be
-///     considered valid.
+///     Plain string compare against declared names. Same name on another declaring type still counts as a match.
 /// </remarks>
 [AttributeUsage(AttributeTargets.Parameter)]
 public sealed class ValidateMemberAttribute : Attribute;

@@ -132,7 +132,6 @@ public sealed class PortAlreadyInUseException : InvalidOperationException
     {
         Port = port;
     }
-
     public int Port { get; }
 }
 

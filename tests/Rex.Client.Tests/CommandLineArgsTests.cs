@@ -63,7 +63,7 @@ public sealed class CommandLineArgsTests
     }
 
     [Fact]
-    // Non-numeric --port value is a parse error.
+    // A non-numeric --port value is a parse error.
     public void TryParse_port_non_integer_fails()
     {
         var ok = CommandLineArgs.TryParse(

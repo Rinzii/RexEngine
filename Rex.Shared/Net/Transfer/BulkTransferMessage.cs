@@ -4,11 +4,10 @@ using Rex.Shared.Net;
 
 namespace Rex.Shared.Net.Transfer;
 
-/// <summary>
-/// Starts a bulk transfer and describes the payload that follows.
-/// </summary>
+/// <summary>Starts a bulk transfer and describes the following payload.</summary>
 public sealed class BulkTransferInitMessage : INetMessage
 {
+    /// <summary>Wire id for <see cref="BulkTransferInitMessage"/>.</summary>
     public const ushort Id = 100;
 
     /// <inheritdoc />
@@ -17,39 +16,25 @@ public sealed class BulkTransferInitMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Transfer;
 
-    /// <summary>
-    /// Gets the transfer ID shared by all chunks in this transfer.
-    /// </summary>
+    /// <summary>Transfer id shared by every chunk in this transfer.</summary>
     public Guid TransferId { get; }
 
-    /// <summary>
-    /// Gets the consumer-defined bulk payload kind.
-    /// </summary>
+    /// <summary>Bulk payload kind from the consumer.</summary>
     public byte DataType { get; }
 
-    /// <summary>
-    /// Gets the payload size after optional compression.
-    /// </summary>
+    /// <summary>Payload byte length on the wire after optional compression.</summary>
     public int TotalSize { get; }
 
-    /// <summary>
-    /// Gets the original uncompressed payload size.
-    /// </summary>
+    /// <summary>Uncompressed payload length before compression.</summary>
     public int OriginalSize { get; }
 
-    /// <summary>
-    /// Gets a value that indicates whether the payload bytes are compressed.
-    /// </summary>
+    /// <summary>True when the wire payload is compressed.</summary>
     public bool IsCompressed { get; }
 
-    /// <summary>
-    /// Gets the total number of chunk messages expected for this transfer.
-    /// </summary>
+    /// <summary>Expected chunk message count.</summary>
     public int ChunkCount { get; }
 
-    /// <summary>
-    /// Creates a bulk transfer init payload.
-    /// </summary>
+    /// <summary>Builds init metadata for a bulk transfer.</summary>
     public BulkTransferInitMessage(Guid transferId, byte dataType, int totalSize, int originalSize,
         bool isCompressed, int chunkCount)
     {
@@ -73,6 +58,9 @@ public sealed class BulkTransferInitMessage : INetMessage
         writer.Put(ChunkCount);
     }
 
+    /// <summary>Rebuilds this message from the reader.</summary>
+    /// <param name="reader">Source buffer positioned after the message header.</param>
+    /// <returns>Parsed init payload.</returns>
     public static BulkTransferInitMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
@@ -85,11 +73,10 @@ public sealed class BulkTransferInitMessage : INetMessage
     }
 }
 
-/// <summary>
-/// A single chunk of a bulk transfer.
-/// </summary>
+/// <summary>One chunk of payload bytes during a bulk transfer.</summary>
 public sealed class BulkTransferChunkMessage : INetMessage
 {
+    /// <summary>Wire id for <see cref="BulkTransferChunkMessage"/>.</summary>
     public const ushort Id = 101;
 
     /// <inheritdoc />
@@ -98,24 +85,16 @@ public sealed class BulkTransferChunkMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Transfer;
 
-    /// <summary>
-    /// Gets the transfer ID shared by all chunks in this transfer.
-    /// </summary>
+    /// <summary>Transfer id shared by every chunk in this transfer.</summary>
     public Guid TransferId { get; }
 
-    /// <summary>
-    /// Gets the zero-based chunk index.
-    /// </summary>
+    /// <summary>Chunk index. The first chunk uses zero.</summary>
     public int ChunkIndex { get; }
 
-    /// <summary>
-    /// Gets the raw bytes carried by this chunk.
-    /// </summary>
+    /// <summary>Raw bytes for this chunk.</summary>
     public byte[] Data { get; }
 
-    /// <summary>
-    /// Creates a chunk payload for an active bulk transfer.
-    /// </summary>
+    /// <summary>Builds one chunk for an in-flight bulk transfer.</summary>
     public BulkTransferChunkMessage(Guid transferId, int chunkIndex, byte[] data)
     {
         TransferId = transferId;
@@ -132,6 +111,9 @@ public sealed class BulkTransferChunkMessage : INetMessage
         writer.PutBytesWithLength(Data);
     }
 
+    /// <summary>Rebuilds this message from the reader.</summary>
+    /// <param name="reader">Source buffer positioned after the message header.</param>
+    /// <returns>Parsed chunk payload.</returns>
     public static BulkTransferChunkMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();
@@ -141,11 +123,10 @@ public sealed class BulkTransferChunkMessage : INetMessage
     }
 }
 
-/// <summary>
-/// Ack for a completed bulk transfer.
-/// </summary>
+/// <summary>Acknowledges a completed bulk transfer.</summary>
 public sealed class BulkTransferAckMessage : INetMessage
 {
+    /// <summary>Wire id for <see cref="BulkTransferAckMessage"/>.</summary>
     public const ushort Id = 102;
 
     /// <inheritdoc />
@@ -154,19 +135,13 @@ public sealed class BulkTransferAckMessage : INetMessage
     /// <inheritdoc />
     public MessageGroup Group => MessageGroup.Transfer;
 
-    /// <summary>
-    /// Gets the completed transfer ID.
-    /// </summary>
+    /// <summary>Completed transfer id.</summary>
     public Guid TransferId { get; }
 
-    /// <summary>
-    /// Gets a value that indicates whether the receiver accepted the transfer.
-    /// </summary>
+    /// <summary>True when the receiver accepted the transfer.</summary>
     public bool Success { get; }
 
-    /// <summary>
-    /// Creates a bulk transfer ack payload.
-    /// </summary>
+    /// <summary>Builds an ack after the bulk transfer finishes.</summary>
     public BulkTransferAckMessage(Guid transferId, bool success)
     {
         TransferId = transferId;
@@ -181,6 +156,9 @@ public sealed class BulkTransferAckMessage : INetMessage
         writer.Put(Success);
     }
 
+    /// <summary>Rebuilds this message from the reader.</summary>
+    /// <param name="reader">Source buffer positioned after the message header.</param>
+    /// <returns>Parsed ack payload.</returns>
     public static BulkTransferAckMessage Deserialize(NetDataReader reader)
     {
         var transferId = reader.ReadGuid();

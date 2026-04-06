@@ -3,7 +3,7 @@ using Rex.Shared.Analyzers;
 
 namespace Rex.Shared.Utility;
 
-/// <summary>Debug-only checks. Throws <see cref="DebugAssertException"/> on failure.</summary>
+/// <summary>Checks for debug builds. Throws <see cref="DebugAssertException"/> on failure.</summary>
 public static class DebugTools
 {
     /// <summary>Throws if <paramref name="arg"/> is null. Message optional.</summary>
@@ -24,10 +24,13 @@ public static class DebugTools
 [Virtual]
 public class DebugAssertException : Exception
 {
+    /// <summary>Creates an exception with a default message.</summary>
     public DebugAssertException()
     {
     }
 
+    /// <summary>Creates an exception with <paramref name="message"/>.</summary>
+    /// <param name="message">Human readable failure text.</param>
     public DebugAssertException(string? message) : base(message)
     {
     }
