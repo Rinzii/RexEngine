@@ -40,6 +40,27 @@ public sealed class TracyConfiguration
 }
 
 /// <summary>
+/// Configuration settings for the Tracy profiler.
+/// </summary>
+public sealed class TracyConfiguration
+{
+    /// <summary>
+    /// Whether to enable the Tracy profiler and collect profiling data.
+    /// </summary>
+    public bool Enabled { get; set; }
+
+    /// <summary>
+    /// Interval at which to clean up unused cached C strings. This helps prevent unbounded memory growth from caching C strings for source locations and zone names. The cleanup process will remove any cached entries that have not been accessed within the last <see cref="CStringCacheEntryLifetimeSeconds"/> seconds.
+    /// </summary>
+    public TimeSpan CStringCacheCleanupInterval { get; set; } = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Lifetime in seconds for cached C string entries. Cached entries that have not been accessed within this time frame will be removed during the cleanup process.
+    /// </summary>
+    public uint CStringCacheEntryLifetimeSeconds { get; set; } = 60;
+}
+
+/// <summary>
 /// Static helper to interact with the Tracy profiler.
 /// </summary>
 public static class TracyProfiler
@@ -59,6 +80,13 @@ public static class TracyProfiler
     /// </summary>
     public static TracyConfiguration Configuration => Volatile.Read(ref _configuration);
 
+    private static readonly Stopwatch CleanupStopwatch = Stopwatch.StartNew();
+
+    /// <summary>
+    /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
+    /// </summary>
+    public static TracyConfiguration Configuration { get; private set; } = new();
+
     /// <summary>
     /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
     /// </summary>
@@ -73,6 +101,8 @@ public static class TracyProfiler
 
         CString nameStr = string.IsNullOrEmpty(name) ? default : GetOrCreateCString(name);
         TracyEmitFrameMark(nameStr);
+
+        CheckAndCleanupCStringCache();
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
