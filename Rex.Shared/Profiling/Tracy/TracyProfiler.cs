@@ -11,7 +11,7 @@ using static global::Tracy.PInvoke;
 /// </summary>
 public static class TracyProfiler
 {
-    private static bool ProfilerEnabled { get; } = true;
+    private const bool ProfilerEnabled = false;
 
     private record struct CStringCacheEntry(CString Value, long LastAccessedTimestamp);
     private record struct SourceLocationKey(string FilePath, int LineNumber, string MemberName, string? ZoneName);
@@ -32,6 +32,9 @@ public static class TracyProfiler
 
         var nameStr = name?.Length > 0 ? GetOrCreateCString(name) : null;
         TracyEmitFrameMark(nameStr);
+        
+        // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
+        Thread.Sleep(1);
     }
 
     /// <summary>

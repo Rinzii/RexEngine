@@ -157,10 +157,6 @@ public sealed partial class ServerRuntimeHost : IDisposable
             Thread.Yield();
 
             TracyProfiler.MarkFrameCompleted();
-
-            // NOTE (xLuxy): This is required for now to avoid leaking memory caused by Tracy - see https://github.com/clibequilibrium/Tracy-CSharp/issues/24
-            //               The issue might resolve itself once we do more stuff within the loop
-            Thread.Sleep(1);
         }
 
         if (cancellationToken.IsCancellationRequested)
