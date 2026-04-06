@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Rex.Shared.Profiling.Tracy;
 using Rex.Shared.Timing;
 
 namespace Rex.Server.Runtime;
@@ -71,6 +72,9 @@ public sealed partial class ServerRuntimeHost : IDisposable
 
         while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
+            // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
+            using var _ = TracyProfiler.BeginZone("MainLoop",true, 0xFF5A00);
+
             var currentTime = stopwatch.Elapsed.TotalSeconds;
             var frameTime = currentTime - previousTime;
             previousTime = currentTime;
@@ -95,6 +99,9 @@ public sealed partial class ServerRuntimeHost : IDisposable
             InvokeUpdateCallback(OnUpdate, ctx, LogOnUpdateFailed);
             InvokeUpdateCallback(OnLateUpdate, ctx, LogOnLateUpdateFailed);
             Thread.Yield();
+
+            TracyProfiler.MarkFrameCompleted();
+            Thread.Sleep(1);
         }
 
         if (cancellationToken.IsCancellationRequested)
