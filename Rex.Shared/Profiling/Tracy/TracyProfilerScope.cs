@@ -53,7 +53,6 @@ public readonly struct TracyProfilerScope : IDisposable
     /// Sets the name of this profiling scope in the Tracy profiler. This name will be displayed in the profiler UI to help identify the zone. If the name is null or empty, no name will be set and the default zone name will be used.
     /// </summary>
     /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
-    // ReSharper disable once UnusedMember.Global
     [Conditional("REX_TRACY")]
     public void SetName(string name)
     {
@@ -72,7 +71,6 @@ public readonly struct TracyProfilerScope : IDisposable
     /// Sets the text associated with this profiling scope in the Tracy profiler. This text will be displayed in the profiler UI when hovering over the zone, providing additional context about the zone's purpose or behavior.
     /// </summary>
     /// <param name="text">The text to associate with this profiling scope. If null or empty, no text will be set.</param>
-    // ReSharper disable once UnusedMember.Global
     [Conditional("REX_TRACY")]
     public void SetText(string text)
     {
@@ -91,7 +89,6 @@ public readonly struct TracyProfilerScope : IDisposable
     /// Sets the color of this profiling scope in the Tracy profiler UI.
     /// </summary>
     /// <param name="color">The color to set for this profiling scope, specified as a 32-bit unsigned integer (ARGB format). If the value is 0, no color will be set and the default color will be used.</param>
-    // ReSharper disable once UnusedMember.Global
     [Conditional("REX_TRACY")]
     public void SetColor(uint color)
     {

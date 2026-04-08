@@ -5,6 +5,8 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <!-- <DefineConstants>REX_TRACY</DefineConstants> -->
     </PropertyGroup>
 
     <ItemGroup>
