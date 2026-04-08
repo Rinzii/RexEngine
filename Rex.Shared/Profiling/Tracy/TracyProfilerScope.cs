@@ -1,3 +1,4 @@
+using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
 namespace Rex.Shared.Profiling.Tracy;
@@ -34,8 +35,15 @@ public readonly struct TracyProfilerScope : IDisposable
     /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
     public void SetName(string name)
     {
+        if (string.IsNullOrEmpty(name))
+        {
+            return;
+        }
+
         var nameStr = CString.FromString(name);
-        TracyEmitZoneName(_context, nameStr, (ulong)name.Length);
+        var strLength = Encoding.UTF8.GetByteCount(name);
+
+        TracyEmitZoneName(_context, nameStr, (ulong)strLength);
     }
 
     /// <summary>
@@ -44,8 +52,15 @@ public readonly struct TracyProfilerScope : IDisposable
     /// <param name="text">The text to associate with this profiling scope. If null or empty, no text will be set.</param>
     public void SetText(string text)
     {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
         var textStr = CString.FromString(text);
-        TracyEmitZoneText(_context, textStr, (ulong)text.Length);
+        var strLength = Encoding.UTF8.GetByteCount(text);
+
+        TracyEmitZoneText(_context, textStr, (ulong)strLength);
     }
 
     /// <summary>
