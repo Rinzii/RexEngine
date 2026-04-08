@@ -145,6 +145,23 @@ public static class TracyProfiler
     }
 #endif
 
+    /// <summary>
+    /// Sends a custom message to the Tracy profiler.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="callstack">The number of call stack frames to capture and include with the message.</param>
+    [Conditional("REX_TRACY")]
+    public static void SendMessage(string message, int callstack = 0)
+    {
+        if (!Configuration.Enabled)
+        {
+            return;
+        }
+
+        var messageStr = CString.FromString(message);
+        TracyEmitMessage(messageStr, (ulong)Encoding.UTF8.GetByteCount(message), callstack);
+    }
+
     private readonly record struct TracySourceLocationData(
         int LineNumber,
         string FilePath,
