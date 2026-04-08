@@ -1,4 +1,6 @@
+using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
 namespace Rex.Shared.Profiling.Tracy;
@@ -21,7 +23,8 @@ public sealed class TracyConfiguration
 /// </summary>
 public static class TracyProfiler
 {
-    private static TracyConfiguration _configuration = new() { Enabled = false };
+    private static TracyConfiguration _configuration = new();
+    private static readonly ConcurrentDictionary<TracySourceLocationData, ulong> SourceLocationCache = new();
 
     /// <summary>
     /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
@@ -72,19 +75,8 @@ public static class TracyProfiler
             return null;
         }
 
-        var sourceStr = CString.FromString(filePath);
-        var funcStr = CString.FromString(memberName);
-        var zoneNameStr = zoneName != null ? CString.FromString(zoneName) : null;
-
-        var srcLoc = TracyAllocSrclocName(
-            (uint)lineNumber,
-            sourceStr,
-            (ulong)filePath.Length,
-            funcStr,
-            (ulong)memberName.Length,
-            zoneNameStr,
-            (ulong)(zoneName?.Length ?? 0),
-            color);
+        var srcLoc = GetOrAddSourceLocationName(
+            new TracySourceLocationData(lineNumber, filePath, memberName, zoneName, color));
 
         var context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
         var profilerScope = new TracyProfilerScope(context);
@@ -112,5 +104,38 @@ public static class TracyProfiler
     public static void DisableProfiler()
     {
         Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
+
+        SourceLocationCache.Clear();
     }
+
+    private static ulong GetOrAddSourceLocationName(TracySourceLocationData key)
+    {
+        var srcLoc = SourceLocationCache.GetOrAdd(
+            key,
+            static key =>
+            {
+                var fileStr = CString.FromString(key.FilePath);
+                var memberStr = CString.FromString(key.MemberName);
+                var zoneStr = key.ZoneName is not null ? CString.FromString(key.ZoneName) : default;
+
+                return TracyAllocSrclocName(
+                    (uint)key.LineNumber,
+                    fileStr,
+                    (ulong)Encoding.UTF8.GetByteCount(key.FilePath),
+                    memberStr,
+                    (ulong)Encoding.UTF8.GetByteCount(key.MemberName),
+                    zoneStr,
+                    (ulong)(key.ZoneName is not null ? Encoding.UTF8.GetByteCount(key.ZoneName) : 0),
+                    key.Color);
+            });
+
+        return srcLoc;
+    }
+
+    private readonly record struct TracySourceLocationData(
+        int LineNumber,
+        string FilePath,
+        string MemberName,
+        string? ZoneName,
+        uint Color);
 }
