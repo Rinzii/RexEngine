@@ -10,7 +10,19 @@ using static global::Tracy.PInvoke;
 /// </summary>
 public readonly struct TracyProfilerScope : IDisposable
 {
-    private readonly TracyCZoneCtx _context;
+    private readonly TracyCZoneCtx? _context;
+
+    /// <summary>
+    /// A static instance of <see cref="TracyProfilerScope"/> that represents a no-op scope which will be used when profiling is disabled
+    /// </summary>
+    public static TracyProfilerScope NoOp { get; private set; } = new();
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TracyProfilerScope"/> struct with default values. This constructor is used to create an empty scope that does not correspond to any active Tracy zone.
+    /// </summary>
+    public TracyProfilerScope()
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TracyProfilerScope"/> struct with the specified Tracy zone context.
@@ -21,21 +33,33 @@ public readonly struct TracyProfilerScope : IDisposable
         _context = context;
     }
 
+
     /// <summary>
     /// Disposes the profiling scope, marking the end of the associated Tracy zone.
     /// </summary>
     public void Dispose()
     {
-        TracyEmitZoneEnd(_context);
+#if REX_TRACY
+        if (_context is null)
+        {
+            return;
+        }
+
+        TracyEmitZoneEnd(_context.Value);
+#endif
     }
 
     /// <summary>
     /// Sets the name of this profiling scope in the Tracy profiler. This name will be displayed in the profiler UI to help identify the zone. If the name is null or empty, no name will be set and the default zone name will be used.
     /// </summary>
     /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
+    // ReSharper disable once UnusedMember.Global
+#pragma warning disable CA1822
     public void SetName(string name)
+#pragma warning restore CA1822
     {
-        if (string.IsNullOrEmpty(name))
+#if REX_TRACY
+        if (string.IsNullOrEmpty(name) || _context is null)
         {
             return;
         }
@@ -43,16 +67,21 @@ public readonly struct TracyProfilerScope : IDisposable
         var nameStr = CString.FromString(name);
         var strLength = Encoding.UTF8.GetByteCount(name);
 
-        TracyEmitZoneName(_context, nameStr, (ulong)strLength);
+        TracyEmitZoneName(_context.Value, nameStr, (ulong)strLength);
+#endif
     }
 
     /// <summary>
     /// Sets the text associated with this profiling scope in the Tracy profiler. This text will be displayed in the profiler UI when hovering over the zone, providing additional context about the zone's purpose or behavior.
     /// </summary>
     /// <param name="text">The text to associate with this profiling scope. If null or empty, no text will be set.</param>
+    // ReSharper disable once UnusedMember.Global
+#pragma warning disable CA1822
     public void SetText(string text)
+#pragma warning restore CA1822
     {
-        if (string.IsNullOrEmpty(text))
+#if REX_TRACY
+        if (string.IsNullOrEmpty(text) || _context is null)
         {
             return;
         }
@@ -60,18 +89,24 @@ public readonly struct TracyProfilerScope : IDisposable
         var textStr = CString.FromString(text);
         var strLength = Encoding.UTF8.GetByteCount(text);
 
-        TracyEmitZoneText(_context, textStr, (ulong)strLength);
+        TracyEmitZoneText(_context.Value, textStr, (ulong)strLength);
+#endif
     }
 
     /// <summary>
     /// Sets the color of this profiling scope in the Tracy profiler UI.
     /// </summary>
-    /// <param name="color">The color to set for this profiling scope, specified as a 32-bit unsigned integer in RGB format (0xRRGGBB). If the value is 0, no color will be set and the default color will be used.</param>
+    /// <param name="color">The color to set for this profiling scope, specified as a 32-bit unsigned integer (ARGB format). If the value is 0, no color will be set and the default color will be used.</param>
+    // ReSharper disable once UnusedMember.Global
+#pragma warning disable CA1822
     public void SetColor(uint color)
+#pragma warning restore CA1822
     {
-        if (color != 0)
+#if REX_TRACY
+        if (color != 0 && _context is not null)
         {
-            TracyEmitZoneColor(_context, color);
+            TracyEmitZoneColor(_context.Value, color);
         }
+#endif
     }
 }

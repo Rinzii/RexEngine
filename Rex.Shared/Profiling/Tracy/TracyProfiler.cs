@@ -1,11 +1,15 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
+
+#if REX_TRACY
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-namespace Rex.Shared.Profiling.Tracy;
-
 using static global::Tracy.PInvoke;
+
+#endif
+
+namespace Rex.Shared.Profiling.Tracy;
 
 /// <summary>
 /// Configuration settings for the Tracy profiler.
@@ -23,7 +27,10 @@ public sealed class TracyConfiguration
 /// </summary>
 public static class TracyProfiler
 {
+#pragma warning disable IDE0044
     private static TracyConfiguration _configuration = new();
+#pragma warning restore IDE0044
+    // ReSharper disable once UnusedMember.Local
     private static readonly ConcurrentDictionary<TracySourceLocationData, ulong> SourceLocationCache = new();
 
     /// <summary>
@@ -37,6 +44,7 @@ public static class TracyProfiler
     /// <param name="name">Optional name for the frame mark. If provided, it will be displayed in the profiler UI alongside the frame timing information.</param>
     public static void MarkFrameCompleted(string? name = null)
     {
+#if REX_TRACY
         if (!Configuration.Enabled)
         {
             return;
@@ -47,6 +55,7 @@ public static class TracyProfiler
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
+#endif
     }
 
     /// <summary>
@@ -61,7 +70,7 @@ public static class TracyProfiler
     /// <param name="memberName">Automatically captured member name of the caller. Used for caching source location information in the profiler.</param>
     /// <returns>A <see cref="TracyProfilerScope"/> that will end the zone when disposed, or null if profiling is disabled.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TracyProfilerScope? BeginZone(
+    public static TracyProfilerScope BeginZone(
         string? zoneName = null,
         bool active = true,
         uint color = 0,
@@ -70,9 +79,10 @@ public static class TracyProfiler
         [CallerFilePath] string filePath = "",
         [CallerMemberName] string memberName = "")
     {
+#if REX_TRACY
         if (!Configuration.Enabled)
         {
-            return null;
+            return TracyProfilerScope.NoOp;
         }
 
         var srcLoc = GetOrAddSourceLocationName(
@@ -87,6 +97,9 @@ public static class TracyProfiler
         }
 
         return profilerScope;
+#else
+        return TracyProfilerScope.NoOp;
+#endif
     }
 
     /// <summary>
@@ -95,7 +108,9 @@ public static class TracyProfiler
     /// <param name="configuration">The configuration settings to apply to the Tracy profiler. This includes options for enabling/disabling profiling and configuring cache cleanup behavior.</param>
     public static void EnableProfiler(TracyConfiguration configuration)
     {
+#if REX_TRACY
         Volatile.Write(ref _configuration, configuration);
+#endif
     }
 
     /// <summary>
@@ -103,11 +118,14 @@ public static class TracyProfiler
     /// </summary>
     public static void DisableProfiler()
     {
+#if REX_TRACY
         Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
 
         SourceLocationCache.Clear();
+#endif
     }
 
+#if REX_TRACY
     private static ulong GetOrAddSourceLocationName(TracySourceLocationData key)
     {
         var srcLoc = SourceLocationCache.GetOrAdd(
@@ -131,6 +149,7 @@ public static class TracyProfiler
 
         return srcLoc;
     }
+#endif
 
     private readonly record struct TracySourceLocationData(
         int LineNumber,
