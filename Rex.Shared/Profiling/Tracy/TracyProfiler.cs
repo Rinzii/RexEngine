@@ -1,15 +1,12 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
-
-#if REX_TRACY
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-using static global::Tracy.PInvoke;
-
-#endif
-
 namespace Rex.Shared.Profiling.Tracy;
+
+using static global::Tracy.PInvoke;
 
 /// <summary>
 /// Configuration settings for the Tracy profiler.
@@ -19,7 +16,7 @@ public sealed class TracyConfiguration
     /// <summary>
     /// Whether to enable the Tracy profiler and collect profiling data.
     /// </summary>
-    public bool Enabled { get; set; }
+    public bool Enabled { get; set; } = true;
 }
 
 /// <summary>
@@ -42,9 +39,9 @@ public static class TracyProfiler
     /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
     /// </summary>
     /// <param name="name">Optional name for the frame mark. If provided, it will be displayed in the profiler UI alongside the frame timing information.</param>
+    [Conditional("REX_TRACY")]
     public static void MarkFrameCompleted(string? name = null)
     {
-#if REX_TRACY
         if (!Configuration.Enabled)
         {
             return;
@@ -55,7 +52,6 @@ public static class TracyProfiler
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
         Thread.Sleep(1);
-#endif
     }
 
     /// <summary>
@@ -106,23 +102,21 @@ public static class TracyProfiler
     /// Enables the Tracy profiler with the specified configuration. If the profiler is already enabled, this will update the configuration settings.
     /// </summary>
     /// <param name="configuration">The configuration settings to apply to the Tracy profiler. This includes options for enabling/disabling profiling and configuring cache cleanup behavior.</param>
+    [Conditional("REX_TRACY")]
     public static void EnableProfiler(TracyConfiguration configuration)
     {
-#if REX_TRACY
         Volatile.Write(ref _configuration, configuration);
-#endif
     }
 
     /// <summary>
     /// Disables the Tracy profiler and clears all cached data.
     /// </summary>
+    [Conditional("REX_TRACY")]
     public static void DisableProfiler()
     {
-#if REX_TRACY
         Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
 
         SourceLocationCache.Clear();
-#endif
     }
 
 #if REX_TRACY

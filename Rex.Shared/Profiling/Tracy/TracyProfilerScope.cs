@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
@@ -33,7 +34,6 @@ public readonly struct TracyProfilerScope : IDisposable
         _context = context;
     }
 
-
     /// <summary>
     /// Disposes the profiling scope, marking the end of the associated Tracy zone.
     /// </summary>
@@ -54,11 +54,9 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
     // ReSharper disable once UnusedMember.Global
-#pragma warning disable CA1822
+    [Conditional("REX_TRACY")]
     public void SetName(string name)
-#pragma warning restore CA1822
     {
-#if REX_TRACY
         if (string.IsNullOrEmpty(name) || _context is null)
         {
             return;
@@ -68,7 +66,6 @@ public readonly struct TracyProfilerScope : IDisposable
         var strLength = Encoding.UTF8.GetByteCount(name);
 
         TracyEmitZoneName(_context.Value, nameStr, (ulong)strLength);
-#endif
     }
 
     /// <summary>
@@ -76,11 +73,9 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="text">The text to associate with this profiling scope. If null or empty, no text will be set.</param>
     // ReSharper disable once UnusedMember.Global
-#pragma warning disable CA1822
+    [Conditional("REX_TRACY")]
     public void SetText(string text)
-#pragma warning restore CA1822
     {
-#if REX_TRACY
         if (string.IsNullOrEmpty(text) || _context is null)
         {
             return;
@@ -90,7 +85,6 @@ public readonly struct TracyProfilerScope : IDisposable
         var strLength = Encoding.UTF8.GetByteCount(text);
 
         TracyEmitZoneText(_context.Value, textStr, (ulong)strLength);
-#endif
     }
 
     /// <summary>
@@ -98,15 +92,12 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="color">The color to set for this profiling scope, specified as a 32-bit unsigned integer (ARGB format). If the value is 0, no color will be set and the default color will be used.</param>
     // ReSharper disable once UnusedMember.Global
-#pragma warning disable CA1822
+    [Conditional("REX_TRACY")]
     public void SetColor(uint color)
-#pragma warning restore CA1822
     {
-#if REX_TRACY
         if (color != 0 && _context is not null)
         {
             TracyEmitZoneColor(_context.Value, color);
         }
-#endif
     }
 }
