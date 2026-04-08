@@ -9,7 +9,7 @@ namespace Rex.Shared.Profiling.Tracy;
 using static global::Tracy.PInvoke;
 
 /// <summary>
-/// Defines the type of plot to be displayed in the Tracy profiler when using the <see cref="TracyProfiler.EmitPlotConfig"/> method.
+/// Defines the type of plot to be displayed in the Tracy profiler when using the <see cref="TracyProfiler.PlotConfig"/> method.
 /// </summary>
 public enum TracyPlotType
 {
@@ -51,7 +51,8 @@ public static class TracyProfiler
     private static readonly ConcurrentDictionary<TracySourceLocationData, ulong> SourceLocationCache = new();
 
     // See Tracy documentation for details on string caching (section 3.1)
-    private static ConcurrentDictionary<string, CString> _stringCache = new();
+    // ReSharper disable once CollectionNeverUpdated.Local
+    private static readonly ConcurrentDictionary<string, CString> StringCache = new();
     private static readonly CString EmptyString = CString.FromString(string.Empty);
 
     /// <summary>
@@ -64,14 +65,14 @@ public static class TracyProfiler
     /// </summary>
     /// <param name="name">Optional name for the frame mark. If provided, it will be displayed in the profiler UI alongside the frame timing information.</param>
     [Conditional("REX_TRACY")]
-    public static void MarkFrameCompleted(string? name = null)
+    public static void FrameMark(string? name = null)
     {
         if (!Configuration.Enabled)
         {
             return;
         }
 
-        var nameStr = name?.Length > 0 ? CString.FromString(name) : null;
+        var nameStr = string.IsNullOrEmpty(name) ? default : GetOrCreateCString(name);
         TracyEmitFrameMark(nameStr);
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
@@ -90,7 +91,7 @@ public static class TracyProfiler
     /// <param name="memberName">Automatically captured member name of the caller. Used for caching source location information in the profiler.</param>
     /// <returns>A <see cref="TracyProfilerScope"/> that will end the zone when disposed, or null if profiling is disabled.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TracyProfilerScope BeginZone(
+    public static TracyProfilerScope Zone(
         string? zoneName = null,
         bool active = true,
         uint color = 0,
@@ -145,6 +146,12 @@ public static class TracyProfiler
 
         Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
 
+        foreach (var cString in StringCache.Values)
+        {
+            cString.Dispose();
+        }
+        StringCache.Clear();
+
         SourceLocationCache.Clear();
     }
 
@@ -154,7 +161,7 @@ public static class TracyProfiler
     /// <param name="message">The message to send.</param>
     /// <param name="callstack">The number of call stack frames to capture and include with the message.</param>
     [Conditional("REX_TRACY")]
-    public static void EmitMessage(string message, int callstack = 0)
+    public static void Message(string message, int callstack = 0)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(message))
         {
@@ -170,7 +177,7 @@ public static class TracyProfiler
     /// </summary>
     /// <param name="info">The application information to send.</param>
     [Conditional("REX_TRACY")]
-    public static void EmitMessageAppInfo(string info)
+    public static void MessageAppInfo(string info)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(info))
         {
@@ -197,7 +204,7 @@ public static class TracyProfiler
     }
 
     /// <summary>
-    /// Configures a plot in the profiler with the specified parameters. This should be called before emitting any values for the plot using <see cref="EmitPlotValue(string, float)"/>, <see cref="EmitPlotValue(string, long)"/> or <see cref="EmitPlot"/>.
+    /// Configures a plot in the profiler with the specified parameters. This should be called before emitting any values for the plot using <see cref="PlotFloat"/>, <see cref="PlotInt"/> or <see cref="Plot"/>.
     /// </summary>
     /// <param name="name">The name of the plot to configure. This will be used to identify the plot in the profiler UI and should be unique for each plot.</param>
     /// <param name="type">The type of the plot, which determines how values will be displayed in the profiler UI. See <see cref="TracyPlotType"/> for available options.</param>
@@ -205,7 +212,7 @@ public static class TracyProfiler
     /// <param name="fill">Whether to fill the area under the plot line in the profiler UI. If true, the area under the line will be filled with color, while if false, only the line itself will be displayed.</param>
     /// <param name="color"></param>
     [Conditional("REX_TRACY")]
-    public static void EmitPlotConfig(string name, TracyPlotType type = TracyPlotType.Number, bool step = false, bool fill = true, uint color = 0)
+    public static void PlotConfig(string name, TracyPlotType type = TracyPlotType.Number, bool step = false, bool fill = true, uint color = 0)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(name))
         {
@@ -218,10 +225,10 @@ public static class TracyProfiler
     /// <summary>
     /// Emits a plot value to the profiler for the specified plot name.
     /// </summary>
-    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="EmitPlotConfig"/>.</param>
+    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="PlotConfig"/>.</param>
     /// <param name="value">The value to emit for the plot.</param>
     [Conditional("REX_TRACY")]
-    public static void EmitPlotValue(string name, float value)
+    public static void PlotFloat(string name, float value)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(name))
         {
@@ -234,10 +241,10 @@ public static class TracyProfiler
     /// <summary>
     /// Emits a plot value to the profiler for the specified plot name.
     /// </summary>
-    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="EmitPlotConfig"/>.</param>
+    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="PlotConfig"/>.</param>
     /// <param name="value">The value to emit for the plot.</param>
     [Conditional("REX_TRACY")]
-    public static void EmitPlotValue(string name, long value)
+    public static void PlotInt(string name, long value)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(name))
         {
@@ -250,10 +257,10 @@ public static class TracyProfiler
     /// <summary>
     /// Emits a plot value to the profiler for the specified plot name.
     /// </summary>
-    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="EmitPlotConfig"/>.</param>
+    /// <param name="name">The name of the plot to emit the value for. This should match the name used when configuring the plot with <see cref="PlotConfig"/>.</param>
     /// <param name="value">The value to emit for the plot.</param>
     [Conditional("REX_TRACY")]
-    public static void EmitPlot(string name, double value)
+    public static void Plot(string name, double value)
     {
         if (!Configuration.Enabled || string.IsNullOrEmpty(name))
         {
@@ -263,6 +270,7 @@ public static class TracyProfiler
         TracyEmitPlot(GetOrCreateCString(name), value);
     }
 
+    // ReSharper disable once UnusedParameter.Local
     private static CString GetOrCreateCString(string str)
     {
 #if REX_TRACY

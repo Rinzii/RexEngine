@@ -126,7 +126,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
         while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
-            using var _ = TracyProfiler.BeginZone("MainLoop", true, 0xFF5A00);
+            using var _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
 
             var currentTime = stopwatch.Elapsed.TotalSeconds;
             var frameTime = currentTime - previousTime;
@@ -156,7 +156,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
             // No swap chain on the dedicated server. Yield so an uncapped loop does not burn a full core.
             Thread.Yield();
 
-            TracyProfiler.MarkFrameCompleted();
+            TracyProfiler.FrameMark();
         }
 
         if (cancellationToken.IsCancellationRequested)

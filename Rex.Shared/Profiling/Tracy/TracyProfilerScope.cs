@@ -16,7 +16,7 @@ public readonly struct TracyProfilerScope : IDisposable
     /// <summary>
     /// A static instance of <see cref="TracyProfilerScope"/> that represents a no-op scope which will be used when profiling is disabled
     /// </summary>
-    public static TracyProfilerScope NoOp { get; private set; } = new();
+    public static TracyProfilerScope NoOp => new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TracyProfilerScope"/> struct with default values. This constructor is used to create an empty scope that does not correspond to any active Tracy zone.
@@ -54,7 +54,7 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
     [Conditional("REX_TRACY")]
-    public void SetName(string name)
+    public void ZoneName(string name)
     {
         if (string.IsNullOrEmpty(name) || _context is null)
         {
@@ -72,7 +72,7 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="text">The text to associate with this profiling scope. If null or empty, no text will be set.</param>
     [Conditional("REX_TRACY")]
-    public void SetText(string text)
+    public void ZoneText(string text)
     {
         if (string.IsNullOrEmpty(text) || _context is null)
         {
@@ -90,7 +90,7 @@ public readonly struct TracyProfilerScope : IDisposable
     /// </summary>
     /// <param name="color">The color to set for this profiling scope, specified as a 32-bit unsigned integer (ARGB format). If the value is 0, no color will be set and the default color will be used.</param>
     [Conditional("REX_TRACY")]
-    public void SetColor(uint color)
+    public void ZoneColor(uint color)
     {
         if (color != 0 && _context is not null)
         {

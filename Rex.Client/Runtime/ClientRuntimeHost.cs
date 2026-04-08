@@ -194,7 +194,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
         while (_isRunning && !cancellationToken.IsCancellationRequested)
         {
             // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
-            using var _ = TracyProfiler.BeginZone("MainLoop", true, 0xFF5A00);
+            using var _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
 
             var currentTime = stopwatch.Elapsed.TotalSeconds;
             var frameTime = currentTime - previousTime;
@@ -244,7 +244,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
                 Thread.Yield();
             }
 
-            TracyProfiler.MarkFrameCompleted();
+            TracyProfiler.FrameMark();
         }
 
         if (cancellationToken.IsCancellationRequested)
