@@ -21,10 +21,12 @@ public sealed class TracyConfiguration
 /// </summary>
 public static class TracyProfiler
 {
+    private static TracyConfiguration _configuration = new() { Enabled = false };
+
     /// <summary>
     /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
     /// </summary>
-    public static TracyConfiguration Configuration { get; private set; } = new();
+    public static TracyConfiguration Configuration => Volatile.Read(ref _configuration);
 
     /// <summary>
     /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
@@ -101,7 +103,7 @@ public static class TracyProfiler
     /// <param name="configuration">The configuration settings to apply to the Tracy profiler. This includes options for enabling/disabling profiling and configuring cache cleanup behavior.</param>
     public static void EnableProfiler(TracyConfiguration configuration)
     {
-        Configuration = configuration;
+        Volatile.Write(ref _configuration, configuration);
     }
 
     /// <summary>
@@ -109,6 +111,6 @@ public static class TracyProfiler
     /// </summary>
     public static void DisableProfiler()
     {
-        Configuration.Enabled = false;
+        Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
     }
 }
