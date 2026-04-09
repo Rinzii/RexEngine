@@ -1,34 +1,36 @@
+using Silk.NET.Maths;
+
 namespace Rex.Client.Graphics;
 
-// TODO(IanP): Support multiple monitors, DPI and multiple windows.
+// TODO: This is a very basic interface and will likely need to be expanded and improved.
 
-/// <summary>Window surface and GL context lifecycle for a client process.</summary>
+/// <summary>Window and GL context lifecycle. SDL or other backends implement this.</summary>
 public interface IGameWindow : IDisposable
 {
-    /// <summary>Text shown in the platform window chrome.</summary>
+    /// <summary>Title shown in the window chrome.</summary>
     string Title { get; set; }
 
-    /// <summary>Drawable width in pixels.</summary>
     int Width { get; }
-
-    /// <summary>Drawable height in pixels.</summary>
     int Height { get; }
-
-    /// <summary>True while the native window is open.</summary>
     bool IsOpen { get; }
 
-    /// <summary>Opens the native window and blocks in the platform run loop when the backend needs it.</summary>
-    /// <param name="title">Initial <see cref="Title"/>.</param>
-    /// <param name="width">Initial client width in pixels.</param>
-    /// <param name="height">Initial client height in pixels.</param>
-    void Open(string title, int width, int height);
+    public event Action<Vector2D<int>>? OnResize;
+    public event Action<Vector2D<int>>? OnFramebufferResize;
+    public event Action? OnClosing;
+    public event Action<bool>? OnFocusChanged;
+    public event Action? OnLoad;
+    public event Action<double>? OnUpdate;
+    public event Action<double>? OnRender;
 
-    /// <summary>Pumps input, resize and close notifications from the OS.</summary>
+    /// <summary> Opens the window.</summary>
+    void Open();
+
+    /// <summary>Pumps platform events such as input, resize, and close.</summary>
     void PollEvents();
 
-    /// <summary>Presents the current back buffer.</summary>
+    /// <summary>Presents the rendered frame to the screen.</summary>
     void SwapBuffers();
 
-    /// <summary>Closes the window and releases native resources.</summary>
+    /// <summary>Closes and destroys the window.</summary>
     void Close();
 }

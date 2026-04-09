@@ -157,6 +157,7 @@ public sealed partial class ClientApp : IDisposable
 
         if (!Headless && Window != null)
         {
+            Window.Open(/*"RexEngine", 1280, 720*/);
             _renderer?.Initialize(Window);
         }
 

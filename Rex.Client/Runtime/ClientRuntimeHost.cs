@@ -180,7 +180,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
         }
 
         // A caller can register a backend later without changing the loop contract.
-        window.Open(_options.WindowTitle, _options.WindowWidth, _options.WindowHeight);
+        window.Open();
     }
 
     private void RunMainLoop(CancellationToken cancellationToken)

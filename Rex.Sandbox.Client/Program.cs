@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Rex.Client;
 using Rex.Sandbox.Shared.Net;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
@@ -21,6 +22,9 @@ internal static class Program
 
     private static void Start(string[] args)
     {
+        using WindowCreator creator = new WindowCreator("Hi", 800, 800);
+        creator.Open();
+
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();
