@@ -7,30 +7,34 @@ namespace Rex.Client.Graphics;
 /// <summary>Window and GL context lifecycle. SDL or other backends implement this.</summary>
 public interface IGameWindow : IDisposable
 {
-    /// <summary>Title shown in the window chrome.</summary>
-    string Title { get; set; }
+    public string Title { get; set; }
 
-    int Width { get; }
-    int Height { get; }
-    bool IsOpen { get; }
+    public Vector2D<int> Position { get; set; }
+    public Vector2D<int> Size { get; set; }
+
+    public bool Visible { get; set; }
+
+    public bool IsMinimized { get; }
+    public bool IsMaximized { get; }
+    public bool IsFullscreen { get; }
+
+    public event Action? OnReady;
+    public event Action? OnClose;
+
+    public event Action<bool>? OnFocusChanged;
+    public event Action<Vector2D<int>>? OnMove;
 
     public event Action<Vector2D<int>>? OnResize;
     public event Action<Vector2D<int>>? OnFramebufferResize;
-    public event Action? OnClosing;
-    public event Action<bool>? OnFocusChanged;
-    public event Action? OnLoad;
+
     public event Action<double>? OnUpdate;
     public event Action<double>? OnRender;
 
-    /// <summary> Opens the window.</summary>
-    void Open();
+    // public event Action<WindowState>? StateChanged;
+    // public event Action<string[]>? FileDrop;
 
-    /// <summary>Pumps platform events such as input, resize, and close.</summary>
-    void PollEvents();
+    public void Open();
+    public void Close();
 
-    /// <summary>Presents the rendered frame to the screen.</summary>
-    void SwapBuffers();
-
-    /// <summary>Closes and destroys the window.</summary>
-    void Close();
+    public void PollEvents();
 }

@@ -162,25 +162,12 @@ public sealed partial class ClientRuntimeHost : IDisposable
     /// </summary>
     private void PrepareWindow()
     {
-        if (_options.Headless)
+        if (_options.Headless || Window != null)
         {
             return;
         }
 
-        var window = Window;
-        if (window == null)
-        {
-            LogWindowBackendUnavailable();
-            return;
-        }
-
-        if (window.IsOpen)
-        {
-            return;
-        }
-
-        // A caller can register a backend later without changing the loop contract.
-        window.Open();
+        Window = new GameWindow(_options.WindowTitle, _options.WindowWidth, _options.WindowHeight);
     }
 
     private void RunMainLoop(CancellationToken cancellationToken)
@@ -219,30 +206,17 @@ public sealed partial class ClientRuntimeHost : IDisposable
                 frameIndex,
                 stopwatch.Elapsed.TotalSeconds);
 
-            if (!_options.Headless)
+            if (!_options.Headless && Window != null)
             {
-                var window = Window;
-                window?.PollEvents();
-                if (window is { IsOpen: false })
-                {
-                    Stop();
-                    break;
-                }
+                Window.PollEvents();
             }
 
             InvokeUpdateCallback(OnUpdate, ctx, LogOnUpdateFailed);
             InvokeUpdateCallback(OnLateUpdate, ctx, LogOnLateUpdateFailed);
             OnRender?.Invoke(ctx);
 
-            if (!_options.Headless)
-            {
-                Window?.SwapBuffers();
-            }
-            else
-            {
-                // Headless clients still need a scheduling point without blocking on vsync.
-                Thread.Yield();
-            }
+            // Headless clients still need a scheduling point without blocking on vsync.
+            Thread.Yield();
 
             TracyProfiler.FrameMark();
         }
@@ -287,7 +261,4 @@ public sealed partial class ClientRuntimeHost
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Debug, Message = "Main loop exiting due to cancellation.")]
     private partial void LogMainLoopCancellationRequested();
-
-    [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "No window backend is registered so the client will stay headless.")]
-    private partial void LogWindowBackendUnavailable();
 }

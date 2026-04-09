@@ -22,9 +22,6 @@ internal static class Program
 
     private static void Start(string[] args)
     {
-        using WindowCreator creator = new WindowCreator("Hi", 800, 800);
-        creator.Open();
-
         using var loggerFactory = LoggerFactory.Create(builder =>
         {
             builder.AddConsole();

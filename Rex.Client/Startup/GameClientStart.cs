@@ -46,7 +46,7 @@ public static class GameClientStart
             WindowHeight = definition.Window.Height
         });
         // Window backend is registered in DI so ClientRuntimeHost depends only on IGameWindow.
-        services.AddSingleton<IGameWindow, WindowCreator>();
+        services.AddSingleton<IGameWindow, GameWindow>();
         services.AddSingleton<ClientRuntimeHost>();
         using var serviceProvider = services.BuildServiceProvider();
 
