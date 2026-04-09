@@ -111,7 +111,7 @@ public static class TracyProfiler
 
         if (text is not null)
         {
-            profilerScope.SetText(text);
+            profilerScope.ZoneText(text);
         }
 
         return profilerScope;
@@ -276,7 +276,7 @@ public static class TracyProfiler
             return EmptyString;
         }
 
-        return _stringCache.GetOrAdd(str, CString.FromString);
+        return StringCache.GetOrAdd(str, CString.FromString);
 #else
         return EmptyString;
 #endif
