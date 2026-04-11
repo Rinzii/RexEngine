@@ -8,7 +8,7 @@ public sealed class SandboxSharedRegressionTests
     [Fact]
     public void Regression_game_world_spawn_ids_are_monotonic()
     {
-        var world = new GameWorld();
+        GameWorld world = new();
         int a = world.SpawnEntity(Guid.Empty, "T", 0f, 0f, 0f);
         int b = world.SpawnEntity(Guid.Empty, "T", 0f, 0f, 0f);
 

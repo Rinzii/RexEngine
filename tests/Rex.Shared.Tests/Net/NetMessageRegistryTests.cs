@@ -48,28 +48,16 @@ public sealed class NetMessageRegistryTests
     }
 
     [Fact]
-    // Second Register for the same message id wins on Deserialize.
-    public void Register_same_id_replaces_deserializer()
+    // Duplicate registrations fail fast so wire id collisions cannot silently override deserializers.
+    public void Register_same_id_throws()
     {
         ushort customId = 59997;
         NetMessageRegistry.Register(customId, _ => new DisconnectMessage("first"));
-        NetMessageRegistry.Register(customId, reader =>
-        {
-            _ = reader.GetString();
-            return new DisconnectMessage("replaced");
-        });
 
-        var writer = new NetDataWriter();
-        NetMessageRegistry.WriteHeader(writer, customId);
-        writer.Put(string.Empty);
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            NetMessageRegistry.Register(customId, _ => new DisconnectMessage("second")));
 
-        var reader = new NetDataReader();
-        reader.SetSource(writer.Data, 0, writer.Length);
-
-        INetMessage decoded = NetMessageRegistry.Deserialize(reader);
-        DisconnectMessage typed = Assert.IsType<DisconnectMessage>(decoded);
-
-        Assert.Equal("replaced", typed.Reason);
+        Assert.Contains(customId.ToString(), ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
