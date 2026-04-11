@@ -19,7 +19,11 @@ public static class NetMessageRegistry
     public static void Register<T>([ForbidLiteral] ushort messageId, Func<NetDataReader, T> deserializer)
         where T : INetMessage
     {
-        // Same id twice replaces the previous entry. Avoid duplicate ids in RegisterAll.
+        if (s_deserializers.ContainsKey(messageId))
+        {
+            throw new InvalidOperationException($"Deserializer already registered for message ID {messageId}");
+        }
+
         s_deserializers[messageId] = reader => deserializer(reader);
     }
 

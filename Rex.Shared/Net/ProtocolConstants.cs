@@ -15,6 +15,21 @@ public static class ProtocolConstants
     /// <summary>Milliseconds to wait before giving up on handshake traffic.</summary>
     public const int HandshakeTimeoutMs = 5000;
 
+    /// <summary>LiteNetLib update cadence in milliseconds.</summary>
+    public const int TransportUpdateTimeMs = 15;
+
+    /// <summary>Interval between LiteNetLib ping and keepalive packets in milliseconds.</summary>
+    public const int TransportPingIntervalMs = 1000;
+
+    /// <summary>Idle disconnect timeout used by LiteNetLib peers in milliseconds.</summary>
+    public const int TransportDisconnectTimeoutMs = 10000;
+
+    /// <summary>Delay between client connection attempts in milliseconds.</summary>
+    public const int TransportReconnectDelayMs = 500;
+
+    /// <summary>Maximum client connect attempts before LiteNetLib reports failure.</summary>
+    public const int TransportMaxConnectAttempts = 10;
+
     /// <summary>UDP port used when no override is supplied.</summary>
     public const int DefaultPort = 27015;
 
