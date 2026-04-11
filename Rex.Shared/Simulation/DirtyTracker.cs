@@ -12,6 +12,7 @@ namespace Rex.Shared.Simulation;
 public sealed class DirtyTracker
 {
     private readonly TickRingBuffer<HashSet<int>> _dirtyBuffer;
+    private readonly TickRingBuffer<HashSet<int>> _removedBuffer;
 
     /// <summary>
     /// Builds a ring with one reusable hash set per slot.
@@ -21,6 +22,7 @@ public sealed class DirtyTracker
     {
         // One set per ring slot. Slots are rebound in PrepareSlot when the tick advances.
         _dirtyBuffer = new TickRingBuffer<HashSet<int>>(bufferSize, static () => []);
+        _removedBuffer = new TickRingBuffer<HashSet<int>>(bufferSize, static () => []);
     }
 
     /// <summary>Adds <paramref name="entityId"/> to the dirty set for <paramref name="tick"/>.</summary>
@@ -29,10 +31,22 @@ public sealed class DirtyTracker
         _ = PrepareSlot(tick).Value.Add(entityId);
     }
 
-    /// <summary>Clears the set for <paramref name="tick"/> at tick boundary before new writes.</summary>
-    public void ClearTick(uint tick)
+    /// <summary>Adds <paramref name="entityId"/> to the removed set for <paramref name="tick"/>.</summary>
+    public void MarkRemoved(int entityId, uint tick)
+    {
+        _ = PrepareRemovedSlot(tick).Value.Add(entityId);
+    }
+
+    /// <summary>
+    /// Clears one ring slot before internal re-use for <paramref name="tick"/>.
+    /// </summary>
+    /// <remarks>
+    /// This is internal because clearing already-recorded tick history from gameplay or networking code can invalidate later delta windows.
+    /// </remarks>
+    internal void ClearTick(uint tick)
     {
         PrepareSlot(tick).Value.Clear();
+        PrepareRemovedSlot(tick).Value.Clear();
     }
 
     /// <summary>
@@ -77,11 +91,62 @@ public sealed class DirtyTracker
     }
 
     /// <summary>
+    /// Unions every removed id for ticks strictly after <paramref name="fromTick"/> through <paramref name="toTick"/>.
+    /// </summary>
+    public HashSet<int>? GetRemovedEntities(uint fromTick, uint toTick)
+    {
+        if (toTick <= fromTick)
+        {
+            return [];
+        }
+
+        uint range = toTick - fromTick;
+        if (range >= (uint)_removedBuffer.Capacity)
+        {
+            return null;
+        }
+
+        var result = new HashSet<int>();
+        for (uint tick = fromTick + 1; tick <= toTick; tick++)
+        {
+            TickRingBuffer<HashSet<int>>.Entry slot = _removedBuffer.GetSlot(tick);
+            // Same slot validity rule as dirty ids. Skip recycled buckets that no longer match this tick.
+            if (!slot.IsAssigned || slot.Tick != tick)
+            {
+                continue;
+            }
+
+            foreach (int entityId in slot.Value)
+            {
+                _ = result.Add(entityId);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Binds the ring slot for <paramref name="tick"/> and clears it when the slot still carried an older tick.
     /// </summary>
     private TickRingBuffer<HashSet<int>>.Entry PrepareSlot(uint tick)
     {
         TickRingBuffer<HashSet<int>>.Entry slot = _dirtyBuffer.GetSlot(tick);
+        if (!slot.IsAssigned || slot.Tick != tick)
+        {
+            slot.Tick = tick;
+            slot.IsAssigned = true;
+            slot.Value.Clear();
+        }
+
+        return slot;
+    }
+
+    /// <summary>
+    /// Binds the removed-entity ring slot for <paramref name="tick"/> and clears it when the slot still carried an older tick.
+    /// </summary>
+    private TickRingBuffer<HashSet<int>>.Entry PrepareRemovedSlot(uint tick)
+    {
+        TickRingBuffer<HashSet<int>>.Entry slot = _removedBuffer.GetSlot(tick);
         if (!slot.IsAssigned || slot.Tick != tick)
         {
             slot.Tick = tick;
