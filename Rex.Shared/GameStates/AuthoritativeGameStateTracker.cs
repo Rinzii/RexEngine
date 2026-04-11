@@ -103,7 +103,7 @@ public sealed class AuthoritativeGameStateTracker<TKey, TEntityState>
     /// <summary>Attempts to read the current authoritative payload for one entity key.</summary>
     public bool TryGetCurrentEntity(TKey key, out TEntityState entityState)
     {
-        return _currentStateStore.TryGet(key, out entityState!);
+        return _currentStateStore.TryGet(key, out entityState);
     }
 
     /// <summary>Applies one live entity removal outside the snapshot stream.</summary>

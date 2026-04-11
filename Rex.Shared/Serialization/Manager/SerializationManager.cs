@@ -236,7 +236,7 @@ public sealed class SerializationManager : ISerializationManager
         ArgumentNullException.ThrowIfNull(source);
         ArgumentNullException.ThrowIfNull(target);
 
-        CopyTo(typeof(T), source!, target!, context, skipHook);
+        CopyTo(typeof(T), source, target, context, skipHook);
     }
 
     /// <summary>

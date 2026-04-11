@@ -49,7 +49,7 @@ public static class GameStateInterpolation
             TKey key = keySelector(current);
             if (previousEntities.TryGetValue(key, out TEntityState? previous))
             {
-                result.Add(lerp(previous!, current, alpha));
+                result.Add(lerp(previous, current, alpha));
             }
             else
             {

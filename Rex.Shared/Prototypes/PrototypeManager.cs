@@ -370,10 +370,10 @@ public sealed class PrototypeManager
 
         if (includeSelf)
         {
-            yield return prototype!;
+            yield return prototype;
         }
 
-        Queue<string> queue = new(GetParentIds(prototype!));
+        Queue<string> queue = new(GetParentIds(prototype));
         HashSet<string> visited = new(StringComparer.Ordinal);
         while (queue.TryDequeue(out string? parentId))
         {
