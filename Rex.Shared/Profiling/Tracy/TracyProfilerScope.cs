@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
+using static Tracy.PInvoke;
 
 using static global::Tracy.PInvoke;
 

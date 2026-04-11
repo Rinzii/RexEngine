@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
+using static Tracy.PInvoke;
 
 using static global::Tracy.PInvoke;
 
@@ -124,7 +125,7 @@ public static class TracyProfiler
         var srcLoc = GetOrAddSourceLocationName(
             new TracySourceLocationData(lineNumber, filePath, memberName, zoneName, color));
 
-        var context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
+        TracyCZoneCtx context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
         var profilerScope = new TracyProfilerScope(context);
 
         if (text is not null)

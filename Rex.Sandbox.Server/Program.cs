@@ -151,6 +151,12 @@ internal sealed class CommandLineArgs
                     error = "Missing value for --cvar.";
                     return false;
                 case "--cvar":
+                {
+                    string cvar = enumerator.Current;
+                    DebugTools.AssertNotNull(cvar);
+                    int pos = cvar.IndexOf('=');
+
+                    if (pos == -1)
                     {
                         string cvar = enumerator.Current;
                         DebugTools.AssertNotNull(cvar);
@@ -165,10 +171,20 @@ internal sealed class CommandLineArgs
                         cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
                         break;
                     }
+
+                    cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
+                    break;
+                }
                 case "--logLevel" when !enumerator.MoveNext():
                     error = "Missing value for --logLevel.";
                     return false;
                 case "--logLevel":
+                {
+                    string logLevel = enumerator.Current;
+                    DebugTools.AssertNotNull(logLevel);
+                    int pos = logLevel.IndexOf('=');
+
+                    if (pos == -1)
                     {
                         string logLevel = enumerator.Current;
                         DebugTools.AssertNotNull(logLevel);
@@ -183,6 +199,10 @@ internal sealed class CommandLineArgs
                         loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
                         break;
                     }
+
+                    loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
+                    break;
+                }
                 default:
                     if (arg.StartsWith('+'))
                     {
