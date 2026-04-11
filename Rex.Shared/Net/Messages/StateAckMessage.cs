@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 
 namespace Rex.Shared.Net.Messages;
@@ -9,20 +8,20 @@ public sealed class StateAckMessage : INetMessage
     /// <summary>Wire id for <see cref="StateAckMessage"/>.</summary>
     public const ushort Id = 8;
 
-    /// <inheritdoc />
-    public ushort MessageId => Id;
-
-    /// <inheritdoc />
-    public MessageGroup Group => MessageGroup.Core;
-
-    /// <summary>Highest server tick the client has applied locally.</summary>
-    public uint AcknowledgedTick { get; }
-
     /// <summary>Builds a snapshot ack payload.</summary>
     public StateAckMessage(uint acknowledgedTick)
     {
         AcknowledgedTick = acknowledgedTick;
     }
+
+    /// <summary>Highest server tick the client has applied locally.</summary>
+    public uint AcknowledgedTick { get; }
+
+    /// <inheritdoc />
+    public ushort MessageId => Id;
+
+    /// <inheritdoc />
+    public MessageGroup Group => MessageGroup.Core;
 
     /// <inheritdoc />
     public void Serialize(NetDataWriter writer)
@@ -34,7 +33,7 @@ public sealed class StateAckMessage : INetMessage
     /// <summary>Parses the body after the header.</summary>
     public static StateAckMessage Deserialize(NetDataReader reader)
     {
-        var acknowledgedTick = reader.GetUInt();
+        uint acknowledgedTick = reader.GetUInt();
         return new StateAckMessage(acknowledgedTick);
     }
 }

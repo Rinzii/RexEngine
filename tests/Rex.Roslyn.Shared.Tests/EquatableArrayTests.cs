@@ -10,8 +10,8 @@ public sealed class EquatableArrayTests
     // Equal items imply Equals and matching hash codes.
     public void Same_contents_compare_equal()
     {
-        var a = ImmutableArray.Create("x", "y").AsEquatableArray();
-        var b = ImmutableArray.Create("x", "y").AsEquatableArray();
+        EquatableArray<string> a = ImmutableArray.Create("x", "y").AsEquatableArray();
+        EquatableArray<string> b = ImmutableArray.Create("x", "y").AsEquatableArray();
 
         Assert.Equal(a, b);
         Assert.True(a.Equals(b));
@@ -22,8 +22,8 @@ public sealed class EquatableArrayTests
     // One differing element makes arrays unequal.
     public void Different_contents_compare_unequal()
     {
-        var a = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
-        var b = ImmutableArray.Create(1, 2, 4).AsEquatableArray();
+        EquatableArray<int> a = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
+        EquatableArray<int> b = ImmutableArray.Create(1, 2, 4).AsEquatableArray();
 
         Assert.NotEqual(a, b);
     }
@@ -32,8 +32,8 @@ public sealed class EquatableArrayTests
     // Two empty arrays compare equal and report IsEmpty.
     public void Empty_arrays_are_equal()
     {
-        var a = ImmutableArray<string>.Empty.AsEquatableArray();
-        var b = ImmutableArray<string>.Empty.AsEquatableArray();
+        EquatableArray<string> a = ImmutableArray<string>.Empty.AsEquatableArray();
+        EquatableArray<string> b = ImmutableArray<string>.Empty.AsEquatableArray();
         Assert.Equal(a, b);
         Assert.True(a.IsEmpty);
     }

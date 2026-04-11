@@ -9,7 +9,7 @@ namespace Rex.Shared.Net;
 /// </summary>
 public static class NetMessageRegistry
 {
-    private static readonly Dictionary<ushort, Func<NetDataReader, INetMessage>> Deserializers = new();
+    private static readonly Dictionary<ushort, Func<NetDataReader, INetMessage>> s_deserializers = [];
 
     /// <summary>
     /// Registers a deserializer for one message type.
@@ -20,7 +20,7 @@ public static class NetMessageRegistry
         where T : INetMessage
     {
         // Same id twice replaces the previous entry. Avoid duplicate ids in RegisterAll.
-        Deserializers[messageId] = reader => deserializer(reader);
+        s_deserializers[messageId] = reader => deserializer(reader);
     }
 
     /// <summary>
@@ -30,9 +30,9 @@ public static class NetMessageRegistry
     public static INetMessage Deserialize(NetDataReader reader)
     {
         // Reader position is immediately after LiteNetLib peeled the packet. First field is our message id.
-        var messageId = reader.GetUShort();
+        ushort messageId = reader.GetUShort();
 
-        if (!Deserializers.TryGetValue(messageId, out var deserializer))
+        if (!s_deserializers.TryGetValue(messageId, out Func<NetDataReader, INetMessage>? deserializer))
         {
             throw new InvalidOperationException($"No deserializer registered for message ID {messageId}");
         }

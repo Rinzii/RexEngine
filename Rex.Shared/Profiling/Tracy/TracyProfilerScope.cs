@@ -1,8 +1,7 @@
 using bottlenoselabs.C2CS.Runtime;
+using static Tracy.PInvoke;
 
 namespace Rex.Shared.Profiling.Tracy;
-
-using static global::Tracy.PInvoke;
 
 /// <summary>
 /// Represents a profiling scope for the Tracy profiler.

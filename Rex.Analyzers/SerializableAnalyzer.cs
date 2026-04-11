@@ -1,16 +1,12 @@
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
+using Microsoft.CodeAnalysis.Text;
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -29,7 +25,7 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
     private const string NetSerializableAttributeMetadataName = "Rex.Shared.Serialization.NetSerializableAttribute";
 
     [SuppressMessage("ReSharper", "RS2008")]
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdSerializable,
         "Class not marked as (Net)Serializable",
         "Class not marked as (Net)Serializable",
@@ -38,7 +34,7 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
         true,
         "The class should be marked as (Net)Serializable.");
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -65,9 +61,10 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeNode(SyntaxNodeAnalysisContext context)
     {
-        var attrSymbol = context.Compilation.GetTypeByMetadataName(RequiresSerializableAttributeMetadataName);
+        INamedTypeSymbol attrSymbol =
+            context.Compilation.GetTypeByMetadataName(RequiresSerializableAttributeMetadataName);
         var classDecl = (ClassDeclarationSyntax)context.Node;
-        var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
+        INamedTypeSymbol classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
         if (classSymbol == null)
         {
             return;
@@ -75,12 +72,13 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 
         if (Marked(classSymbol, attrSymbol))
         {
-            var attributes = classSymbol.GetAttributes();
-            var serAttr = context.Compilation.GetTypeByMetadataName(SerializableAttributeMetadataName);
-            var netSerAttr = context.Compilation.GetTypeByMetadataName(NetSerializableAttributeMetadataName);
+            ImmutableArray<AttributeData> attributes = classSymbol.GetAttributes();
+            INamedTypeSymbol serAttr = context.Compilation.GetTypeByMetadataName(SerializableAttributeMetadataName);
+            INamedTypeSymbol netSerAttr =
+                context.Compilation.GetTypeByMetadataName(NetSerializableAttributeMetadataName);
 
-            var hasSerAttr = attributes.Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, serAttr));
-            var hasNetSerAttr =
+            bool hasSerAttr = attributes.Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, serAttr));
+            bool hasNetSerAttr =
                 attributes.Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, netSerAttr));
 
             if (!hasSerAttr || !hasNetSerAttr)
@@ -98,7 +96,7 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 
                 context.ReportDiagnostic(
                     Diagnostic.Create(
-                        Rule,
+                        s_rule,
                         classDecl.Identifier.GetLocation(),
                         ImmutableDictionary.CreateRange(new Dictionary<string, string>
                         {
@@ -116,17 +114,21 @@ public class SerializableCodeFixProvider : CodeFixProvider
 {
     private const string Title = "Annotate class as (Net)Serializable.";
 
+    public sealed override ImmutableArray<string> FixableDiagnosticIds
+        => [IdSerializable];
+
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
+        SyntaxNode root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
 
-        foreach (var diagnostic in context.Diagnostics)
+        foreach (Diagnostic diagnostic in context.Diagnostics)
         {
-            var span = diagnostic.Location.SourceSpan;
-            var classDecl = root.FindToken(span.Start).Parent.AncestorsAndSelf().OfType<ClassDeclarationSyntax>()
+            TextSpan span = diagnostic.Location.SourceSpan;
+            ClassDeclarationSyntax classDecl = root.FindToken(span.Start).Parent.AncestorsAndSelf()
+                .OfType<ClassDeclarationSyntax>()
                 .First();
 
-            if (!diagnostic.Properties.TryGetValue("requiredAttributes", out var requiredAttributes))
+            if (!diagnostic.Properties.TryGetValue("requiredAttributes", out string requiredAttributes))
             {
                 return;
             }
@@ -145,22 +147,22 @@ public class SerializableCodeFixProvider : CodeFixProvider
     {
         var attributes = new List<AttributeSyntax>();
         var namespaces = new List<string>();
-        foreach (var attribute in requiredAttributes.Split(','))
+        foreach (string attribute in requiredAttributes.Split(','))
         {
-            var tempSplit = attribute.Split('.');
+            string[] tempSplit = attribute.Split('.');
             namespaces.Add(string.Join(".", tempSplit.Take(tempSplit.Length - 1)));
-            var @class = tempSplit.Last();
-            @class = @class.Substring(0, @class.Length - 9); //cut out "Attribute" at the end
+            string @class = tempSplit.Last();
+            @class = @class[..^9]; //cut out "Attribute" at the end
             attributes.Add(SyntaxFactory.Attribute(SyntaxFactory.ParseName(@class)));
         }
 
-        var newClassDecl =
+        ClassDeclarationSyntax newClassDecl =
             classDecl.AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList(attributes)));
 
         var root = (CompilationUnitSyntax)await document.GetSyntaxRootAsync(cancellationToken);
         root = root.ReplaceNode(classDecl, newClassDecl);
 
-        foreach (var ns in namespaces)
+        foreach (string ns in namespaces)
         {
             if (root.Usings.Any(u => u.Name.ToString() == ns))
             {
@@ -172,9 +174,6 @@ public class SerializableCodeFixProvider : CodeFixProvider
 
         return document.WithSyntaxRoot(root);
     }
-
-    public sealed override ImmutableArray<string> FixableDiagnosticIds
-        => ImmutableArray.Create(IdSerializable);
 
     public override FixAllProvider GetFixAllProvider()
     {

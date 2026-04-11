@@ -1,10 +1,10 @@
 #nullable enable
+
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -14,7 +14,7 @@ public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
 {
     private const string AttributeType = "Rex.Shared.Analyzers.PreferOtherTypeAttribute";
 
-    private static readonly DiagnosticDescriptor PreferOtherTypeDescriptor = new(
+    private static readonly DiagnosticDescriptor s_preferOtherTypeDescriptor = new(
         IdPreferOtherType,
         "Use the specific type",
         "Use the specific type {0} instead of {1} when the type argument is {2}",
@@ -23,9 +23,7 @@ public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
         true,
         "Use the specific type.");
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-        PreferOtherTypeDescriptor
-    );
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_preferOtherTypeDescriptor];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -48,22 +46,22 @@ public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var genericSyntax = genericName.TypeArgumentList.Arguments[0];
+        TypeSyntax genericSyntax = genericName.TypeArgumentList.Arguments[0];
         if (context.SemanticModel.GetSymbolInfo(genericSyntax).Symbol is not { } genericType)
         {
             return;
         }
 
         // Look for the PreferOtherTypeAttribute
-        var symbolInfo = context.SemanticModel.GetSymbolInfo(node.Type);
+        SymbolInfo symbolInfo = context.SemanticModel.GetSymbolInfo(node.Type);
         if (symbolInfo.Symbol?.GetAttributes() is not { } attributes)
         {
             return;
         }
 
-        var preferOtherTypeAttribute = context.Compilation.GetTypeByMetadataName(AttributeType);
+        INamedTypeSymbol? preferOtherTypeAttribute = context.Compilation.GetTypeByMetadataName(AttributeType);
 
-        foreach (var attribute in attributes)
+        foreach (AttributeData attribute in attributes)
         {
             if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, preferOtherTypeAttribute))
             {
@@ -86,7 +84,7 @@ public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            context.ReportDiagnostic(Diagnostic.Create(PreferOtherTypeDescriptor,
+            context.ReportDiagnostic(Diagnostic.Create(s_preferOtherTypeDescriptor,
                 context.Node.GetLocation(),
                 replacementType.Name,
                 symbolInfo.Symbol.Name,

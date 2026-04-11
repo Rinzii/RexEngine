@@ -1,5 +1,3 @@
-using System;
-
 #if REX_ANALYZERS_IMPL
 namespace Rex.Shared.Analyzers.Implementation;
 #else
@@ -52,12 +50,6 @@ namespace Rex.Shared.Analyzers;
                 AttributeTargets.Constructor)]
 public sealed class AccessAttribute : Attribute
 {
-    /// <summary>
-    ///     Types that count as friends and receive <see cref="Friend"/> permissions instead of <see cref="Other"/>.
-    /// </summary>
-    /// <seealso cref="Friend"/>
-    public readonly Type[] Friends;
-
     /// <summary>Default bitmask applied to <see cref="Self"/>.</summary>
     public const AccessPermissions SelfDefaultPermissions = AccessPermissions.ReadWriteExecute;
 
@@ -66,6 +58,21 @@ public sealed class AccessAttribute : Attribute
 
     /// <summary>Default bitmask applied to <see cref="Other"/>.</summary>
     public const AccessPermissions OtherDefaultPermissions = AccessPermissions.Read;
+
+    /// <summary>
+    ///     Types that count as friends and receive <see cref="Friend"/> permissions instead of <see cref="Other"/>.
+    /// </summary>
+    /// <seealso cref="Friend"/>
+    public readonly Type[] Friends;
+
+    /// <summary>
+    ///     Registers <paramref name="friends"/> as types that receive <see cref="Friend"/> permissions.
+    /// </summary>
+    /// <param name="friends">Types that receive <see cref="Friend"/> permissions.</param>
+    public AccessAttribute(params Type[] friends)
+    {
+        Friends = friends;
+    }
 
     /// <summary>
     ///     Access permissions for the declaring type or the type that owns the member.
@@ -81,13 +88,4 @@ public sealed class AccessAttribute : Attribute
     ///     Access permissions for types that aren't <see cref="Self"/> and aren't <see cref="Friend"/>.
     /// </summary>
     public AccessPermissions Other { get; set; } = OtherDefaultPermissions;
-
-    /// <summary>
-    ///     Registers <paramref name="friends"/> as types that receive <see cref="Friend"/> permissions.
-    /// </summary>
-    /// <param name="friends">Types that receive <see cref="Friend"/> permissions.</param>
-    public AccessAttribute(params Type[] friends)
-    {
-        Friends = friends;
-    }
 }

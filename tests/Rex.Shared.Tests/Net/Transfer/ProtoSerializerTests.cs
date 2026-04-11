@@ -21,12 +21,12 @@ public sealed class ProtoSerializerTests
             Metadata = new Dictionary<string, string> { ["mode"] = "generic" }
         };
 
-        var bytes = ProtoSerializer.Serialize(original);
-        var copy = ProtoSerializer.Deserialize<SamplePayload>(bytes);
+        byte[] bytes = ProtoSerializer.Serialize(original);
+        SamplePayload copy = ProtoSerializer.Deserialize<SamplePayload>(bytes);
 
         Assert.Equal(original.Name, copy.Name);
         Assert.Equal(original.Revision, copy.Revision);
-        Assert.Single(copy.Chunks);
+        _ = Assert.Single(copy.Chunks);
         Assert.Equal(original.Chunks[0].Label, copy.Chunks[0].Label);
         Assert.Equal("generic", copy.Metadata["mode"]);
     }
@@ -43,10 +43,10 @@ public sealed class ProtoSerializerTests
                 new SampleEntry { Path = "/a/b", Size = 99, Hash = "abc" }
             ]
         };
-        var bytes = ProtoSerializer.Serialize(manifest);
-        var fromMemory = ProtoSerializer.Deserialize<SampleManifest>(bytes.AsMemory());
+        byte[] bytes = ProtoSerializer.Serialize(manifest);
+        SampleManifest fromMemory = ProtoSerializer.Deserialize<SampleManifest>(bytes.AsMemory());
         Assert.Equal(manifest.Version, fromMemory.Version);
-        Assert.Single(fromMemory.Entries);
+        _ = Assert.Single(fromMemory.Entries);
         Assert.Equal("/a/b", fromMemory.Entries[0].Path);
     }
 
@@ -61,7 +61,7 @@ public sealed class ProtoSerializerTests
             Properties = new Dictionary<string, string> { ["feature"] = "off" }
         };
 
-        var copy = ProtoSerializer.Deserialize<SettingsPayload>(ProtoSerializer.Serialize(original));
+        SettingsPayload copy = ProtoSerializer.Deserialize<SettingsPayload>(ProtoSerializer.Serialize(original));
 
         Assert.Equal(original.DisplayName, copy.DisplayName);
         Assert.Equal(original.Interval, copy.Interval);
@@ -87,10 +87,10 @@ public sealed class ProtoSerializerTests
             ]
         };
 
-        var copy = ProtoSerializer.Deserialize<BlobCollection>(ProtoSerializer.Serialize(original));
+        BlobCollection copy = ProtoSerializer.Deserialize<BlobCollection>(ProtoSerializer.Serialize(original));
 
         Assert.Equal(original.Revision, copy.Revision);
-        Assert.Single(copy.Blobs);
+        _ = Assert.Single(copy.Blobs);
         Assert.Equal(3, copy.Blobs[0].EntryId);
         Assert.Equal(owner, copy.Blobs[0].OwnerId);
         Assert.Equal(new byte[] { 1, 2, 3 }, copy.Blobs[0].Data["a"]);
@@ -101,8 +101,8 @@ public sealed class ProtoSerializerTests
     {
         [ProtoMember(1)] public string Name { get; set; } = string.Empty;
         [ProtoMember(2)] public int Revision { get; set; }
-        [ProtoMember(3)] public List<SampleChunk> Chunks { get; set; } = new();
-        [ProtoMember(4)] public Dictionary<string, string> Metadata { get; set; } = new();
+        [ProtoMember(3)] public List<SampleChunk> Chunks { get; set; } = [];
+        [ProtoMember(4)] public Dictionary<string, string> Metadata { get; set; } = [];
     }
 
     [ProtoContract]
@@ -117,7 +117,7 @@ public sealed class ProtoSerializerTests
     private sealed class SampleManifest
     {
         [ProtoMember(1)] public int Version { get; set; }
-        [ProtoMember(2)] public List<SampleEntry> Entries { get; set; } = new();
+        [ProtoMember(2)] public List<SampleEntry> Entries { get; set; } = [];
     }
 
     [ProtoContract]
@@ -133,14 +133,14 @@ public sealed class ProtoSerializerTests
     {
         [ProtoMember(1)] public string DisplayName { get; set; } = string.Empty;
         [ProtoMember(2)] public int Interval { get; set; }
-        [ProtoMember(3)] public Dictionary<string, string> Properties { get; set; } = new();
+        [ProtoMember(3)] public Dictionary<string, string> Properties { get; set; } = [];
     }
 
     [ProtoContract]
     private sealed class BlobCollection
     {
         [ProtoMember(1)] public uint Revision { get; set; }
-        [ProtoMember(2)] public List<BlobEntry> Blobs { get; set; } = new();
+        [ProtoMember(2)] public List<BlobEntry> Blobs { get; set; } = [];
     }
 
     [ProtoContract]
@@ -148,6 +148,6 @@ public sealed class ProtoSerializerTests
     {
         [ProtoMember(1)] public int EntryId { get; set; }
         [ProtoMember(2)] public Guid OwnerId { get; set; }
-        [ProtoMember(3)] public Dictionary<string, byte[]> Data { get; set; } = new();
+        [ProtoMember(3)] public Dictionary<string, byte[]> Data { get; set; } = [];
     }
 }

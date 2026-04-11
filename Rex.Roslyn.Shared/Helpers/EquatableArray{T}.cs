@@ -2,15 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // Taken from https://github.com/CommunityToolkit/dotnet/blob/ecd1711b740f4f88d2bb943ce292ae4fc90df1bc/src/CommunityToolkit.Mvvm.SourceGenerators/Helpers/EquatableArray%7BT%7D.cs
 
+// ReSharper disable once RedundantNullableDirective
+
+#pragma warning disable IDE0240
+#nullable enable
+#pragma warning restore IDE0240
+
 using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace Rex.Roslyn.Shared.Helpers;
-
-// ReSharper disable once RedundantNullableDirective
-#nullable enable
 
 /// <summary>Convenience wrappers for <see cref="EquatableArray{T}"/>.</summary>
 public static class EquatableArray
@@ -32,13 +35,13 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     where T : IEquatable<T>
 {
     /// <summary>Storage laid out like <see cref="ImmutableArray{T}"/>.</summary>
-    private readonly T[]? array;
+    private readonly T[]? _array;
 
     /// <summary>Wraps <paramref name="array"/> without allocating a new buffer.</summary>
     /// <param name="array">Immutable array to alias.</param>
     public EquatableArray(ImmutableArray<T> array)
     {
-        this.array = Unsafe.As<ImmutableArray<T>, T[]?>(ref array);
+        _array = Unsafe.As<ImmutableArray<T>, T[]?>(ref array);
     }
 
     /// <summary>ref readonly access at <paramref name="index"/>.</summary>
@@ -72,14 +75,14 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     /// <inheritdoc/>
     public override int GetHashCode()
     {
-        if (this.array is not T[] array)
+        if (_array is not { } array)
         {
             return 0;
         }
 
         HashCode hashCode = default;
 
-        foreach (var item in array)
+        foreach (T item in array)
         {
             hashCode.Add(item);
         }
@@ -92,7 +95,7 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ImmutableArray<T> AsImmutableArray()
     {
-        return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in array));
+        return Unsafe.As<T[]?, ImmutableArray<T>>(ref Unsafe.AsRef(in _array));
     }
 
     /// <summary>Factory equivalent to the constructor.</summary>

@@ -10,8 +10,8 @@ public sealed class RoslynSharedRegressionTests
     [Fact]
     public void Regression_equatable_array_equal_contents_match_hash()
     {
-        var a = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
-        var b = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
+        EquatableArray<int> a = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
+        EquatableArray<int> b = ImmutableArray.Create(1, 2, 3).AsEquatableArray();
 
         Assert.Equal(a, b);
         Assert.Equal(a.GetHashCode(), b.GetHashCode());

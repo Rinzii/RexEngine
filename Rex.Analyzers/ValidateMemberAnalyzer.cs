@@ -1,9 +1,9 @@
 #nullable enable
+
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -14,7 +14,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
 {
     private const string ValidateMemberType = "Rex.Shared.Analyzers.ValidateMemberAttribute";
 
-    private static readonly DiagnosticDescriptor ValidateMemberDescriptor = new(
+    private static readonly DiagnosticDescriptor s_validateMemberDescriptor = new(
         IdValidateMember,
         "Invalid member name",
         "{0} is not a member of {1}",
@@ -23,7 +23,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
         true,
         "Be sure the type and member name are correct.");
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [ValidateMemberDescriptor];
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_validateMemberDescriptor];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -40,7 +40,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var methodSymbol = node.TargetMethod;
+        IMethodSymbol methodSymbol = node.TargetMethod;
 
         // We need at least one type argument for context
         if (methodSymbol.TypeArguments.Length < 1)
@@ -55,14 +55,14 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
         }
 
         // Check each parameter of the method
-        foreach (var op in node.Arguments)
+        foreach (IArgumentOperation op in node.Arguments)
         {
             if (op.Parameter is null)
             {
                 continue;
             }
 
-            var parameterSymbol = op.Parameter.OriginalDefinition;
+            IParameterSymbol parameterSymbol = op.Parameter.OriginalDefinition;
 
             // Make sure the parameter has the ValidateMember attribute
             if (!AttributeHelper.HasAttribute(parameterSymbol, ValidateMemberType, out _))
@@ -78,8 +78,8 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
             }
 
             // Check each member of the target type to see if it matches our passed in value
-            var found = false;
-            foreach (var member in targetType.GetMembers())
+            bool found = false;
+            foreach (ISymbol member in targetType.GetMembers())
             {
                 if (member.Name == fieldName)
                 {
@@ -92,7 +92,7 @@ public sealed class ValidateMemberAnalyzer : DiagnosticAnalyzer
             if (!found)
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    ValidateMemberDescriptor,
+                    s_validateMemberDescriptor,
                     op.Syntax.GetLocation(),
                     fieldName,
                     targetType.Name

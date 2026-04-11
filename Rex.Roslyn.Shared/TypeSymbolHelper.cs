@@ -1,9 +1,12 @@
+// ReSharper disable once RedundantNullableDirective
+
+#pragma warning disable IDE0240
+#nullable enable
+#pragma warning restore IDE0240
+
 using Microsoft.CodeAnalysis;
 
 namespace Rex.Roslyn.Shared;
-
-// ReSharper disable once RedundantNullableDirective
-#nullable enable
 
 public static class TypeSymbolHelper
 {
@@ -20,7 +23,7 @@ public static class TypeSymbolHelper
 
     public static bool ImplementsInterface(ITypeSymbol type, string interfaceTypeName)
     {
-        foreach (var interfaceType in type.AllInterfaces)
+        foreach (INamedTypeSymbol? interfaceType in type.AllInterfaces)
         {
             if (ShittyTypeMatch(interfaceType, interfaceTypeName))
             {
@@ -33,7 +36,7 @@ public static class TypeSymbolHelper
 
     public static bool ImplementsInterface(ITypeSymbol type, INamedTypeSymbol interfaceType)
     {
-        foreach (var @interface in type.AllInterfaces)
+        foreach (INamedTypeSymbol? @interface in type.AllInterfaces)
         {
             if (SymbolEqualityComparer.Default.Equals(@interface, interfaceType))
             {
@@ -50,10 +53,10 @@ public static class TypeSymbolHelper
     /// </summary>
     public static IEnumerable<ISymbol> GetAllMembersIncludingInherited(INamedTypeSymbol type)
     {
-        var current = type;
+        INamedTypeSymbol? current = type;
         while (current != null)
         {
-            foreach (var member in current.GetMembers())
+            foreach (ISymbol? member in current.GetMembers())
             {
                 yield return member;
             }
@@ -83,7 +86,7 @@ public static class TypeSymbolHelper
     /// </summary>
     public static IEnumerable<ITypeSymbol> GetBaseTypes(ITypeSymbol type)
     {
-        var baseType = type.BaseType;
+        INamedTypeSymbol? baseType = type.BaseType;
         while (baseType != null)
         {
             yield return baseType;
@@ -97,7 +100,7 @@ public static class TypeSymbolHelper
     /// <returns>True if <paramref name="type"/> inherits from <paramref name="other"/>, otherwise false.</returns>
     public static bool Inherits(ITypeSymbol type, ITypeSymbol other)
     {
-        foreach (var baseType in GetBaseTypes(type))
+        foreach (ITypeSymbol? baseType in GetBaseTypes(type))
         {
             if (SymbolEqualityComparer.Default.Equals(baseType, other))
             {

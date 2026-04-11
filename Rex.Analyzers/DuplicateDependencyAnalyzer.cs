@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -18,7 +17,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
 {
     private const string DependencyAttributeType = "Rex.Shared.IoC.DependencyAttribute";
 
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdDuplicateDependency,
         "Duplicate dependency field",
         "Another [Dependency] field of type '{0}' already exists in this type with field '{1}'",
@@ -26,7 +25,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -34,7 +33,8 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(compilationContext =>
         {
-            var dependencyAttributeType = compilationContext.Compilation.GetTypeByMetadataName(DependencyAttributeType);
+            INamedTypeSymbol? dependencyAttributeType =
+                compilationContext.Compilation.GetTypeByMetadataName(DependencyAttributeType);
             if (dependencyAttributeType == null)
             {
                 return;
@@ -88,7 +88,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
 
             lock (_dependencyFields)
             {
-                if (!_dependencyFields.TryGetValue(fieldSymbol.Type, out var dependencyFields))
+                if (!_dependencyFields.TryGetValue(fieldSymbol.Type, out List<IFieldSymbol>? dependencyFields))
                 {
                     dependencyFields = [];
                     _dependencyFields.Add(fieldSymbol.Type, dependencyFields);
@@ -100,7 +100,7 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
 
         private bool IsDependency(ISymbol symbol)
         {
-            foreach (var attributeData in symbol.GetAttributes())
+            foreach (AttributeData attributeData in symbol.GetAttributes())
             {
                 if (SymbolEqualityComparer.Default.Equals(attributeData.AttributeClass, dependencyAttributeType))
                 {
@@ -115,10 +115,10 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
         {
             lock (_dependencyFields)
             {
-                foreach (var pair in _dependencyFields)
+                foreach (KeyValuePair<ITypeSymbol, List<IFieldSymbol>> pair in _dependencyFields)
                 {
-                    var fieldType = pair.Key;
-                    var fields = pair.Value;
+                    ITypeSymbol fieldType = pair.Key;
+                    List<IFieldSymbol> fields = pair.Value;
                     if (fields.Count <= 1)
                     {
                         continue;
@@ -129,13 +129,14 @@ public sealed class DuplicateDependencyAnalyzer : DiagnosticAnalyzer
                     fields.Sort(static (a, b) => string.Compare(a.Name, b.Name, StringComparison.Ordinal));
 
                     // Start at index 1 to skip first field.
-                    var firstField = fields[0];
-                    for (var i = 1; i < fields.Count; i++)
+                    IFieldSymbol firstField = fields[0];
+                    for (int i = 1; i < fields.Count; i++)
                     {
-                        var field = fields[i];
+                        IFieldSymbol field = fields[i];
 
                         context.ReportDiagnostic(
-                            Diagnostic.Create(Rule, field.Locations[0], fieldType.ToDisplayString(), firstField.Name));
+                            Diagnostic.Create(s_rule, field.Locations[0], fieldType.ToDisplayString(),
+                                firstField.Name));
                     }
                 }
             }

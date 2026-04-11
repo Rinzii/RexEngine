@@ -24,7 +24,7 @@ public sealed class MessageGroupExtensionsTests
         byte expectedChannel,
         DeliveryMethod expectedDelivery)
     {
-        var (channel, delivery) = group.GetDeliveryInfo();
+        (byte channel, DeliveryMethod delivery) = group.GetDeliveryInfo();
 
         Assert.Equal(expectedChannel, channel);
         Assert.Equal(expectedDelivery, delivery);

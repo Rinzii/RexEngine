@@ -1,9 +1,8 @@
 using System.Runtime.CompilerServices;
 using bottlenoselabs.C2CS.Runtime;
+using static Tracy.PInvoke;
 
 namespace Rex.Shared.Profiling.Tracy;
-
-using static global::Tracy.PInvoke;
 
 /// <summary>
 /// Configuration settings for the Tracy profiler.
@@ -37,7 +36,7 @@ public static class TracyProfiler
             return;
         }
 
-        var nameStr = name?.Length > 0 ? CString.FromString(name) : null;
+        CString nameStr = name?.Length > 0 ? CString.FromString(name) : null;
         TracyEmitFrameMark(nameStr);
 
         // FIXME (xLuxy): This is required for now while using Tracy - see https://github.com/Rinzii/RexEngine/issues/19
@@ -72,9 +71,9 @@ public static class TracyProfiler
 
         var sourceStr = CString.FromString(filePath);
         var funcStr = CString.FromString(memberName);
-        var zoneNameStr = zoneName != null ? CString.FromString(zoneName) : null;
+        CString zoneNameStr = zoneName != null ? CString.FromString(zoneName) : null;
 
-        var srcLoc = TracyAllocSrclocName(
+        ulong srcLoc = TracyAllocSrclocName(
             (uint)lineNumber,
             sourceStr,
             (ulong)filePath.Length,
@@ -84,7 +83,7 @@ public static class TracyProfiler
             (ulong)(zoneName?.Length ?? 0),
             color);
 
-        var context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
+        TracyCZoneCtx context = TracyEmitZoneBeginAlloc(srcLoc, active ? 1 : 0);
         var profilerScope = new TracyProfilerScope(context);
 
         if (text is not null)

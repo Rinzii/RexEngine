@@ -33,15 +33,15 @@ public sealed class SandboxProtoSerializerTests
             Properties = new Dictionary<string, string> { ["mode"] = "deathmatch" }
         };
 
-        var bytes = ProtoSerializer.Serialize(original);
-        var copy = ProtoSerializer.Deserialize<MapData>(bytes);
+        byte[] bytes = ProtoSerializer.Serialize(original);
+        MapData copy = ProtoSerializer.Deserialize<MapData>(bytes);
 
         Assert.Equal(original.MapName, copy.MapName);
         Assert.Equal(original.Width, copy.Width);
         Assert.Equal(original.Height, copy.Height);
-        Assert.Single(copy.Tiles);
+        _ = Assert.Single(copy.Tiles);
         Assert.Equal(original.Tiles[0].TileId, copy.Tiles[0].TileId);
-        Assert.Single(copy.Entities);
+        _ = Assert.Single(copy.Entities);
         Assert.Equal("crate", copy.Entities[0].EntityType);
         Assert.Equal("deathmatch", copy.Properties["mode"]);
     }
@@ -57,10 +57,10 @@ public sealed class SandboxProtoSerializerTests
                 new AssetEntry { Path = "/a/b", Size = 99, Hash = "abc" }
             ]
         };
-        var bytes = ProtoSerializer.Serialize(manifest);
-        var fromMemory = ProtoSerializer.Deserialize<AssetManifest>(bytes.AsMemory());
+        byte[] bytes = ProtoSerializer.Serialize(manifest);
+        AssetManifest fromMemory = ProtoSerializer.Deserialize<AssetManifest>(bytes.AsMemory());
         Assert.Equal(manifest.Version, fromMemory.Version);
-        Assert.Single(fromMemory.Assets);
+        _ = Assert.Single(fromMemory.Assets);
         Assert.Equal("/a/b", fromMemory.Assets[0].Path);
     }
 
@@ -76,7 +76,7 @@ public sealed class SandboxProtoSerializerTests
             CVars = new Dictionary<string, string> { ["sv_cheats"] = "0" }
         };
 
-        var copy = ProtoSerializer.Deserialize<ServerConfigData>(ProtoSerializer.Serialize(original));
+        ServerConfigData copy = ProtoSerializer.Deserialize<ServerConfigData>(ProtoSerializer.Serialize(original));
 
         Assert.Equal(original.ServerName, copy.ServerName);
         Assert.Equal(original.TickRate, copy.TickRate);
@@ -108,10 +108,10 @@ public sealed class SandboxProtoSerializerTests
             ]
         };
 
-        var copy = ProtoSerializer.Deserialize<EntityBulkState>(ProtoSerializer.Serialize(original));
+        EntityBulkState copy = ProtoSerializer.Deserialize<EntityBulkState>(ProtoSerializer.Serialize(original));
 
         Assert.Equal(original.ServerTick, copy.ServerTick);
-        Assert.Single(copy.Entities);
+        _ = Assert.Single(copy.Entities);
         Assert.Equal(3, copy.Entities[0].EntityId);
         Assert.Equal(owner, copy.Entities[0].OwnerClientId);
         Assert.Equal(new byte[] { 1, 2, 3 }, copy.Entities[0].ComponentData["a"]);

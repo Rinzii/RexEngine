@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
@@ -21,15 +19,8 @@ namespace Rex.Shared.Analyzers;
 [AttributeUsage(AttributeTargets.Class, Inherited = false)]
 public sealed class ObsoleteInheritanceAttribute : Attribute
 {
-    /// <summary>
-    /// An optional message provided alongside this obsoletion.
-    /// </summary>
-    public string? Message { get; }
-
     /// <summary>Uses the default analyzer message.</summary>
-    public ObsoleteInheritanceAttribute()
-    {
-    }
+    public ObsoleteInheritanceAttribute() { }
 
     /// <summary>Sets custom diagnostic text.</summary>
     /// <param name="message">Text shown in the diagnostic.</param>
@@ -37,4 +28,9 @@ public sealed class ObsoleteInheritanceAttribute : Attribute
     {
         Message = message;
     }
+
+    /// <summary>
+    /// An optional message provided alongside this obsoletion.
+    /// </summary>
+    public string? Message { get; }
 }

@@ -24,17 +24,17 @@ public sealed class ClientRuntimeOptions
     /// <summary>
     /// Initial window title when not headless.
     /// </summary>
-    public string WindowTitle { get; set; } = "Rex Client";
+    public string WindowTitle { get; init; } = "Rex Client";
 
     /// <summary>
     /// Initial window width in pixels.
     /// </summary>
-    public int WindowWidth { get; set; } = 1280;
+    public int WindowWidth { get; init; } = 1280;
 
     /// <summary>
     /// Initial window height in pixels.
     /// </summary>
-    public int WindowHeight { get; set; } = 720;
+    public int WindowHeight { get; init; } = 720;
 }
 
 /// <summary>
@@ -43,11 +43,10 @@ public sealed class ClientRuntimeOptions
 /// </summary>
 public sealed partial class ClientRuntimeHost : IDisposable
 {
-    private readonly ClientRuntimeOptions _options;
-    private readonly ILogger _logger;
-    private readonly TickClock _clock;
     private readonly DeltaTimeSmoother _deltaSmoother = new();
-    private bool _isRunning;
+#pragma warning disable IDE0052
+    private readonly ILogger _logger;
+#pragma warning restore IDE0052
     private bool _disposed;
 
     /// <summary>
@@ -57,34 +56,47 @@ public sealed partial class ClientRuntimeHost : IDisposable
     /// <param name="loggerFactory">Factory used to create the host category logger.</param>
     public ClientRuntimeHost(ClientRuntimeOptions options, ILoggerFactory loggerFactory)
     {
-        _options = options;
+        Options = options;
         _logger = loggerFactory.CreateLogger<ClientRuntimeHost>();
-        _clock = new TickClock(options.TickRate);
+        Clock = new TickClock(options.TickRate);
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="logger"></param>
+    public ClientRuntimeHost(ILogger logger)
+    {
+        Options = new ClientRuntimeOptions();
+        _logger = logger;
+        Clock = new TickClock(Options.TickRate);
     }
 
     /// <summary>
     /// Options captured at construction.
     /// </summary>
-    public ClientRuntimeOptions Options => _options;
+    public ClientRuntimeOptions Options { get; }
 
     /// <summary>
     /// Simulation clock advanced by the main loop.
     /// </summary>
-    public TickClock Clock => _clock;
+    public TickClock Clock { get; }
 
     /// <summary>
     /// True while <see cref="Run"/> is inside its main loop.
     /// </summary>
-    public bool IsRunning => _isRunning;
+    public bool IsRunning { get; private set; }
 
     /// <summary>
     /// Multiplier applied to frame deltas inside <see cref="FrameContext"/>.
     /// </summary>
     public float TimeScale { get; set; } = 1f;
+
     /// <summary>
     /// Optional window backend resolved by the startup layer.
     /// </summary>
     public IGameWindow? Window { get; set; }
+
     /// <summary>Invoked once at the start of <see cref="Run"/> before the main loop.</summary>
     public Action? OnInitialize { get; set; }
 
@@ -104,6 +116,20 @@ public sealed partial class ClientRuntimeHost : IDisposable
     public Action? OnShutdown { get; set; }
 
     /// <summary>
+    /// Releases owned runtime resources.
+    /// </summary>
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        Window?.Dispose();
+        _disposed = true;
+    }
+
+    /// <summary>
     /// Enters the main loop until <see cref="Stop"/>, a closed window or a canceled <paramref name="cancellationToken"/> ends it.
     /// </summary>
     /// <param name="cancellationToken">Stops the loop when canceled.</param>
@@ -119,7 +145,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
         }
         finally
         {
-            _isRunning = false;
+            IsRunning = false;
 
             try
             {
@@ -127,7 +153,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
             }
             finally
             {
-                if (!_options.Headless)
+                if (!Options.Headless)
                 {
                     Window?.Close();
                 }
@@ -140,21 +166,7 @@ public sealed partial class ClientRuntimeHost : IDisposable
     /// </summary>
     public void Stop()
     {
-        _isRunning = false;
-    }
-
-    /// <summary>
-    /// Releases owned runtime resources.
-    /// </summary>
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        Window?.Dispose();
-        _disposed = true;
+        IsRunning = false;
     }
 
     /// <summary>
@@ -162,12 +174,12 @@ public sealed partial class ClientRuntimeHost : IDisposable
     /// </summary>
     private void PrepareWindow()
     {
-        if (_options.Headless)
+        if (Options.Headless)
         {
             return;
         }
 
-        var window = Window;
+        IGameWindow? window = Window;
         if (window == null)
         {
             LogWindowBackendUnavailable();
@@ -180,37 +192,37 @@ public sealed partial class ClientRuntimeHost : IDisposable
         }
 
         // A caller can register a backend later without changing the loop contract.
-        window.Open(_options.WindowTitle, _options.WindowWidth, _options.WindowHeight);
+        window.Open(Options.WindowTitle, Options.WindowWidth, Options.WindowHeight);
     }
 
     private void RunMainLoop(CancellationToken cancellationToken)
     {
-        _isRunning = true;
+        IsRunning = true;
         var stopwatch = Stopwatch.StartNew();
-        var previousTime = stopwatch.Elapsed.TotalSeconds;
+        double previousTime = stopwatch.Elapsed.TotalSeconds;
         double accumulator = 0;
         ulong frameIndex = 0;
 
-        while (_isRunning && !cancellationToken.IsCancellationRequested)
+        while (IsRunning && !cancellationToken.IsCancellationRequested)
         {
             // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
-            using var _ = TracyProfiler.BeginZone("MainLoop", true, 0xFF5A00);
+            using TracyProfilerScope? _ = TracyProfiler.BeginZone("MainLoop", true, 0xFF5A00);
 
-            var currentTime = stopwatch.Elapsed.TotalSeconds;
-            var frameTime = currentTime - previousTime;
+            double currentTime = stopwatch.Elapsed.TotalSeconds;
+            double frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
             // Drain wall time into fixed ticks, then mirror the leftover interval as alpha on the tick clock.
-            var fixedSteps = PhasedLoop.RunFixedSteps(_clock, ref accumulator, frameTime, () => OnFixedUpdate?.Invoke());
-            var alpha = (float)(accumulator / _clock.TickInterval);
-            _clock.SetAlpha(alpha);
+            int fixedSteps = PhasedLoop.RunFixedSteps(Clock, ref accumulator, frameTime, () => OnFixedUpdate?.Invoke());
+            float alpha = (float)(accumulator / Clock.TickInterval);
+            Clock.SetAlpha(alpha);
             frameIndex++;
 
             // Variable phase timing with hitch clamping plus a smoothed delta for stable motion or UI.
-            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
-            var smoothDt = _deltaSmoother.Next(unscaledDt);
+            float unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            float smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
-                _clock,
+                Clock,
                 unscaledDt,
                 smoothDt,
                 TimeScale,
@@ -219,9 +231,9 @@ public sealed partial class ClientRuntimeHost : IDisposable
                 frameIndex,
                 stopwatch.Elapsed.TotalSeconds);
 
-            if (!_options.Headless)
+            if (!Options.Headless)
             {
-                var window = Window;
+                IGameWindow? window = Window;
                 window?.PollEvents();
                 if (window is { IsOpen: false })
                 {
@@ -234,14 +246,14 @@ public sealed partial class ClientRuntimeHost : IDisposable
             InvokeUpdateCallback(OnLateUpdate, ctx, LogOnLateUpdateFailed);
             OnRender?.Invoke(ctx);
 
-            if (!_options.Headless)
+            if (!Options.Headless)
             {
                 Window?.SwapBuffers();
             }
             else
             {
                 // Headless clients still need a scheduling point without blocking on vsync.
-                Thread.Yield();
+                bool unused = Thread.Yield();
             }
 
             TracyProfiler.MarkFrameCompleted();
@@ -254,7 +266,8 @@ public sealed partial class ClientRuntimeHost : IDisposable
     }
 
     /// <summary>Invokes a frame callback and logs failures without tearing down the loop.</summary>
-    private static void InvokeUpdateCallback(Action<FrameContext>? callback, FrameContext ctx, Action<Exception> logFailure)
+    private static void InvokeUpdateCallback(Action<FrameContext>? callback, FrameContext ctx,
+        Action<Exception> logFailure)
     {
         if (callback == null)
         {
@@ -288,6 +301,7 @@ public sealed partial class ClientRuntimeHost
     [LoggerMessage(EventId = 3, Level = LogLevel.Debug, Message = "Main loop exiting due to cancellation.")]
     private partial void LogMainLoopCancellationRequested();
 
-    [LoggerMessage(EventId = 4, Level = LogLevel.Information, Message = "No window backend is registered so the client will stay headless.")]
+    [LoggerMessage(EventId = 4, Level = LogLevel.Information,
+        Message = "No window backend is registered so the client will stay headless.")]
     private partial void LogWindowBackendUnavailable();
 }

@@ -8,11 +8,12 @@ public sealed partial class BulkTransferManager
     /// <summary>Maximum payload bytes per chunk message.</summary>
     public const int MaxChunkSize = 4096;
 
-    private readonly ILogger _logger;
-    private readonly Dictionary<Guid, IncomingTransfer> _incomingTransfers = new();
+    private readonly Dictionary<Guid, IncomingTransfer> _incomingTransfers = [];
 
-    /// <summary>Raised after an inbound transfer reassembles successfully.</summary>
-    public event Action<Guid, byte, byte[]>? TransferCompleted;
+    // TODO: Actually use this.
+#pragma warning disable IDE0052
+    private readonly ILogger _logger;
+#pragma warning restore IDE0052
 
     /// <summary>Scopes logs from <paramref name="loggerFactory"/> to this manager.</summary>
     public BulkTransferManager(ILoggerFactory loggerFactory)
@@ -20,20 +21,30 @@ public sealed partial class BulkTransferManager
         _logger = loggerFactory.CreateLogger<BulkTransferManager>();
     }
 
+    /// <summary>Creates a bulk transfer manager with an existing logger.</summary>
+    /// <param name="logger">Logger instance to use.</param>
+    public BulkTransferManager(ILogger logger)
+    {
+        _logger = logger;
+    }
+
+    /// <summary>Raised after an inbound transfer reassembles successfully.</summary>
+    public event Action<Guid, byte, byte[]>? TransferCompleted;
+
     /// <summary>Sends a bulk payload to one client.</summary>
     public void SendBulkData<T>(IServerNetChannel channel, byte dataType, T data)
     {
-        var raw = ProtoSerializer.Serialize(data);
-        var originalSize = raw.Length;
-        var (payload, isCompressed) = NetCompression.Compress(raw);
+        byte[] raw = ProtoSerializer.Serialize(data);
+        int originalSize = raw.Length;
+        (byte[]? payload, bool isCompressed) = NetCompression.Compress(raw);
         var transferId = Guid.CreateVersion7();
 
-        var chunks = ChunkData(payload);
+        List<byte[]> chunks = ChunkData(payload);
         var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
             chunks.Count);
         channel.Send(init);
 
-        for (var i = 0; i < chunks.Count; i++)
+        for (int i = 0; i < chunks.Count; i++)
         {
             var chunk = new BulkTransferChunkMessage(transferId, i, chunks[i]);
             channel.Send(chunk);
@@ -45,17 +56,17 @@ public sealed partial class BulkTransferManager
     /// <summary>Sends a bulk payload to the server.</summary>
     public void SendBulkData<T>(IClientNetChannel channel, byte dataType, T data)
     {
-        var raw = ProtoSerializer.Serialize(data);
-        var originalSize = raw.Length;
-        var (payload, isCompressed) = NetCompression.Compress(raw);
+        byte[] raw = ProtoSerializer.Serialize(data);
+        int originalSize = raw.Length;
+        (byte[]? payload, bool isCompressed) = NetCompression.Compress(raw);
         var transferId = Guid.CreateVersion7();
 
-        var chunks = ChunkData(payload);
+        List<byte[]> chunks = ChunkData(payload);
         var init = new BulkTransferInitMessage(transferId, dataType, payload.Length, originalSize, isCompressed,
             chunks.Count);
         channel.Send(init);
 
-        for (var i = 0; i < chunks.Count; i++)
+        for (int i = 0; i < chunks.Count; i++)
         {
             var chunk = new BulkTransferChunkMessage(transferId, i, chunks[i]);
             channel.Send(chunk);
@@ -85,7 +96,7 @@ public sealed partial class BulkTransferManager
     /// <summary>Records one chunk and completes the transfer when all chunks arrive.</summary>
     public void HandleTransferChunk(BulkTransferChunkMessage chunk)
     {
-        if (!_incomingTransfers.TryGetValue(chunk.TransferId, out var transfer))
+        if (!_incomingTransfers.TryGetValue(chunk.TransferId, out IncomingTransfer? transfer))
         {
             LogUnknownTransferChunk(chunk.TransferId);
             return;
@@ -97,12 +108,12 @@ public sealed partial class BulkTransferManager
 
         if (transfer.ChunksReceived >= transfer.ChunkCount)
         {
-            var assembled = Reassemble(transfer);
-            var finalData = transfer.IsCompressed
+            byte[] assembled = Reassemble(transfer);
+            byte[] finalData = transfer.IsCompressed
                 ? NetCompression.Decompress(assembled, transfer.OriginalSize)
                 : assembled;
 
-            _incomingTransfers.Remove(chunk.TransferId);
+            _ = _incomingTransfers.Remove(chunk.TransferId);
 
             LogBulkTransferComplete(transfer.TransferId, transfer.DataType, finalData.Length);
 
@@ -113,13 +124,13 @@ public sealed partial class BulkTransferManager
     private static List<byte[]> ChunkData(byte[] data)
     {
         var chunks = new List<byte[]>();
-        var offset = 0;
+        int offset = 0;
 
         while (offset < data.Length)
         {
-            var remaining = data.Length - offset;
-            var chunkSize = Math.Min(remaining, MaxChunkSize);
-            var chunk = new byte[chunkSize];
+            int remaining = data.Length - offset;
+            int chunkSize = Math.Min(remaining, MaxChunkSize);
+            byte[] chunk = new byte[chunkSize];
             Buffer.BlockCopy(data, offset, chunk, 0, chunkSize);
             chunks.Add(chunk);
             offset += chunkSize;
@@ -130,16 +141,16 @@ public sealed partial class BulkTransferManager
 
     private static byte[] Reassemble(IncomingTransfer transfer)
     {
-        var totalSize = 0;
-        foreach (var chunk in transfer.ReceivedChunks)
+        int totalSize = 0;
+        foreach (byte[] chunk in transfer.ReceivedChunks)
         {
             totalSize += chunk.Length;
         }
 
-        var result = new byte[totalSize];
-        var offset = 0;
+        byte[] result = new byte[totalSize];
+        int offset = 0;
 
-        foreach (var chunk in transfer.ReceivedChunks)
+        foreach (byte[] chunk in transfer.ReceivedChunks)
         {
             Buffer.BlockCopy(chunk, 0, result, offset, chunk.Length);
             offset += chunk.Length;
@@ -150,13 +161,13 @@ public sealed partial class BulkTransferManager
 
     private sealed class IncomingTransfer
     {
-        public Guid TransferId;
-        public byte DataType;
-        public int TotalSize;
-        public int OriginalSize;
-        public bool IsCompressed;
         public int ChunkCount;
-        public byte[][] ReceivedChunks = Array.Empty<byte[]>();
         public int ChunksReceived;
+        public byte DataType;
+        public bool IsCompressed;
+        public int OriginalSize;
+        public byte[][] ReceivedChunks = [];
+        public int TotalSize;
+        public Guid TransferId;
     }
 }

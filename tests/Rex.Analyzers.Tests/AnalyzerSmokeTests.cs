@@ -1,5 +1,3 @@
-using Rex.Analyzers;
-
 namespace Rex.Analyzers.Tests;
 
 // Minimal checks that analyzers load.

@@ -5,17 +5,17 @@ namespace Rex.Shared.Net.Messages;
 /// <summary>Registers engine wire payloads for disconnect, snapshot ack and bulk transfer. Games register their own ids elsewhere.</summary>
 public static class CoreNetMessages
 {
-    private static bool _registered;
+    private static bool s_registered;
 
     /// <summary>Wires disconnect, state ack and bulk transfer deserializers. Later calls return immediately.</summary>
     public static void RegisterAll()
     {
-        if (_registered)
+        if (s_registered)
         {
             return;
         }
 
-        _registered = true;
+        s_registered = true;
 
         NetMessageRegistry.Register(DisconnectMessage.Id, DisconnectMessage.Deserialize);
         NetMessageRegistry.Register(StateAckMessage.Id, StateAckMessage.Deserialize);

@@ -9,8 +9,8 @@ public static class NetGuidExtensions
     public static void PutGuid(this NetDataWriter writer, Guid value)
     {
         Span<byte> bytes = stackalloc byte[16];
-        value.TryWriteBytes(bytes);
-        for (var i = 0; i < 16; i++)
+        _ = value.TryWriteBytes(bytes);
+        for (int i = 0; i < 16; i++)
         {
             writer.Put(bytes[i]);
         }
@@ -20,7 +20,7 @@ public static class NetGuidExtensions
     public static Guid ReadGuid(this NetDataReader reader)
     {
         Span<byte> bytes = stackalloc byte[16];
-        for (var i = 0; i < 16; i++)
+        for (int i = 0; i < 16; i++)
         {
             bytes[i] = reader.GetByte();
         }

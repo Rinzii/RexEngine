@@ -9,7 +9,7 @@ public static class AngleMath
     /// <summary>Signed shortest difference from <paramref name="fromDegrees"/> to <paramref name="toDegrees"/>, in (-180, 180].</summary>
     public static float DeltaAngleDegrees(float fromDegrees, float toDegrees)
     {
-        var delta = RepeatDegrees(toDegrees - fromDegrees);
+        float delta = RepeatDegrees(toDegrees - fromDegrees);
         return delta > 180f ? delta - 360f : delta;
     }
 

@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Net;
 
@@ -11,16 +10,17 @@ public sealed class ConnectRequestMessage : INetMessage
 {
     public const ushort Id = 1;
 
-    public ushort MessageId => Id;
-    public MessageGroup Group => MessageGroup.Core;
-    public ushort ProtocolVersion { get; }
-    public string PlayerName { get; }
-
     public ConnectRequestMessage(ushort protocolVersion, string playerName)
     {
         ProtocolVersion = protocolVersion;
         PlayerName = playerName;
     }
+
+    public ushort ProtocolVersion { get; }
+    public string PlayerName { get; }
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.Core;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -31,8 +31,8 @@ public sealed class ConnectRequestMessage : INetMessage
 
     public static ConnectRequestMessage Deserialize(NetDataReader reader)
     {
-        var protocolVersion = reader.GetUShort();
-        var playerName = reader.GetString();
+        ushort protocolVersion = reader.GetUShort();
+        string playerName = reader.GetString();
         return new ConnectRequestMessage(protocolVersion, playerName);
     }
 }
@@ -41,20 +41,6 @@ public sealed class ConnectRequestMessage : INetMessage
 public sealed class ConnectResponseMessage : INetMessage
 {
     public const ushort Id = 2;
-
-    public ushort MessageId => Id;
-    /// <summary>
-    /// Writes this message to the network writer.
-    /// </summary>
-    public MessageGroup Group => MessageGroup.Core;
-    public bool Accepted { get; }
-    public Guid ClientId { get; }
-    public int TickRate { get; }
-    /// <summary>
-    /// Reads this message from the network reader.
-    /// </summary>
-    public int LocalPlayerEntityId { get; }
-    public string? RejectReason { get; }
 
     public ConnectResponseMessage(bool accepted, Guid clientId, int tickRate, int localPlayerEntityId = 0,
         string? rejectReason = null)
@@ -65,6 +51,24 @@ public sealed class ConnectResponseMessage : INetMessage
         LocalPlayerEntityId = localPlayerEntityId;
         RejectReason = rejectReason;
     }
+
+    public bool Accepted { get; }
+    public Guid ClientId { get; }
+    public int TickRate { get; }
+
+    /// <summary>
+    /// Reads this message from the network reader.
+    /// </summary>
+    public int LocalPlayerEntityId { get; }
+
+    public string? RejectReason { get; }
+
+    public ushort MessageId => Id;
+
+    /// <summary>
+    /// Writes this message to the network writer.
+    /// </summary>
+    public MessageGroup Group => MessageGroup.Core;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -81,11 +85,11 @@ public sealed class ConnectResponseMessage : INetMessage
     /// </summary>
     public static ConnectResponseMessage Deserialize(NetDataReader reader)
     {
-        var accepted = reader.GetBool();
-        var clientId = reader.ReadGuid();
-        var tickRate = reader.GetInt();
-        var localPlayerEntityId = reader.GetInt();
-        var rejectReason = reader.GetString();
+        bool accepted = reader.GetBool();
+        Guid clientId = reader.ReadGuid();
+        int tickRate = reader.GetInt();
+        int localPlayerEntityId = reader.GetInt();
+        string rejectReason = reader.GetString();
         return new ConnectResponseMessage(accepted, clientId, tickRate, localPlayerEntityId,
             string.IsNullOrEmpty(rejectReason) ? null : rejectReason);
     }

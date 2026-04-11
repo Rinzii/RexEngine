@@ -1,11 +1,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -16,7 +14,7 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
     internal const string Attribute = "Rex.Shared.Analyzers.VirtualAttribute";
 
     [SuppressMessage("ReSharper", "RS2008")]
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdExplicitVirtual,
         "Class must be explicitly marked as [Virtual], abstract, static or sealed",
         "Class must be explicitly marked as [Virtual], abstract, static or sealed",
@@ -25,7 +23,7 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
         true,
         "Class must be explicitly marked as [Virtual], abstract, static or sealed.");
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -42,9 +40,9 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeNode(SyntaxNodeAnalysisContext context)
     {
-        var attrSymbol = context.Compilation.GetTypeByMetadataName(Attribute);
+        INamedTypeSymbol attrSymbol = context.Compilation.GetTypeByMetadataName(Attribute);
         var classDecl = (ClassDeclarationSyntax)context.Node;
-        var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
+        INamedTypeSymbol classSymbol = context.SemanticModel.GetDeclaredSymbol(classDecl);
         if (classSymbol == null)
         {
             return;
@@ -60,7 +58,7 @@ public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var diag = Diagnostic.Create(Rule, classDecl.Keyword.GetLocation());
+        var diag = Diagnostic.Create(s_rule, classDecl.Keyword.GetLocation());
         context.ReportDiagnostic(diag);
     }
 }

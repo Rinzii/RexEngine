@@ -29,7 +29,7 @@ public sealed class GameStartDefinitionValidatorTests
             new GameWindowDefinition("Test Window", 1280, 720),
             new ListenServerDefinition("TEST_SERVER_DLL", "Test.Server.dll", "TEST_READY"));
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => GameStartDefinitionValidator.Validate(definition));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => GameStartDefinitionValidator.Validate(definition));
     }
 
     [Fact]
@@ -43,6 +43,6 @@ public sealed class GameStartDefinitionValidatorTests
             60,
             0);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => GameStartDefinitionValidator.Validate(definition));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => GameStartDefinitionValidator.Validate(definition));
     }
 }

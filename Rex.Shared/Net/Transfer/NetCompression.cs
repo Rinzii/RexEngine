@@ -28,7 +28,7 @@ public static class NetCompression
             brotli.Write(data);
         }
 
-        var compressed = output.ToArray();
+        byte[] compressed = output.ToArray();
 
         // Brotli adds overhead. Keep original if we did not shrink.
         if (compressed.Length >= data.Length)
@@ -46,12 +46,12 @@ public static class NetCompression
     {
         using var input = new MemoryStream(compressedData);
         using var brotli = new BrotliStream(input, CompressionMode.Decompress);
-        var result = new byte[originalLength];
-        var totalRead = 0;
+        byte[] result = new byte[originalLength];
+        int totalRead = 0;
         // BrotliStream may not fill the buffer in one read.
         while (totalRead < originalLength)
         {
-            var read = brotli.Read(result, totalRead, originalLength - totalRead);
+            int read = brotli.Read(result, totalRead, originalLength - totalRead);
             if (read == 0)
             {
                 break;

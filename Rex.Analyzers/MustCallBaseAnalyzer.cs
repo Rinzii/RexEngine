@@ -3,7 +3,6 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -18,7 +17,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
 {
     private const string Attribute = "Rex.Shared.Analyzers.MustCallBaseAttribute";
 
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdMustCallBase,
         "No base call in overriden function",
         "Overriders of this function must always call the base function",
@@ -26,7 +25,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -42,7 +41,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var attrSymbol = context.Compilation.GetTypeByMetadataName(Attribute);
+        INamedTypeSymbol? attrSymbol = context.Compilation.GetTypeByMetadataName(Attribute);
         if (attrSymbol == null)
         {
             return;
@@ -64,7 +63,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var diag = Diagnostic.Create(Rule, syntax.Identifier.GetLocation());
+        var diag = Diagnostic.Create(s_rule, syntax.Identifier.GetLocation());
         context.ReportDiagnostic(diag);
     }
 
@@ -72,7 +71,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
         IMethodSymbol method,
         INamedTypeSymbol attributeSymbol)
     {
-        var depth = 0;
+        int depth = 0;
         while (method.OverriddenMethod != null)
         {
             depth += 1;
@@ -82,7 +81,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            var onlyOverrides = attribute.ConstructorArguments is [{ Kind: TypedConstantKind.Primitive, Value: true }];
+            bool onlyOverrides = attribute.ConstructorArguments is [{ Kind: TypedConstantKind.Primitive, Value: true }];
             return (depth, onlyOverrides);
         }
 
@@ -109,7 +108,7 @@ public sealed class MustCallBaseAnalyzer : DiagnosticAnalyzer
 
         public override bool DefaultVisit(SyntaxNode node)
         {
-            foreach (var childNode in node.ChildNodes())
+            foreach (SyntaxNode childNode in node.ChildNodes())
             {
                 if (childNode is not CSharpSyntaxNode cSharpSyntax)
                 {

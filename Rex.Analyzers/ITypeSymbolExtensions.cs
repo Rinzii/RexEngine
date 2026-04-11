@@ -6,7 +6,7 @@ public static class ITypeSymbolExtensions
 {
     public static IEnumerable<ITypeSymbol> GetBaseTypesAndThis(this ITypeSymbol type)
     {
-        var current = type;
+        ITypeSymbol current = type;
         while (current != null)
         {
             yield return current;

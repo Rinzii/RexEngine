@@ -1,7 +1,7 @@
 using LiteNetLib.Utils;
+using Rex.Sandbox.Shared.Net.Messages;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
-using Rex.Sandbox.Shared.Net.Messages;
 
 namespace Rex.Sandbox.Shared.Tests.Net;
 
@@ -23,7 +23,7 @@ public sealed class SandboxMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var typed = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
+        ConnectRequestMessage typed = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
         Assert.Equal(original.ProtocolVersion, typed.ProtocolVersion);
         Assert.Equal(original.PlayerName, typed.PlayerName);
     }
@@ -40,7 +40,7 @@ public sealed class SandboxMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
+        ConnectRequestMessage decoded = Assert.IsType<ConnectRequestMessage>(NetMessageRegistry.Deserialize(reader));
         Assert.Equal(7, decoded.ProtocolVersion);
         Assert.Equal("dup", decoded.PlayerName);
     }
@@ -54,7 +54,7 @@ public sealed class SandboxMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
+        DisconnectMessage decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
         Assert.Equal("bye", decoded.Reason);
     }
 }

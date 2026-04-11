@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -29,7 +28,7 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.RegisterCompilationStartAction(static ctx =>
         {
-            var prototypeInterface = ctx.Compilation.GetTypeByMetadataName(PrototypeInterfaceType);
+            INamedTypeSymbol prototypeInterface = ctx.Compilation.GetTypeByMetadataName(PrototypeInterfaceType);
             if (prototypeInterface == null)
             {
                 return;

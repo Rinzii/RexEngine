@@ -1,8 +1,7 @@
 using Rex.Client.Graphics;
-using Silk.NET.Windowing;
-using Silk.NET.OpenGL;
 using Silk.NET.Input;
 using Silk.NET.Maths;
+using Silk.NET.Windowing;
 
 namespace Rex.Client;
 
@@ -23,34 +22,6 @@ public sealed class WindowCreator : IGameWindow
     /// <inheritdoc />
     public bool IsOpen { get; private set; }
 
-    // TODO(IanP): Wire Silk resize and input events once the client loop consumes them.
-#pragma warning disable CS0067
-    // ReSharper disable EventNeverSubscribedTo.Local
-    // ReSharper disable EventNeverSubscribedTo.Global
-    /// <summary>Forwarded host resize in pixels.</summary>
-    public event Action<Vector2D<int>>? OnResize;
-
-    /// <summary>Forwarded framebuffer resize in pixels.</summary>
-    public event Action<Vector2D<int>>? OnFramebufferResize;
-
-    /// <summary>Raised when the host window is closing.</summary>
-    public event Action? OnClosing;
-
-    /// <summary>Raised when keyboard focus changes.</summary>
-    public event Action<bool>? OnFocusChanged;
-
-    /// <summary>Raised once after the native window loads.</summary>
-    public event Action? OnLoad;
-
-    /// <summary>Raised each host update tick with delta seconds.</summary>
-    public event Action<double>? OnUpdate;
-
-    /// <summary>Raised each host render tick with delta seconds.</summary>
-    public event Action<double>? OnRender;
-    // ReSharper restore EventNeverSubscribedTo.Global
-    // ReSharper restore EventNeverSubscribedTo.Local
-#pragma warning restore CS0067
-
     /// <inheritdoc />
     public void Dispose()
     {
@@ -64,14 +35,14 @@ public sealed class WindowCreator : IGameWindow
         Width = width;
         Height = height;
 
-        var options = WindowOptions.Default with
+        WindowOptions options = WindowOptions.Default with
         {
             Size = new Vector2D<int>(Width, Height),
             // ReSharper disable once ArrangeThisQualifier
-            Title = this.Title
+            Title = Title
         };
 
-        var window = Window.Create(options);
+        IWindow window = Window.Create(options);
         WindowHandle = window;
         WindowHandle.Load += HandleLoad;
         WindowHandle.Update += HandleUpdate;
@@ -101,23 +72,18 @@ public sealed class WindowCreator : IGameWindow
 
     private void HandleLoad()
     {
-        var window = WindowHandle ?? throw new InvalidOperationException("Load fired before the window was assigned.");
-        var input = window.CreateInput();
-        foreach (var t in input.Keyboards)
+        IWindow window = WindowHandle
+                         ?? throw new InvalidOperationException("Load fired before the window was assigned.");
+        IInputContext input = window.CreateInput();
+        foreach (IKeyboard t in input.Keyboards)
         {
             t.KeyDown += KeyDown;
         }
     }
 
-    private void HandleUpdate(double deltaTime)
-    {
+    private void HandleUpdate(double deltaTime) { }
 
-    }
-
-    private void HandleRender(double deltaTime)
-    {
-
-    }
+    private void HandleRender(double deltaTime) { }
 
     private void KeyDown(IKeyboard keyboard, Key key, int keyCode)
     {
@@ -126,4 +92,32 @@ public sealed class WindowCreator : IGameWindow
             Close();
         }
     }
+
+    // TODO(IanP): Wire Silk resize and input events once the client loop consumes them.
+#pragma warning disable CS0067
+    // ReSharper disable EventNeverSubscribedTo.Local
+    // ReSharper disable EventNeverSubscribedTo.Global
+    /// <summary>Forwarded host resize in pixels.</summary>
+    public event Action<Vector2D<int>>? OnResize;
+
+    /// <summary>Forwarded framebuffer resize in pixels.</summary>
+    public event Action<Vector2D<int>>? OnFramebufferResize;
+
+    /// <summary>Raised when the host window is closing.</summary>
+    public event Action? OnClosing;
+
+    /// <summary>Raised when keyboard focus changes.</summary>
+    public event Action<bool>? OnFocusChanged;
+
+    /// <summary>Raised once after the native window loads.</summary>
+    public event Action? OnLoad;
+
+    /// <summary>Raised each host update tick with delta seconds.</summary>
+    public event Action<double>? OnUpdate;
+
+    /// <summary>Raised each host render tick with delta seconds.</summary>
+    public event Action<double>? OnRender;
+    // ReSharper restore EventNeverSubscribedTo.Global
+    // ReSharper restore EventNeverSubscribedTo.Local
+#pragma warning restore CS0067
 }

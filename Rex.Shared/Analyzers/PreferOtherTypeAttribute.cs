@@ -1,5 +1,3 @@
-using System;
-
 #if REX_ANALYZERS_IMPL
 namespace Rex.Shared.Analyzers.Implementation;
 #else

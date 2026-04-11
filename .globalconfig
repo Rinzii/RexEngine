@@ -2,9 +2,23 @@ is_global = true
 
 # C# analyzer severities (no glob sections allowed here).
 # Do not list this file in GlobalAnalyzerConfigFiles in csproj. The SDK discovers it when walking up from each project.
-dotnet_diagnostic.IDE0011.severity = warning
-dotnet_diagnostic.IDE0290.severity = none
-dotnet_diagnostic.CA1829.severity = warning
-dotnet_diagnostic.CA1860.severity = warning
+
 dotnet_diagnostic.CA1827.severity = none
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1836.severity = warning
+dotnet_diagnostic.CA1855.severity = warning
+dotnet_diagnostic.CA1856.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+dotnet_diagnostic.CA1869.severity = suggestion
+dotnet_diagnostic.CA1873.severity = suggestion
+dotnet_diagnostic.CA1874.severity = suggestion
+dotnet_diagnostic.CA1875.severity = suggestion
+dotnet_diagnostic.CA1877.severity = suggestion
+
 dotnet_diagnostic.RS0030.severity = warning
+
+dotnet_diagnostic.IDE0011.severity = warning
+dotnet_diagnostic.IDE0022.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0305.severity = none

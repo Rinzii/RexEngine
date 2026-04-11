@@ -10,7 +10,7 @@ public sealed class DeltaTimeSmootherTests
     public void First_valid_sample_seeds_smooth_value()
     {
         var s = new DeltaTimeSmoother();
-        var v = s.Next(1f / 60f);
+        float v = s.Next(1f / 60f);
         Assert.InRange(v, 0.015f, 0.018f);
     }
 
@@ -24,7 +24,7 @@ public sealed class DeltaTimeSmootherTests
         Assert.InRange(s.Next(float.PositiveInfinity), 0.015f, 0.018f);
 
         s.Reset();
-        var fallback = s.Next(0f);
+        float fallback = s.Next(0f);
         Assert.InRange(fallback, 0.015f, 0.018f);
     }
 
@@ -33,9 +33,9 @@ public sealed class DeltaTimeSmootherTests
     public void Reset_allows_fresh_seed()
     {
         var s = new DeltaTimeSmoother();
-        s.Next(0.1f);
+        _ = s.Next(0.1f);
         s.Reset();
-        var v = s.Next(1f / 30f);
+        float v = s.Next(1f / 30f);
         Assert.InRange(v, 0.03f, 0.04f);
     }
 }

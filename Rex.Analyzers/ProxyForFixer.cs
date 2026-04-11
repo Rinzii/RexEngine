@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
+using Microsoft.CodeAnalysis.Text;
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -26,7 +26,7 @@ public sealed class ProxyForFixer : CodeFixProvider
 
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        foreach (var diagnostic in context.Diagnostics)
+        foreach (Diagnostic diagnostic in context.Diagnostics)
         {
             switch (diagnostic.Id)
             {
@@ -34,6 +34,8 @@ public sealed class ProxyForFixer : CodeFixProvider
                     return RegisterSubstituteProxy(context, diagnostic);
                 case IdProxyForRedundantMethodName:
                     return RegisterRemoveRedundantMethodName(context, diagnostic);
+                default:
+                    break;
             }
         }
 
@@ -42,9 +44,10 @@ public sealed class ProxyForFixer : CodeFixProvider
 
     private async Task RegisterSubstituteProxy(CodeFixContext context, Diagnostic diagnostic)
     {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
-        var span = diagnostic.Location.SourceSpan;
-        var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<InvocationExpressionSyntax>().First();
+        SyntaxNode? root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
+        TextSpan span = diagnostic.Location.SourceSpan;
+        InvocationExpressionSyntax? token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf()
+            .OfType<InvocationExpressionSyntax>().First();
 
         if (token == null)
         {
@@ -67,7 +70,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         CancellationToken cancellation)
     {
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
-        var model = await document.GetSemanticModelAsync(cancellation);
+        SemanticModel? model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
         {
@@ -80,7 +83,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         }
 
         // Create a token with the proxy method name
-        var identifierToken = SyntaxFactory.Identifier(methodName);
+        SyntaxToken identifierToken = SyntaxFactory.Identifier(methodName);
         // Create a replacement expression using the proxy method
         ExpressionSyntax newExpression = expression.Name switch
         {
@@ -91,7 +94,7 @@ public sealed class ProxyForFixer : CodeFixProvider
             _ => throw new InvalidOperationException()
         };
         // Create a replacement invocation expression
-        var replacement = token.WithExpression(newExpression).WithTriviaFrom(token);
+        InvocationExpressionSyntax replacement = token.WithExpression(newExpression).WithTriviaFrom(token);
         // Replace the original expression with the new one
         root = root!.ReplaceNode(token, replacement);
 
@@ -100,9 +103,10 @@ public sealed class ProxyForFixer : CodeFixProvider
 
     private async Task RegisterRemoveRedundantMethodName(CodeFixContext context, Diagnostic diagnostic)
     {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
-        var span = diagnostic.Location.SourceSpan;
-        var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<AttributeArgumentSyntax>().First();
+        SyntaxNode? root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
+        TextSpan span = diagnostic.Location.SourceSpan;
+        AttributeArgumentSyntax? token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf()
+            .OfType<AttributeArgumentSyntax>().First();
 
         if (token == null)
         {
@@ -120,7 +124,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         CancellationToken cancellation)
     {
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
-        var model = await document.GetSemanticModelAsync(cancellation);
+        SemanticModel? model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
         {
@@ -134,7 +138,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         }
 
         // Create a new list with the argument removed
-        var newListSyntax = listSyntax.WithArguments(listSyntax.Arguments.Remove(token));
+        AttributeArgumentListSyntax newListSyntax = listSyntax.WithArguments(listSyntax.Arguments.Remove(token));
 
         // Replace the original argument list with the new one
         root = root!.ReplaceNode(listSyntax, newListSyntax);

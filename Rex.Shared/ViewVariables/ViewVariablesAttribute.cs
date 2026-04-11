@@ -1,4 +1,3 @@
-using System;
 using Rex.Shared.Serialization;
 
 namespace Rex.Shared.ViewVariables;
@@ -11,9 +10,7 @@ public sealed class ViewVariablesAttribute : Attribute
     public readonly VVAccess Access = VVAccess.ReadOnly;
 
     /// <summary>Uses <see cref="VVAccess.ReadOnly"/>.</summary>
-    public ViewVariablesAttribute()
-    {
-    }
+    public ViewVariablesAttribute() { }
 
     /// <param name="access">Whether remote tools may write the value.</param>
     public ViewVariablesAttribute(VVAccess access)

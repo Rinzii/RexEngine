@@ -20,13 +20,13 @@ public sealed class DirtyTracker
     public DirtyTracker(int bufferSize = 256)
     {
         // One set per ring slot. Slots are rebound in PrepareSlot when the tick advances.
-        _dirtyBuffer = new TickRingBuffer<HashSet<int>>(bufferSize, static () => new HashSet<int>());
+        _dirtyBuffer = new TickRingBuffer<HashSet<int>>(bufferSize, static () => []);
     }
 
     /// <summary>Adds <paramref name="entityId"/> to the dirty set for <paramref name="tick"/>.</summary>
     public void MarkDirty(int entityId, uint tick)
     {
-        PrepareSlot(tick).Value.Add(entityId);
+        _ = PrepareSlot(tick).Value.Add(entityId);
     }
 
     /// <summary>Clears the set for <paramref name="tick"/> at tick boundary before new writes.</summary>
@@ -51,7 +51,7 @@ public sealed class DirtyTracker
             return [];
         }
 
-        var range = toTick - fromTick;
+        uint range = toTick - fromTick;
         if (range >= (uint)_dirtyBuffer.Capacity)
         {
             return null;
@@ -59,17 +59,17 @@ public sealed class DirtyTracker
 
         var result = new HashSet<int>();
         // Only trust a slot when Entry.Tick matches. Otherwise, the bucket was recycled for another tick.
-        for (var tick = fromTick + 1; tick <= toTick; tick++)
+        for (uint tick = fromTick + 1; tick <= toTick; tick++)
         {
-            var slot = _dirtyBuffer.GetSlot(tick);
+            TickRingBuffer<HashSet<int>>.Entry slot = _dirtyBuffer.GetSlot(tick);
             if (!slot.IsAssigned || slot.Tick != tick)
             {
                 continue;
             }
 
-            foreach (var entityId in slot.Value)
+            foreach (int entityId in slot.Value)
             {
-                result.Add(entityId);
+                _ = result.Add(entityId);
             }
         }
 
@@ -81,7 +81,7 @@ public sealed class DirtyTracker
     /// </summary>
     private TickRingBuffer<HashSet<int>>.Entry PrepareSlot(uint tick)
     {
-        var slot = _dirtyBuffer.GetSlot(tick);
+        TickRingBuffer<HashSet<int>>.Entry slot = _dirtyBuffer.GetSlot(tick);
         if (!slot.IsAssigned || slot.Tick != tick)
         {
             slot.Tick = tick;

@@ -19,12 +19,12 @@ public static class RuntimeAssemblyLocator
         string clientProjectName,
         string serverProjectName)
     {
-        var configuredPath = Environment.GetEnvironmentVariable(environmentVariable)?.Trim();
+        string? configuredPath = Environment.GetEnvironmentVariable(environmentVariable)?.Trim();
         if (!string.IsNullOrEmpty(configuredPath))
         {
             try
             {
-                var fullConfigured = Path.GetFullPath(configuredPath);
+                string fullConfigured = Path.GetFullPath(configuredPath);
                 return File.Exists(fullConfigured) ? fullConfigured : null;
             }
             catch (Exception)
@@ -33,13 +33,13 @@ public static class RuntimeAssemblyLocator
             }
         }
 
-        var baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        string baseDir = AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         if (string.IsNullOrEmpty(baseDir))
         {
             return null;
         }
 
-        var siblingPath = Path.Combine(baseDir, serverAssemblyFileName);
+        string siblingPath = Path.Combine(baseDir, serverAssemblyFileName);
         if (File.Exists(siblingPath))
         {
             try
@@ -62,9 +62,9 @@ public static class RuntimeAssemblyLocator
             return null;
         }
 
-        var projectDir = outputDir.Parent;
-        var binDir = projectDir?.Parent;
-        var buildRoot = binDir?.Parent;
+        DirectoryInfo? projectDir = outputDir.Parent;
+        DirectoryInfo? binDir = projectDir?.Parent;
+        DirectoryInfo? buildRoot = binDir?.Parent;
         if (projectDir != null && binDir != null && buildRoot != null
             && string.Equals(binDir.Name, "bin", StringComparison.OrdinalIgnoreCase)
             && string.Equals(buildRoot.Name, "build", StringComparison.OrdinalIgnoreCase)

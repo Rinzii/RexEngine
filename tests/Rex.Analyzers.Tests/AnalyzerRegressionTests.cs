@@ -1,5 +1,3 @@
-using Rex.Analyzers;
-
 namespace Rex.Analyzers.Tests;
 
 // Ensures analyzers remain loadable with stable diagnostic metadata.

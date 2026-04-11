@@ -3,13 +3,13 @@ namespace Rex.Shared.Net;
 /// <summary>Tracks network bandwidth and message counts by type.</summary>
 public sealed class RexNetStatistics
 {
-    private long _bytesSent;
-    private long _bytesReceived;
-    private long _messagesSent;
-    private long _messagesReceived;
-    private readonly Dictionary<ushort, long> _messageCountByType = new();
-    private readonly Dictionary<ushort, long> _bytesByType = new();
+    private readonly Dictionary<ushort, long> _bytesByType = [];
     private readonly Lock _lock = new();
+    private readonly Dictionary<ushort, long> _messageCountByType = [];
+    private long _bytesReceived;
+    private long _bytesSent;
+    private long _messagesReceived;
+    private long _messagesSent;
 
     /// <summary>Total payload bytes sent.</summary>
     public long BytesSent => Interlocked.Read(ref _bytesSent);
@@ -27,15 +27,15 @@ public sealed class RexNetStatistics
     /// <remarks>Interlocked fields update aggregates. A lock guards per-type dictionary updates.</remarks>
     public void RecordSent(ushort messageId, int bytes)
     {
-        Interlocked.Add(ref _bytesSent, bytes);
-        Interlocked.Increment(ref _messagesSent);
+        _ = Interlocked.Add(ref _bytesSent, bytes);
+        _ = Interlocked.Increment(ref _messagesSent);
 
         lock (_lock)
         {
-            _messageCountByType.TryGetValue(messageId, out var count);
+            _ = _messageCountByType.TryGetValue(messageId, out long count);
             _messageCountByType[messageId] = count + 1;
 
-            _bytesByType.TryGetValue(messageId, out var totalBytes);
+            _ = _bytesByType.TryGetValue(messageId, out long totalBytes);
             _bytesByType[messageId] = totalBytes + bytes;
         }
     }
@@ -45,12 +45,12 @@ public sealed class RexNetStatistics
     /// <param name="bytes">Payload length for this receive when known.</param>
     public void RecordReceived(ushort messageId, int bytes)
     {
-        Interlocked.Add(ref _bytesReceived, bytes);
-        Interlocked.Increment(ref _messagesReceived);
+        _ = Interlocked.Add(ref _bytesReceived, bytes);
+        _ = Interlocked.Increment(ref _messagesReceived);
 
         lock (_lock)
         {
-            _messageCountByType.TryGetValue(messageId, out var count);
+            _ = _messageCountByType.TryGetValue(messageId, out long count);
             _messageCountByType[messageId] = count + 1;
         }
     }
@@ -61,9 +61,9 @@ public sealed class RexNetStatistics
         lock (_lock)
         {
             var result = new Dictionary<ushort, (long, long)>();
-            foreach (var (msgId, count) in _messageCountByType)
+            foreach ((ushort msgId, long count) in _messageCountByType)
             {
-                _bytesByType.TryGetValue(msgId, out var bytes);
+                _ = _bytesByType.TryGetValue(msgId, out long bytes);
                 result[msgId] = (count, bytes);
             }
 
@@ -74,10 +74,10 @@ public sealed class RexNetStatistics
     /// <summary>Clears all counters and dictionaries.</summary>
     public void Reset()
     {
-        Interlocked.Exchange(ref _bytesSent, 0);
-        Interlocked.Exchange(ref _bytesReceived, 0);
-        Interlocked.Exchange(ref _messagesSent, 0);
-        Interlocked.Exchange(ref _messagesReceived, 0);
+        _ = Interlocked.Exchange(ref _bytesSent, 0);
+        _ = Interlocked.Exchange(ref _bytesReceived, 0);
+        _ = Interlocked.Exchange(ref _messagesSent, 0);
+        _ = Interlocked.Exchange(ref _messagesReceived, 0);
 
         lock (_lock)
         {

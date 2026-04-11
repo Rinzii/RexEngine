@@ -32,7 +32,7 @@ public sealed class DirtyTrackerTests
         tracker.MarkDirty(20, 1);
         tracker.MarkDirty(30, 2);
 
-        var dirty = tracker.GetDirtyEntities(0, 2);
+        HashSet<int>? dirty = tracker.GetDirtyEntities(0, 2);
         Assert.NotNull(dirty);
         Assert.Contains(10, dirty!);
         Assert.Contains(20, dirty);
@@ -48,7 +48,7 @@ public sealed class DirtyTrackerTests
         tracker.ClearTick(5);
         tracker.MarkDirty(2, 5);
 
-        var dirty = tracker.GetDirtyEntities(4, 5);
+        HashSet<int>? dirty = tracker.GetDirtyEntities(4, 5);
         Assert.NotNull(dirty);
         Assert.Contains(2, dirty!);
         Assert.DoesNotContain(1, dirty);

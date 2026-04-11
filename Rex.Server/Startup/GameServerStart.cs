@@ -17,30 +17,31 @@ public static class GameServerStart
     {
         GameStartDefinitionValidator.Validate(definition);
 
-        if (!ServerStartOptions.TryParse(args, definition, out var options, out var error))
+        if (!ServerStartOptions.TryParse(args, definition, out ServerStartOptions options, out string? error))
         {
             Console.Error.WriteLine(error);
             return 1;
         }
 
-        using var loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
+        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
         var services = new ServiceCollection();
-        services.AddSingleton(definition);
-        services.AddSingleton(options);
-        services.AddSingleton(loggerFactory);
-        services.AddSingleton<ILogger>(sp =>
+        _ = services.AddSingleton(definition);
+        _ = services.AddSingleton(options);
+        _ = services.AddSingleton(loggerFactory);
+        _ = services.AddSingleton(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger("Rex.Server.Startup"));
-        services.AddSingleton(new ServerRuntimeOptions { TickRate = options.TickRate });
-        services.AddSingleton<ServerRuntimeHost>();
-        using var serviceProvider = services.BuildServiceProvider();
+        _ = services.AddSingleton(new ServerRuntimeOptions { TickRate = options.TickRate });
+        _ = services.AddSingleton<ServerRuntimeHost>();
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-        var logger = serviceProvider.GetRequiredService<ILogger>();
-        using var runtime = serviceProvider.GetRequiredService<ServerRuntimeHost>();
+        ILogger logger = serviceProvider.GetRequiredService<ILogger>();
+        using ServerRuntimeHost runtime = serviceProvider.GetRequiredService<ServerRuntimeHost>();
         using var cts = new CancellationTokenSource();
         using var shutdownHook = new ConsoleShutdownHook(cts, runtime.Stop);
 
-        var engineAssemblyName = typeof(RemoteServerNetChannel).Assembly.GetName().Name ?? "Rex.Server";
-        GameServerStartLog.ServerBootstrapStarting(logger, definition.Identity.GameName, definition.Identity.ServerProject);
+        string engineAssemblyName = typeof(RemoteServerNetChannel).Assembly.GetName().Name ?? "Rex.Server";
+        GameServerStartLog.ServerBootstrapStarting(logger, definition.Identity.GameName,
+            definition.Identity.ServerProject);
         GameServerStartLog.EngineRuntimeAssembly(logger, engineAssemblyName);
         GameServerStartLog.ServerIdentity(logger, definition.DedicatedServerName);
         GameServerStartLog.ServerSettings(logger, options.Port, options.TickRate, options.MaxPlayers);
@@ -49,7 +50,8 @@ public static class GameServerStart
         try
         {
             runtime.Run(cts.Token);
-            GameServerStartLog.ServerBootstrapCompleted(logger, definition.Identity.GameName, runtime.Clock.CurrentTick);
+            GameServerStartLog.ServerBootstrapCompleted(logger, definition.Identity.GameName,
+                runtime.Clock.CurrentTick);
             return 0;
         }
         catch (Exception ex)
@@ -58,7 +60,6 @@ public static class GameServerStart
             return 1;
         }
     }
-
 }
 
 internal static partial class GameServerStartLog
@@ -68,7 +69,8 @@ internal static partial class GameServerStartLog
     public static partial void ServerBootstrapStarting(ILogger logger, string game, string project);
 
     [LoggerMessage(EventId = 2, Level = LogLevel.Information,
-        Message = "Authoritative game code lives outside the engine while engine server runtime code comes from {Assembly}.")]
+        Message =
+            "Authoritative game code lives outside the engine while engine server runtime code comes from {Assembly}.")]
     public static partial void EngineRuntimeAssembly(ILogger logger, string assembly);
 
     [LoggerMessage(EventId = 3, Level = LogLevel.Information,

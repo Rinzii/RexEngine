@@ -1,8 +1,6 @@
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -12,24 +10,27 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
 {
     private const string MeansImplicitAssignmentAttribute = "Rex.Shared.MeansImplicitAssignmentAttribute";
 
+    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions =>
+        [MeansImplicitAssignment];
+
     public override void ReportSuppressions(SuppressionAnalysisContext context)
     {
-        var implAttr = context.Compilation.GetTypeByMetadataName(MeansImplicitAssignmentAttribute);
-        foreach (var reportedDiagnostic in context.ReportedDiagnostics)
+        INamedTypeSymbol implAttr = context.Compilation.GetTypeByMetadataName(MeansImplicitAssignmentAttribute);
+        foreach (Diagnostic reportedDiagnostic in context.ReportedDiagnostics)
         {
             if (reportedDiagnostic.Id != MeansImplicitAssignment.SuppressedDiagnosticId)
             {
                 continue;
             }
 
-            var node = reportedDiagnostic.Location.SourceTree?.GetRoot(context.CancellationToken)
+            SyntaxNode node = reportedDiagnostic.Location.SourceTree?.GetRoot(context.CancellationToken)
                 .FindNode(reportedDiagnostic.Location.SourceSpan);
             if (node == null)
             {
                 continue;
             }
 
-            var symbol = context.GetSemanticModel(reportedDiagnostic.Location.SourceTree).GetDeclaredSymbol(node);
+            ISymbol symbol = context.GetSemanticModel(reportedDiagnostic.Location.SourceTree).GetDeclaredSymbol(node);
 
             if (symbol == null || !symbol.GetAttributes().Any(a =>
                     a.AttributeClass?.GetAttributes().Any(attr =>
@@ -43,7 +44,4 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
                 reportedDiagnostic));
         }
     }
-
-    public override ImmutableArray<SuppressionDescriptor> SupportedSuppressions =>
-        ImmutableArray.Create(MeansImplicitAssignment);
 }

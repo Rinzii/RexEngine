@@ -1,17 +1,20 @@
+// ReSharper disable once RedundantNullableDirective
+
+#pragma warning disable IDE0240
+#nullable enable
+#pragma warning restore IDE0240
+
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 
 namespace Rex.Roslyn.Shared;
-
-// ReSharper disable once RedundantNullableDirective
-#nullable enable
 
 public static class AttributeHelper
 {
     public static bool HasAttribute(ISymbol symbol, string attributeMetadataName,
         [NotNullWhen(true)] out AttributeData? matchedAttribute)
     {
-        foreach (var attribute in symbol.GetAttributes())
+        foreach (AttributeData attribute in symbol.GetAttributes())
         {
             if (attribute.AttributeClass == null)
             {
@@ -31,7 +34,7 @@ public static class AttributeHelper
 
     public static bool GetNamedArgumentBool(AttributeData data, string name, bool defaultValue)
     {
-        foreach (var kv in data.NamedArguments)
+        foreach (KeyValuePair<string, TypedConstant> kv in data.NamedArguments)
         {
             if (kv.Key != name)
             {
@@ -60,7 +63,7 @@ public static class AttributeHelper
         [NotNullWhen(true)] out AttributeData? matchedAttribute)
     {
         matchedAttribute = null;
-        foreach (var typeAttribute in symbol.GetAttributes())
+        foreach (AttributeData typeAttribute in symbol.GetAttributes())
         {
             if (SymbolEqualityComparer.Default.Equals(typeAttribute.AttributeClass, attribute))
             {

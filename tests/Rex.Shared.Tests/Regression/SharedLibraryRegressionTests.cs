@@ -43,9 +43,9 @@ public sealed class SharedLibraryRegressionTests
     public void Regression_phased_loop_three_steps_for_fifty_ms_at_sixty_hz()
     {
         var clock = new TickClock(60);
-        var acc = 0.0;
-        var steps = 0;
-        var count = PhasedLoop.RunFixedSteps(clock, ref acc, 0.05, () => steps++);
+        double acc = 0.0;
+        int steps = 0;
+        int count = PhasedLoop.RunFixedSteps(clock, ref acc, 0.05, () => steps++);
 
         Assert.Equal(3, count);
         Assert.Equal(3, steps);

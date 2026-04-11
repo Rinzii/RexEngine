@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Rex.Client.Graphics;
 using Rex.Client.Net;
 using Rex.Client.Runtime;
-using Rex.Client.Graphics;
 using Rex.Shared.Net;
 using Rex.Shared.Startup;
 
@@ -24,20 +24,20 @@ public static class GameClientStart
     {
         GameStartDefinitionValidator.Validate(definition);
 
-        if (!ClientStartOptions.TryParse(args, definition, out var options, out var error))
+        if (!ClientStartOptions.TryParse(args, definition, out ClientStartOptions options, out string? error))
         {
             Console.Error.WriteLine(error);
             return 1;
         }
 
-        using var loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
+        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
         var services = new ServiceCollection();
-        services.AddSingleton(definition);
-        services.AddSingleton(options);
-        services.AddSingleton(loggerFactory);
-        services.AddSingleton<ILogger>(sp =>
+        _ = services.AddSingleton(definition);
+        _ = services.AddSingleton(options);
+        _ = services.AddSingleton(loggerFactory);
+        _ = services.AddSingleton(sp =>
             sp.GetRequiredService<ILoggerFactory>().CreateLogger("Rex.Client.Startup"));
-        services.AddSingleton(new ClientRuntimeOptions
+        _ = services.AddSingleton(new ClientRuntimeOptions
         {
             TickRate = definition.TickRate,
             Headless = options.Headless,
@@ -46,12 +46,12 @@ public static class GameClientStart
             WindowHeight = definition.Window.Height
         });
         // Window backend is registered in DI so ClientRuntimeHost depends only on IGameWindow.
-        services.AddSingleton<IGameWindow, WindowCreator>();
-        services.AddSingleton<ClientRuntimeHost>();
-        using var serviceProvider = services.BuildServiceProvider();
+        _ = services.AddSingleton<IGameWindow, WindowCreator>();
+        _ = services.AddSingleton<ClientRuntimeHost>();
+        using ServiceProvider serviceProvider = services.BuildServiceProvider();
 
-        var logger = serviceProvider.GetRequiredService<ILogger>();
-        using var runtime = serviceProvider.GetRequiredService<ClientRuntimeHost>();
+        ILogger logger = serviceProvider.GetRequiredService<ILogger>();
+        using ClientRuntimeHost runtime = serviceProvider.GetRequiredService<ClientRuntimeHost>();
         runtime.Window = serviceProvider.GetService<IGameWindow>();
         using var cts = new CancellationTokenSource();
         using var shutdownHook = new ConsoleShutdownHook(cts, runtime.Stop);
@@ -68,16 +68,18 @@ public static class GameClientStart
                 }
             }
 
-            var engineAssemblyName = typeof(RemoteClientNetChannel).Assembly.GetName().Name ?? "Rex.Client";
-            GameClientStartLog.ClientBootstrapStarting(logger, definition.Identity.GameName, options.Mode, definition.Identity.ClientProject);
+            string engineAssemblyName = typeof(RemoteClientNetChannel).Assembly.GetName().Name ?? "Rex.Client";
+            GameClientStartLog.ClientBootstrapStarting(logger, definition.Identity.GameName, options.Mode,
+                definition.Identity.ClientProject);
             GameClientStartLog.EngineRuntimeAssembly(logger, engineAssemblyName);
-            GameClientStartLog.SharedRuntimeDefaults(logger, definition.Identity.SharedProject, definition.TickRate, options.Port);
+            GameClientStartLog.SharedRuntimeDefaults(logger, definition.Identity.SharedProject, definition.TickRate,
+                options.Port);
 
             if (options.Mode == NetMode.Standalone)
             {
                 GameClientStartLog.StandaloneSelected(logger);
             }
-            else if (TryResolveRemoteEndpoint(options, definition, logger, out var host, out var port))
+            else if (TryResolveRemoteEndpoint(options, definition, logger, out string host, out int port))
             {
                 GameClientStartLog.RemoteEndpoint(logger, host, port, ProtocolConstants.ConnectionKey);
             }
@@ -94,7 +96,8 @@ public static class GameClientStart
             try
             {
                 runtime.Run(cts.Token);
-                GameClientStartLog.ClientBootstrapCompleted(logger, definition.Identity.GameName, runtime.Clock.CurrentTick);
+                GameClientStartLog.ClientBootstrapCompleted(logger, definition.Identity.GameName,
+                    runtime.Clock.CurrentTick);
                 return 0;
             }
             catch (Exception ex)
@@ -141,30 +144,29 @@ public static class GameClientStart
         int port,
         ILogger logger)
     {
-        var serverAssemblyPath = RuntimeAssemblyLocator.ResolveServerAssemblyPath(
+        string? serverAssemblyPath = RuntimeAssemblyLocator.ResolveServerAssemblyPath(
             definition.ListenServer.ServerAssemblyEnvironmentVariable,
             definition.ListenServer.ServerAssemblyFileName,
             definition.Identity.ClientProject,
             definition.Identity.ServerProject);
         if (serverAssemblyPath == null)
         {
-            GameClientStartLog.ListenServerAssemblyNotFound(logger, definition.ListenServer.ServerAssemblyEnvironmentVariable);
+            GameClientStartLog.ListenServerAssemblyNotFound(logger,
+                definition.ListenServer.ServerAssemblyEnvironmentVariable);
             return null;
         }
 
-        var process = new Process
+        using var process = new Process();
+        process.StartInfo = new ProcessStartInfo
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
-            },
-            EnableRaisingEvents = true
+            FileName = "dotnet",
+            UseShellExecute = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
         };
+        process.EnableRaisingEvents = true;
 
         process.StartInfo.ArgumentList.Add(serverAssemblyPath);
         process.StartInfo.ArgumentList.Add("--port");
@@ -205,7 +207,6 @@ public static class GameClientStart
         catch
         {
             bridge?.Dispose();
-            process.Dispose();
             throw;
         }
     }
@@ -219,9 +220,9 @@ public static class GameClientStart
 
         GameClientStartLog.StoppingListenServer(logger);
         process.Kill(true);
-        process.WaitForExit(5000);
+        // TODO: Should we handle the result of our waiting?
+        _ = process.WaitForExit(5000);
     }
-
 }
 
 internal static partial class GameClientStartLog
@@ -255,11 +256,13 @@ internal static partial class GameClientStartLog
     public static partial void ClientBootstrapCompleted(ILogger logger, string game, uint tick);
 
     [LoggerMessage(EventId = 8, Level = LogLevel.Error,
-        Message = "Invalid connect address \"{ConnectAddress}\". Use host, host:port, or bracketed IPv6 such as [::1]:port.")]
+        Message =
+            "Invalid connect address \"{ConnectAddress}\". Use host, host:port, or bracketed IPv6 such as [::1]:port.")]
     public static partial void InvalidConnectAddress(ILogger logger, string connectAddress);
 
     [LoggerMessage(EventId = 9, Level = LogLevel.Error,
-        Message = "Could not find server assembly for listen server mode. Set {EnvironmentVariable} to override the default lookup.")]
+        Message =
+            "Could not find server assembly for listen server mode. Set {EnvironmentVariable} to override the default lookup.")]
     public static partial void ListenServerAssemblyNotFound(ILogger logger, string environmentVariable);
 
     [LoggerMessage(EventId = 10, Level = LogLevel.Error,
@@ -281,5 +284,4 @@ internal static partial class GameClientStartLog
     [LoggerMessage(EventId = 14, Level = LogLevel.Error,
         Message = "Client startup failed.")]
     public static partial void StartupFailed(ILogger logger, Exception ex);
-
 }

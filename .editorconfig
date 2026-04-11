@@ -1,0 +1,1301 @@
+# Treat this file as the top-most EditorConfig file.
+# Effect: parent folders will not keep overriding settings from above this repo.
+root = true
+
+# Apply these settings to all files.
+[*]
+
+# Save files as UTF-8 text.
+# Effect: avoids inconsistent encodings across editors and platforms.
+# Example: a file saved in UTF-8 stays UTF-8 instead of becoming UTF-16.
+charset = utf-8
+
+# Use LF line endings.
+# Effect: files use Unix-style newlines instead of CRLF.
+# Example: line endings become \n instead of \r\n.
+end_of_line = lf
+
+# Use spaces for indentation.
+# Effect: pressing tab inserts spaces, not tab characters.
+# Example: four spaces before a line instead of one tab character.
+indent_style = space
+
+# Use 4 spaces for each indentation level.
+# Effect: one indent level becomes four spaces.
+# Example: inside a method body, code is indented by 4 spaces.
+indent_size = 4
+
+# Ensure every file ends with a newline.
+# Effect: the final line in the file always ends cleanly.
+# Example: a file ending directly after a closing brace gets one trailing newline.
+insert_final_newline = true
+
+# Remove whitespace at the end of lines.
+# Effect: trailing spaces are deleted on save or format.
+# Example: int x = 1·· becomes int x = 1
+trim_trailing_whitespace = true
+
+# Apply the following settings only to C# source files.
+[*.cs]
+
+# Treat style analyzer diagnostics as errors.
+# Effect: style issues such as preferred syntax forms fail builds when enforced in build.
+# Example: a style violation like a non-preferred namespace form becomes an error instead of a suggestion.
+dotnet_analyzer_diagnostic.category-Style.severity = error
+
+# Make formatting violations an error.
+# Effect: bad spacing, wrapping, or brace placement becomes an error.
+# Example: if a brace is on the wrong line, IDE0055 reports an error.
+dotnet_diagnostic.IDE0055.severity = error
+
+# Make naming-rule violations an error.
+# Effect: names that break configured naming rules fail hard.
+# Example: interface Logger instead of ILogger becomes an error.
+dotnet_diagnostic.IDE1006.severity = error
+
+# Put using System directives before other using directives.
+# Effect: System namespaces sort first.
+# Example: using System; appears before using Microsoft.Extensions.Logging;
+dotnet_sort_system_directives_first = true
+
+# Do not split usings into separate groups.
+# Effect: keep one contiguous block of usings.
+# Example: no blank line between using System; and using MyProject;
+dotnet_separate_import_directive_groups = false
+
+# Do not require this. for fields.
+# Effect: prefer value over this.value when there is no ambiguity.
+# Example: count = 1 instead of this.count = 1
+dotnet_style_qualification_for_field = false
+
+# Do not require this. for properties.
+# Effect: prefer Name over this.Name when there is no ambiguity.
+# Example: Name = value instead of this.Name = value
+dotnet_style_qualification_for_property = false
+
+# Do not require this. for methods.
+# Effect: prefer Method() over this.Method().
+# Example: Reset() instead of this.Reset()
+dotnet_style_qualification_for_method = false
+
+# Do not require this. for events.
+# Effect: prefer Changed += Handler over this.Changed += Handler.
+# Example: Updated += OnUpdated instead of this.Updated += OnUpdated
+dotnet_style_qualification_for_event = false
+
+# Prefer C# keyword aliases for built-in types in declarations and member signatures.
+# Effect: use int, string, bool instead of Int32, String, Boolean.
+# Example: int value instead of Int32 value
+dotnet_style_predefined_type_for_locals_parameters_members = true
+
+# Prefer C# keyword aliases for built-in types in member access too.
+# Effect: use int.MaxValue and string.Empty instead of Int32.MaxValue and String.Empty.
+# Example: string.Empty instead of String.Empty
+dotnet_style_predefined_type_for_member_access = true
+
+# Require explicit accessibility on non-interface members.
+# Effect: methods, fields, properties, classes, etc. must declare public, private, internal, or protected.
+# Example: private void Run() instead of void Run()
+dotnet_style_require_accessibility_modifiers = for_non_interface_members
+
+# Prefer readonly on fields that are only assigned in the constructor or initializer.
+# Effect: immutable fields get marked readonly.
+# Example: private readonly int _size instead of private int _size when it never changes after construction
+dotnet_style_readonly_field = true
+
+# Prefer parentheses in arithmetic expressions when they improve clarity.
+# Effect: formatter and analyzers favor explicit grouping in arithmetic.
+# Example: (a + b) * c instead of a + b * c when clarity is preferred in context
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity
+
+# Prefer parentheses in relational expressions when they improve clarity.
+# Effect: comparisons inside larger expressions stay visually explicit.
+# Example: (a < b) && (c < d) instead of a < b && c < d
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity
+
+# Prefer parentheses in other binary operators when they improve clarity.
+# Effect: logical or bitwise combinations stay grouped clearly.
+# Example: (a & mask) == 0 instead of a & mask == 0
+dotnet_style_parentheses_in_other_binary_operators = always_for_clarity
+
+# Avoid unnecessary parentheses for operators where clarity is not improved.
+# Effect: extra grouping is removed when it adds noise.
+# Example: return value instead of return (value)
+dotnet_style_parentheses_in_other_operators = never_if_unnecessary
+
+# Prefer object initializers when assigning members immediately after construction.
+# Effect: construct and initialize in one expression.
+# Example: new Person { Age = age } instead of var p = new Person(); p.Age = age;
+dotnet_style_object_initializer = true
+
+# Prefer collection initializers when populating a collection right after creation.
+# Effect: add items inline during construction.
+# Example: new List<int> { 1, 2 } instead of var list = new List<int>(); list.Add(1); list.Add(2);
+dotnet_style_collection_initializer = true
+
+# Prefer named tuple elements over unnamed tuple elements.
+# Effect: tuple members have meaningful names instead of Item1 and Item2.
+# Example: (count: totalCount, sum: totalSum) instead of (totalCount, totalSum) when naming would otherwise be absent
+dotnet_style_explicit_tuple_names = true
+
+# Prefer inferred tuple element names when the compiler can infer the same name.
+# Effect: avoid repeating the name when it would be identical.
+# Example: (count, sum) instead of (count: count, sum: sum)
+dotnet_style_prefer_inferred_tuple_names = true
+
+# Prefer inferred anonymous type member names when the compiler can infer them.
+# Effect: avoid repeating the member name in anonymous objects.
+# Example: new { count, sum } instead of new { count = count, sum = sum }
+dotnet_style_prefer_inferred_anonymous_type_member_names = true
+
+# Prefer auto-properties when a backing field adds no value.
+# Effect: collapse trivial property patterns into auto-properties.
+# Example: public int Count { get; set; } instead of a private field plus trivial getter and setter
+dotnet_style_prefer_auto_properties = true
+
+# Prefer conditional expressions instead of simple if assignment blocks.
+# Effect: turn simple branching assignments into one expression.
+# Example: result = flag ? left : right instead of if (flag) result = left; else result = right;
+dotnet_style_prefer_conditional_expression_over_assignment = true
+
+# Prefer conditional expressions instead of simple if return blocks.
+# Effect: turn simple branching returns into one expression.
+# Example: return flag ? left : right instead of if (flag) return left; else return right;
+dotnet_style_prefer_conditional_expression_over_return = true
+
+# Prefer null-coalescing expressions when they simplify null fallback logic.
+# Effect: use ?? instead of verbose null checks.
+# Example: return value ?? fallback instead of return value != null ? value : fallback
+dotnet_style_coalesce_expression = true
+
+# Prefer null-conditional access when it simplifies null checks.
+# Effect: use ?. instead of explicit null guards for member access.
+# Example: return obj?.Value instead of return obj == null ? null : obj.Value
+dotnet_style_null_propagation = true
+
+# Prefer x is null over object.ReferenceEquals(x, null) when checking null.
+# Effect: null checks use direct C# syntax.
+# Example: if (value is null) instead of if (object.ReferenceEquals(value, null))
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true
+
+# Prefer simpler boolean expressions.
+# Effect: remove redundant comparisons to true or false.
+# Example: if (flag) instead of if (flag == true)
+dotnet_style_prefer_simplified_boolean_expressions = true
+
+# Prefer simpler string interpolation when possible.
+# Effect: avoid unnecessary explicit conversions inside interpolation.
+# Example: interpolation uses {value} directly instead of more verbose forms when equivalent
+dotnet_style_prefer_simplified_interpolation = true
+
+# Prefer compound assignment when it is equivalent and clearer.
+# Effect: use operators like += and -=.
+# Example: count += 1 instead of count = count + 1
+dotnet_style_prefer_compound_assignment = true
+
+# When wrapping binary expressions, put the operator at the beginning of the continued line.
+# Effect: wrapped expressions align with operators leading the next line.
+# Example:
+# var value = first
+#     + second;
+dotnet_style_operator_placement_when_wrapping = beginning_of_line
+
+# Prefer this modifier order.
+# Effect: declarations are normalized to this sequence.
+# Example: public static readonly becomes public static readonly, not readonly public static
+csharp_preferred_modifier_order = public, private, protected, internal, const, static, extern, new, virtual, abstract, sealed, override, readonly, unsafe, volatile, async
+
+# Prefer var for built-in types.
+# Effect: use var even when the type is int, string, bool, etc.
+# Example: var count = 1 instead of int count = 1
+csharp_style_var_for_built_in_types = false
+
+# Prefer var when the type is obvious from the right-hand side.
+# Effect: use var when the constructor or expression already makes the type clear.
+# Example: var list = new List<int>() instead of List<int> list = new List<int>()
+csharp_style_var_when_type_is_apparent = true
+
+# Do not prefer var when the type is not obvious.
+# Effect: use the explicit type when reading the line would otherwise be unclear.
+# Example: Customer customer = GetCurrentCustomer() instead of var customer = GetCurrentCustomer()
+csharp_style_var_elsewhere = false
+
+# Do not prefer expression-bodied methods.
+# Effect: ordinary methods stay block-bodied.
+# Example: int Get() { return _value; } instead of int Get() => _value;
+csharp_style_expression_bodied_methods = when_on_single_line
+
+# Do not prefer expression-bodied constructors.
+# Effect: constructors stay block-bodied.
+# Example: C() { _value = 1; } instead of C() => _value = 1;
+csharp_style_expression_bodied_constructors = false
+
+# Do not prefer expression-bodied operators.
+# Effect: operator overloads stay block-bodied.
+# Example: static C operator +(C a, C b) { return Combine(a, b); } instead of => Combine(a, b)
+csharp_style_expression_bodied_operators = false
+
+# Prefer expression-bodied properties when simple.
+# Effect: trivial getter-only properties become one-liners.
+# Example: int Count => _count instead of int Count { get { return _count; } }
+csharp_style_expression_bodied_properties = true
+
+# Prefer expression-bodied indexers when simple.
+# Effect: trivial indexers become one-liners.
+# Example: int this[int i] => _items[i] instead of a block-bodied getter
+csharp_style_expression_bodied_indexers = true
+
+# Prefer expression-bodied accessors when simple.
+# Effect: single-expression get or set accessors become concise.
+# Example: get => _count instead of get { return _count; }
+csharp_style_expression_bodied_accessors = true
+
+# Prefer expression-bodied lambdas.
+# Effect: simple lambdas stay concise.
+# Example: x => x + 1 instead of x => { return x + 1; }
+csharp_style_expression_bodied_lambdas = true
+
+# Prefer pattern matching over is plus cast.
+# Effect: combine type test and cast into one expression.
+# Example: if (obj is Customer customer) instead of if (obj is Customer) { var customer = (Customer)obj; }
+csharp_style_pattern_matching_over_is_with_cast_check = true
+
+# Prefer pattern matching over as plus null check.
+# Effect: combine cast and null test into one expression.
+# Example: if (obj is Customer customer) instead of var customer = obj as Customer; if (customer != null)
+csharp_style_pattern_matching_over_as_with_null_check = true
+
+# Prefer inline out variable declarations.
+# Effect: declare the out variable directly in the call.
+# Example: if (int.TryParse(text, out var value)) instead of int value; if (int.TryParse(text, out value))
+csharp_style_inlined_variable_declaration = true
+
+# Prefer throw expressions where valid.
+# Effect: throw can appear inside expressions.
+# Example: value ?? throw new InvalidOperationException() instead of if (value is null) throw ...
+csharp_style_throw_expression = true
+
+# Prefer conditional delegate invocation.
+# Effect: event or delegate invocation uses ?.Invoke.
+# Example: Changed?.Invoke(this, args) instead of if (Changed != null) Changed(this, args)
+csharp_style_conditional_delegate_call = true
+
+# Prefer deconstruction when unpacking tuples or deconstructable types.
+# Effect: unpack values directly into locals.
+# Example: var (x, y) = point instead of var x = point.X; var y = point.Y;
+csharp_style_deconstructed_variable_declaration = true
+
+# Prefer default instead of default(T) when the type is known.
+# Effect: use the shorter form.
+# Example: return default instead of return default(int)
+csharp_prefer_simple_default_expression = true
+
+# Require braces for control-flow statements.
+# Effect: single-line if, for, while, etc. still need braces.
+# Example: if (flag) { Run(); } instead of if (flag) Run();
+csharp_prefer_braces = true
+
+# Prefer switch expressions when they are a simple fit.
+# Effect: convert simple switch statements into expression form.
+# Example: return value switch { 0 => A, _ => B } instead of a simple switch statement with returns
+csharp_style_prefer_switch_expression = true
+
+# Prefer simple using statements over nested using blocks.
+# Effect: use declaration form when possible.
+# Example: using var stream = Open(); instead of using (var stream = Open()) { ... }
+csharp_style_prefer_simple_using_statement = true
+
+# Prefer method group conversion when a lambda only forwards a call.
+# Effect: use the method name directly.
+# Example: list.ForEach(Print) instead of list.ForEach(x => Print(x))
+csharp_style_prefer_method_group_conversion = true
+
+
+# Prefer static local functions when the local function does not capture outer variables.
+# Effect: local helpers become explicitly non-capturing.
+# Example: static int Add(int a, int b) => a + b inside a method instead of a non-static local function
+csharp_prefer_static_local_function = true
+
+# Prefer file-scoped namespaces.
+# Effect: namespace declarations lose one brace nesting level.
+# Example:
+# namespace App;
+# class C { }
+# instead of
+# namespace App
+# {
+#     class C { }
+# }
+csharp_style_namespace_declarations = file_scoped
+
+# Place using directives outside the namespace.
+# Effect: usings sit above the namespace declaration.
+# Example:
+# using System;
+# namespace App;
+csharp_using_directive_placement = outside_namespace
+
+# Put opening braces on a new line for all supported constructs.
+# Effect: use Allman brace style.
+# Example:
+# if (flag)
+# {
+# }
+# instead of
+# if (flag) {
+# }
+csharp_new_line_before_open_brace = all
+
+# Put else on its own new line.
+# Effect: else does not share the closing brace line in compact forms.
+# Example:
+# if (flag)
+# {
+# }
+# else
+# {
+# }
+csharp_new_line_before_else = true
+
+# Put catch on its own new line.
+# Effect: catch starts on the line after the preceding closing brace.
+# Example:
+# try
+# {
+# }
+# catch
+# {
+# }
+csharp_new_line_before_catch = true
+
+# Put finally on its own new line.
+# Effect: finally starts on the line after the preceding closing brace.
+# Example:
+# try
+# {
+# }
+# finally
+# {
+# }
+csharp_new_line_before_finally = true
+
+# Put each object-initializer member on its own line when wrapped.
+# Effect: multi-member initializers become vertically aligned.
+# Example:
+# new Person
+# {
+#     Age = age,
+#     Count = count
+# }
+csharp_new_line_before_members_in_object_initializers = true
+
+# Put each anonymous-type member on its own line when wrapped.
+# Effect: large anonymous objects format vertically.
+# Example:
+# new
+# {
+#     Age = age,
+#     Count = count
+# }
+csharp_new_line_before_members_in_anonymous_types = true
+
+# Put each LINQ query clause on its own line.
+# Effect: query expressions format vertically by clause.
+# Example:
+# from x in xs
+# where x > 0
+# select x
+csharp_new_line_between_query_expression_clauses = true
+
+# Indent the contents inside code blocks.
+# Effect: statements inside braces move one indent level deeper.
+# Example:
+# if (flag)
+# {
+#     Run();
+# }
+csharp_indent_block_contents = true
+
+# Do not indent braces themselves.
+# Effect: braces align with the controlling statement.
+# Example:
+# if (flag)
+# {
+#     Run();
+# }
+# not
+# if (flag)
+#     {
+#         Run();
+#     }
+csharp_indent_braces = false
+
+# Indent statements inside case labels.
+# Effect: code under case labels shifts right one level.
+# Example:
+# case 1:
+#     Run();
+#     break;
+csharp_indent_case_contents = true
+
+# Indent even when the case contents are wrapped in braces.
+# Effect: a block under case still indents normally.
+# Example:
+# case 1:
+# {
+#     Run();
+#     break;
+# }
+csharp_indent_case_contents_when_block = true
+
+# Indent the case labels themselves relative to the switch block.
+# Effect: case labels are nested under switch.
+# Example:
+# switch (x)
+# {
+#     case 1:
+#         break;
+# }
+csharp_indent_switch_labels = true
+
+# Keep labels flush left instead of indenting them.
+# Effect: goto labels align to the left edge.
+# Example:
+# Start:
+#     Run();
+csharp_indent_labels = flush_left
+
+# Do not put a space after a cast.
+# Effect: cast formatting becomes compact.
+# Example: (int)value instead of (int) value
+csharp_space_after_cast = false
+
+# Put a space after the colon in inheritance clauses.
+# Effect: type inheritance reads with normal spacing.
+# Example: class C : Base instead of class C :Base
+csharp_space_after_colon_in_inheritance_clause = true
+
+# Put a space after commas.
+# Effect: argument and list separators have normal spacing.
+# Example: M(a, b) instead of M(a,b)
+csharp_space_after_comma = true
+
+# Do not put a space after a dot.
+# Effect: member access stays compact.
+# Example: obj.Member instead of obj. Member
+csharp_space_after_dot = false
+
+# Put a space after keywords in control-flow statements.
+# Effect: keywords like if and for are followed by a space before the parenthesis.
+# Example: if (flag) instead of if(flag)
+csharp_space_after_keywords_in_control_flow_statements = true
+
+# Put a space after semicolons inside for statements.
+# Effect: for-loop clauses read cleanly.
+# Example: for (int i = 0; i < n; i++) instead of for (int i = 0;i < n;i++)
+csharp_space_after_semicolon_in_for_statement = true
+
+# Put spaces around binary operators.
+# Effect: operators are padded on both sides.
+# Example: a + b instead of a+b
+csharp_space_around_binary_operators = before_and_after
+
+# Respect spaces around declaration statements.
+# Effect: declarations follow normal spacing rules instead of ignoring them.
+# Example: int x = 1 uses standard spacing conventions consistently
+csharp_space_around_declaration_statements = false
+
+# Put a space before the colon in inheritance clauses.
+# Effect: this setting keeps spacing around the colon consistent with the configured formatter behavior.
+# Example: class C : Base rather than a compact no-space form
+csharp_space_before_colon_in_inheritance_clause = true
+
+# Do not put a space before commas.
+# Effect: commas hug the previous token.
+# Example: M(a, b) instead of M(a , b)
+csharp_space_before_comma = false
+
+# Do not put a space before a dot.
+# Effect: member access stays compact.
+# Example: obj.Member instead of obj .Member
+csharp_space_before_dot = false
+
+# Do not put a space before an opening square bracket.
+# Effect: indexers and arrays stay compact.
+# Example: items[i] instead of items [i]
+csharp_space_before_open_square_brackets = false
+
+# Do not put a space before semicolons inside for statements.
+# Effect: semicolons stay attached to the preceding clause.
+# Example: for (int i = 0; i < n; i++) instead of for (int i = 0 ; i < n ; i++)
+csharp_space_before_semicolon_in_for_statement = false
+
+# Do not put spaces inside empty square brackets.
+# Effect: empty brackets stay tight.
+# Example: int[] instead of int[ ]
+csharp_space_between_empty_square_brackets = false
+
+# Do not put spaces inside empty method-call parentheses.
+# Effect: no padding in calls with no arguments.
+# Example: Run() instead of Run( )
+csharp_space_between_method_call_empty_parameter_list_parentheses = false
+
+# Do not put a space between a method name and the opening call parenthesis.
+# Effect: method calls stay compact.
+# Example: Run(x) instead of Run (x)
+csharp_space_between_method_call_name_and_opening_parenthesis = false
+
+# Do not put spaces just inside method-call parentheses.
+# Effect: arguments are not padded.
+# Example: Run(x) instead of Run( x )
+csharp_space_between_method_call_parameter_list_parentheses = false
+
+# Do not put spaces inside empty method-declaration parentheses.
+# Effect: parameterless declarations stay compact.
+# Example: void Run() instead of void Run( )
+csharp_space_between_method_declaration_empty_parameter_list_parentheses = false
+
+# Do not put a space between a method declaration name and the opening parenthesis.
+# Effect: declarations stay compact.
+# Example: void Run(int x) instead of void Run (int x)
+csharp_space_between_method_declaration_name_and_open_parenthesis = false
+
+# Do not put spaces just inside method-declaration parentheses.
+# Effect: parameters are not padded.
+# Example: void Run(int x) instead of void Run( int x )
+csharp_space_between_method_declaration_parameter_list_parentheses = false
+
+# Do not put spaces just inside ordinary parentheses.
+# Effect: grouped expressions and control conditions stay tight.
+# Example: if (flag) instead of if ( flag )
+csharp_space_between_parentheses = false
+
+# Do not put spaces just inside square brackets.
+# Effect: indexers and attributes stay tight.
+# Example: items[i] instead of items[ i ]
+csharp_space_between_square_brackets = false
+
+# Preserve blocks that are already on one line when allowed.
+# Effect: a trivial block may stay compact after formatting.
+# Example: { Run(); } may remain one line in supported contexts
+csharp_preserve_single_line_blocks = true
+
+# Preserve single-line statements when allowed.
+# Effect: a simple statement can remain on one line after formatting.
+# Example: using var x = Create(); may stay on one line
+csharp_preserve_single_line_statements = true
+
+# Define a PascalCase naming style.
+# Effect: names should look like CustomerManager or ParseValue.
+# Example: MyType is valid, myType is not for this style.
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+
+# Define a camelCase naming style.
+# Effect: names should look like customerManager or parseValue.
+# Example: myValue is valid, MyValue is not for this style.
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# Define the naming style used for interfaces.
+# Effect: interfaces use PascalCase plus a configured prefix.
+# Example: ILogger fits the style base shape.
+dotnet_naming_style.interface_style.capitalization = pascal_case
+
+# Require I as the interface prefix.
+# Effect: interface names must start with I.
+# Example: ILogger is valid, Logger is not.
+dotnet_naming_style.interface_style.required_prefix = I
+
+# Define the naming style used for type parameters.
+# Effect: generic type parameter names use PascalCase plus a configured prefix.
+# Example: TValue fits the style base shape.
+dotnet_naming_style.type_parameter_style.capitalization = pascal_case
+
+# Require T as the type-parameter prefix.
+# Effect: generic parameters must start with T.
+# Example: TKey is valid, Key is not.
+dotnet_naming_style.type_parameter_style.required_prefix = T
+
+# Define a _camelCase naming style.
+# Effect: instance private or internal fields using this style start with an underscore.
+# Example: _count is valid, count is not.
+dotnet_naming_style._camel_case_style.capitalization = camel_case
+
+# Require _ as the prefix for the _camelCase style.
+# Effect: fields under this style must start with underscore.
+# Example: _value is valid.
+dotnet_naming_style._camel_case_style.required_prefix = _
+
+# Define an s_camelCase naming style for static fields.
+# Effect: static private or internal fields use s_ prefix plus camelCase.
+# Example: s_cache is valid, _cache is not under this style.
+dotnet_naming_style.s_camel_case_style.capitalization = camel_case
+
+# Require s_ as the prefix for the static-field style.
+# Effect: matching static fields must start with s_.
+# Example: s_instance is valid.
+dotnet_naming_style.s_camel_case_style.required_prefix = s_
+
+# Define a symbol group that matches interfaces.
+# Effect: later naming rules can target all interfaces through this symbol set.
+# Example: ILogger is evaluated against rules bound to interfaces.
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+
+# Apply the interface symbol group to all accessibilities.
+# Effect: public, internal, and private interfaces are all checked.
+# Example: internal interface Logger still gets checked.
+dotnet_naming_symbols.interfaces.applicable_accessibilities = *
+
+# Define a symbol group that matches generic type parameters.
+# Effect: later naming rules can target all generic type parameters.
+# Example: class Box<TItem> uses TItem from this group.
+dotnet_naming_symbols.type_parameters.applicable_kinds = type_parameter
+
+# Apply the type-parameter symbol group to all accessibilities.
+# Effect: any type parameter is checked.
+# Example: TKey in a public or internal generic type is checked.
+dotnet_naming_symbols.type_parameters.applicable_accessibilities = *
+
+# Define a symbol group for namespaces and most non-field members.
+# Effect: one rule can cover namespaces, types, methods, properties, events, and delegates.
+# Example: class CustomerService and method ParseValue are both covered.
+dotnet_naming_symbols.types_and_non_field_members.applicable_kinds = namespace, class, struct, interface, enum, delegate, property, method, event
+
+# Apply that broad symbol group to all accessibilities.
+# Effect: public, private, internal, etc. are all checked.
+# Example: private method parseValue would still be evaluated.
+dotnet_naming_symbols.types_and_non_field_members.applicable_accessibilities = *
+
+# Define a symbol group for local functions.
+# Effect: local functions can have their own rule separate from lambdas or methods.
+# Example: ParseCore inside a method is covered.
+dotnet_naming_symbols.local_functions.applicable_kinds = local_function
+
+# Apply the local-function symbol group to all accessibilities.
+# Effect: any local function is checked.
+# Example: a local helper inside a method is covered.
+dotnet_naming_symbols.local_functions.applicable_accessibilities = *
+
+# Define a symbol group for visible fields.
+# Effect: public and protected-like fields can be named differently from private fields.
+# Example: public int Count would be checked by this group.
+dotnet_naming_symbols.visible_fields.applicable_kinds = field
+
+# Restrict visible fields to public and protected-facing access levels.
+# Effect: private fields are excluded from this group.
+# Example: protected internal int Count is covered, private int _count is not.
+dotnet_naming_symbols.visible_fields.applicable_accessibilities = public, protected, protected_internal, private_protected
+
+# Define a symbol group for private and internal instance fields.
+# Effect: non-static private or internal fields can share the underscore rule.
+# Example: private int _count belongs here.
+dotnet_naming_symbols.private_internal_instance_fields.applicable_kinds = field
+
+# Restrict that group to private and internal access levels.
+# Effect: public fields are excluded from the underscore-field rule.
+# Example: internal int _cache is covered, public int Cache is not.
+dotnet_naming_symbols.private_internal_instance_fields.applicable_accessibilities = private, internal
+
+# Define a symbol group for private and internal static fields.
+# Effect: static backing data can use a different prefix than instance fields.
+# Example: private static int s_count belongs here.
+dotnet_naming_symbols.private_internal_static_fields.applicable_kinds = field
+
+# Restrict that static-field group to private and internal access levels.
+# Effect: public static fields are excluded from the s_ rule.
+# Example: internal static Cache s_cache is covered.
+dotnet_naming_symbols.private_internal_static_fields.applicable_accessibilities = private, internal
+
+# Require the static modifier for the private_internal_static_fields group.
+# Effect: only static fields in that access range match this symbol set.
+# Example: private static int s_count is covered, private int _count is not.
+dotnet_naming_symbols.private_internal_static_fields.required_modifiers = static
+
+# Define a symbol group for constants.
+# Effect: const fields and const locals can be named by one shared rule.
+# Example: const int MaxValue and const int localLimit are covered.
+dotnet_naming_symbols.constants.applicable_kinds = field, local
+
+# Apply the constants group to all accessibilities.
+# Effect: public const and private const are both checked.
+# Example: public const int max_value would be checked.
+dotnet_naming_symbols.constants.applicable_accessibilities = *
+
+# Require the const modifier for the constants group.
+# Effect: only constants match this group.
+# Example: const int MaxSize is covered, static readonly int MaxSize is not.
+dotnet_naming_symbols.constants.required_modifiers = const
+
+# Define a symbol group for parameters.
+# Effect: method and local-function parameters can share one naming rule.
+# Example: void Run(int count) checks count here.
+dotnet_naming_symbols.parameters.applicable_kinds = parameter
+
+# Apply the parameter group to all accessibilities.
+# Effect: parameters everywhere are checked.
+# Example: a constructor parameter and a method parameter are both covered.
+dotnet_naming_symbols.parameters.applicable_accessibilities = *
+
+# Define a symbol group for locals.
+# Effect: local variables can share one naming rule.
+# Example: int count = 0 inside a method is covered.
+dotnet_naming_symbols.locals.applicable_kinds = local
+
+# Apply the local-variable group to all accessibilities.
+# Effect: local variables everywhere are checked.
+# Example: loop locals and block locals are both covered.
+dotnet_naming_symbols.locals.applicable_accessibilities = *
+
+# Naming rule: interfaces must use the interfaces symbol group.
+# Effect: this binds the interface rule to all interface declarations.
+# Example: ILogger is checked under this rule.
+dotnet_naming_rule.interfaces_must_be_prefixed.symbols = interfaces
+
+# Naming rule: interfaces must use the interface_style style.
+# Effect: interface names must be PascalCase with I prefix.
+# Example: ILogger passes, Logger fails.
+dotnet_naming_rule.interfaces_must_be_prefixed.style = interface_style
+
+# Naming rule: interface naming violations are errors.
+# Effect: a bad interface name fails hard.
+# Example: interface Logger becomes an error.
+dotnet_naming_rule.interfaces_must_be_prefixed.severity = error
+
+# Naming rule: type parameters must use the type_parameters symbol group.
+# Effect: this binds the type-parameter rule to all generic parameter names.
+# Example: TItem is checked here.
+dotnet_naming_rule.type_parameters_must_be_prefixed.symbols = type_parameters
+
+# Naming rule: type parameters must use the type_parameter_style style.
+# Effect: generic parameters must be PascalCase with T prefix.
+# Example: TValue passes, Value fails.
+dotnet_naming_rule.type_parameters_must_be_prefixed.style = type_parameter_style
+
+# Naming rule: type-parameter naming violations are errors.
+# Effect: a bad generic parameter name fails hard.
+# Example: class Box<Item> becomes an error for Item.
+dotnet_naming_rule.type_parameters_must_be_prefixed.severity = error
+
+# Naming rule: broad type and member names must use the types_and_non_field_members group.
+# Effect: namespaces, types, methods, properties, events, etc. are checked together.
+# Example: parseValue as a method name is checked here.
+dotnet_naming_rule.types_and_non_field_members_must_be_pascal_case.symbols = types_and_non_field_members
+
+# Naming rule: those symbols must use PascalCase.
+# Effect: types and non-field members must be PascalCase.
+# Example: ParseValue passes, parseValue fails.
+dotnet_naming_rule.types_and_non_field_members_must_be_pascal_case.style = pascal_case_style
+
+# Naming rule: violations for that broad group are errors.
+# Effect: bad names in this category fail hard.
+# Example: class customerService becomes an error.
+dotnet_naming_rule.types_and_non_field_members_must_be_pascal_case.severity = error
+
+# Naming rule: local functions must use the local_functions symbol group.
+# Effect: local functions are checked separately from ordinary methods.
+# Example: ParseCore inside a method is checked here.
+dotnet_naming_rule.local_functions_must_be_pascal_case.symbols = local_functions
+
+# Naming rule: local functions must use PascalCase.
+# Effect: local helper functions use PascalCase like methods.
+# Example: ParseCore passes, parseCore fails.
+dotnet_naming_rule.local_functions_must_be_pascal_case.style = pascal_case_style
+
+# Naming rule: local-function naming violations are errors.
+# Effect: bad local-function names fail hard.
+# Example: local function parseCore becomes an error.
+dotnet_naming_rule.local_functions_must_be_pascal_case.severity = error
+
+# Naming rule: visible fields must use the visible_fields symbol group.
+# Effect: public and protected-like fields are checked by a separate field rule.
+# Example: public int Count is checked here.
+dotnet_naming_rule.visible_fields_must_be_pascal_case.symbols = visible_fields
+
+# Naming rule: visible fields must use PascalCase.
+# Effect: externally visible fields look like public properties and types.
+# Example: Count passes, count fails.
+dotnet_naming_rule.visible_fields_must_be_pascal_case.style = pascal_case_style
+
+# Naming rule: visible-field naming violations are errors.
+# Effect: public or protected field names that are not PascalCase fail hard.
+# Example: public int count becomes an error.
+dotnet_naming_rule.visible_fields_must_be_pascal_case.severity = error
+
+# Naming rule: private and internal instance fields use the private_internal_instance_fields symbol group.
+# Effect: instance backing fields are checked separately from public fields.
+# Example: private int _count is checked here.
+dotnet_naming_rule.private_internal_instance_fields_must_be_underscore_camel.symbols = private_internal_instance_fields
+
+# Naming rule: those fields must use the _camelCase style.
+# Effect: private and internal instance fields start with underscore.
+# Example: _count passes, count fails.
+dotnet_naming_rule.private_internal_instance_fields_must_be_underscore_camel.style = _camel_case_style
+
+# Naming rule: private/internal instance field naming violations are errors.
+# Effect: bad backing-field names fail hard.
+# Example: private int count becomes an error.
+dotnet_naming_rule.private_internal_instance_fields_must_be_underscore_camel.severity = error
+
+# Naming rule: private and internal static fields use the private_internal_static_fields symbol group.
+# Effect: static private or internal fields are checked separately from instance fields.
+# Example: private static int s_count is checked here.
+dotnet_naming_rule.private_internal_static_fields_must_be_s_camel.symbols = private_internal_static_fields
+
+# Naming rule: those static fields must use the s_camelCase style.
+# Effect: static private or internal fields start with s_.
+# Example: s_cache passes, _cache fails.
+dotnet_naming_rule.private_internal_static_fields_must_be_s_camel.style = s_camel_case_style
+
+# Naming rule: private/internal static field naming violations are errors.
+# Effect: bad static-field names fail hard.
+# Example: private static int cache becomes an error.
+dotnet_naming_rule.private_internal_static_fields_must_be_s_camel.severity = error
+
+# Naming rule: constants use the constants symbol group.
+# Effect: const fields and const locals are checked under one rule.
+# Example: const int MaxCount is checked here.
+dotnet_naming_rule.constants_must_be_pascal_case.symbols = constants
+
+# Naming rule: constants must use PascalCase.
+# Effect: const names look like type and member names, not screaming snake case.
+# Example: MaxCount passes, MAX_COUNT fails.
+dotnet_naming_rule.constants_must_be_pascal_case.style = pascal_case_style
+
+# Naming rule: constant naming violations are errors.
+# Effect: bad const names fail hard.
+# Example: const int maxCount becomes an error.
+dotnet_naming_rule.constants_must_be_pascal_case.severity = error
+
+# Naming rule: parameters use the parameters symbol group.
+# Effect: method and local-function parameters are checked here.
+# Example: void Run(int itemCount) checks itemCount here.
+dotnet_naming_rule.parameters_must_be_camel_case.symbols = parameters
+
+# Naming rule: parameters must use camelCase.
+# Effect: parameter names start lower-case.
+# Example: itemCount passes, ItemCount fails.
+dotnet_naming_rule.parameters_must_be_camel_case.style = camel_case_style
+
+# Naming rule: parameter naming violations are errors.
+# Effect: bad parameter names fail hard.
+# Example: void Run(int ItemCount) becomes an error.
+dotnet_naming_rule.parameters_must_be_camel_case.severity = error
+
+# Naming rule: locals use the locals symbol group.
+# Effect: local variables are checked here.
+# Example: int itemCount = 0 checks itemCount here.
+dotnet_naming_rule.locals_must_be_camel_case.symbols = locals
+
+# Naming rule: locals must use camelCase.
+# Effect: local variable names start lower-case.
+# Example: itemCount passes, ItemCount fails.
+dotnet_naming_rule.locals_must_be_camel_case.style = camel_case_style
+
+# Naming rule: local-variable naming violations are errors.
+# Effect: bad local names fail hard.
+# Example: int ItemCount = 0 becomes an error.
+dotnet_naming_rule.locals_must_be_camel_case.severity = error
+
+
+# ReSharper
+# ReSharper-specific C# formatting and style rules.
+# Effect: these settings let ReSharper follow the same general style direction as the Roslyn config above.
+
+# Prefer var for built-in types.
+# Effect: int count = 1 becomes var count = 1
+resharper_csharp_for_built_in_types = use_var
+
+# Prefer var when the type is simple or obvious.
+# Effect: List<int> values = new List<int>() becomes var values = new List<int>()
+resharper_csharp_for_simple_types = use_var
+
+# Prefer explicit types when the type is not obvious.
+# Effect: var customer = GetCustomer() becomes Customer customer = GetCustomer()
+resharper_csharp_for_other_types = use_explicit_type
+
+# Use Roslyn-style logic for deciding when a type is evident.
+# Effect: ReSharper tries to match standard .NET analyzer behavior for var decisions.
+resharper_csharp_use_roslyn_logic_for_evident_types = true
+
+# Do not qualify instance members by default.
+# Effect: this.count becomes count when no qualification is needed.
+resharper_csharp_instance_members_qualify_members = none
+
+# Only consider qualifying instance members declared in the current class.
+# Effect: qualification logic applies to members from this class, not unrelated contexts.
+resharper_csharp_instance_members_qualify_declared_in = this_class
+
+# Do not qualify static members by default.
+# Effect: TypeName.Value may be simplified where qualification is not preferred.
+resharper_csharp_static_members_qualify_members = none
+
+# When static qualification is needed, use the current type.
+# Effect: members are qualified with the containing type instead of a base type or alias.
+resharper_csharp_static_members_qualify_with = current_type
+
+# Put type declaration braces on the next line.
+# Effect:
+# class C
+# {
+# }
+resharper_csharp_type_declaration_braces = next_line
+
+# Put method and other invocable declaration braces on the next line.
+# Effect:
+# void Run()
+# {
+# }
+resharper_csharp_invocable_declaration_braces = next_line
+
+# Put anonymous method braces on the next line.
+# Effect:
+# delegate()
+# {
+#     Run()
+# }
+resharper_csharp_anonymous_method_declaration_braces = next_line
+
+# Put property, event, indexer, and similar owner braces on the next line.
+# Effect:
+# public int Count
+# {
+#     get
+#     {
+#         return _count
+#     }
+# }
+resharper_csharp_accessor_owner_declaration_braces = next_line
+
+# Put accessor braces on the next line.
+# Effect:
+# get
+# {
+#     return _count
+# }
+resharper_csharp_accessor_declaration_braces = next_line
+
+# Put switch case block braces on the next line.
+# Effect:
+# case 1:
+# {
+#     Run()
+#     break
+# }
+resharper_csharp_case_block_braces = next_line
+
+# Put other braces on the next line too.
+# Effect:
+# if (flag)
+# {
+#     Run()
+# }
+resharper_csharp_other_braces = next_line
+
+# Do not allow trailing comments immediately after an opening brace.
+# Effect: prevents forms like { # comment on the same line in brace-based layouts.
+resharper_csharp_allow_comment_after_lbrace = false
+
+# Keep empty blocks compact on one line.
+# Effect:
+# if (flag) { }
+resharper_csharp_empty_block_style = together_same_line
+
+# Use spaces for indentation.
+# Effect: indentation uses spaces instead of tabs.
+resharper_csharp_indent_style = space
+
+# Use 4 spaces per indent level.
+# Effect: one nesting level equals 4 spaces.
+resharper_csharp_indent_size = 4
+
+# Treat a tab width as 4 columns.
+# Effect: mixed-content alignment stays consistent with 4-column tabs.
+resharper_csharp_tab_width = 4
+
+# Do not vertically align wrapped array and object initializer elements.
+# Effect:
+# new Person
+# {
+#     Name = name,
+#     Age = age
+# }
+# instead of pushing elements into far alignment columns
+resharper_csharp_align_multiline_array_and_object_initializer = false
+
+# Do not vertically align switch expression arms.
+# Effect:
+# value switch
+# {
+#     0 => Zero,
+#     1 => One,
+#     _ => Other
+# }
+resharper_csharp_align_multiline_switch_expression = false
+
+# Do not vertically align multi-line property patterns.
+# Effect: wrapped property pattern members use normal indentation, not column alignment.
+resharper_csharp_align_multiline_property_pattern = false
+
+# Do not vertically align multi-line list patterns.
+# Effect: list pattern elements use standard indentation only.
+resharper_csharp_align_multiline_list_pattern = false
+
+# Do not vertically align multi-line binary patterns.
+# Effect: pattern lines are indented normally instead of lined up in columns.
+resharper_csharp_align_multiline_binary_patterns = false
+
+# Do not align wrapped arguments under the opening parenthesis.
+# Effect:
+# Run(
+#     first,
+#     second)
+# instead of deep paren-based alignment
+resharper_csharp_align_first_arg_by_paren = false
+
+# Preserve user-inserted line breaks where possible.
+# Effect: ReSharper does not aggressively reflow lines you intentionally broke.
+resharper_csharp_keep_user_linebreaks = true
+
+# Preserve the existing arrangement when possible.
+# Effect: code layout is kept stable unless a rule requires change.
+resharper_csharp_keep_existing_arrangement = true
+
+# Preserve existing line breaks in general.
+# Effect: ReSharper avoids collapsing multi-line code into one line unnecessarily.
+resharper_csharp_keep_existing_linebreaks = true
+
+# Do not wrap before commas.
+# Effect: commas stay at the end of the current line, not the start of the next line.
+resharper_csharp_wrap_before_comma = false
+
+# Wrap before binary operators.
+# Effect:
+# var value = first
+#     + second
+resharper_csharp_wrap_before_binary_opsign = true
+
+# Treat else if as a special compact construct.
+# Effect:
+# if (a)
+# {
+# }
+# else if (b)
+# {
+# }
+# instead of forcing else and if into unrelated separate layout logic
+resharper_csharp_special_else_if_treatment = true
+
+# Never keep simple embedded statements on the same line.
+# Effect:
+# if (flag)
+#     Run()
+# is discouraged in favor of a broken-out form
+resharper_csharp_place_simple_embedded_statement_on_same_line = never
+
+# Never keep simple case statements on the same line.
+# Effect:
+# case 1: Run()
+# is discouraged in favor of a broken-out case body
+resharper_csharp_place_simple_case_statement_on_same_line = never
+
+# Allow simple methods to remain on one line.
+# Effect:
+# int Get() => _value
+# or a tiny one-line method may remain compact
+resharper_csharp_place_simple_method_on_single_line = true
+
+# Allow simple accessors to remain on one line.
+# Effect:
+# get => _count
+resharper_csharp_place_simple_accessor_on_single_line = true
+
+# Allow simple initializers to remain on one line.
+# Effect:
+# new Point { X = 1, Y = 2 }
+resharper_csharp_place_simple_initializer_on_single_line = true
+
+# Put a space after control-flow keywords.
+# Effect: if (flag) instead of if(flag)
+resharper_csharp_space_after_keywords_in_control_flow_statements = true
+
+# Do not put a space before a comma.
+# Effect: Run(a, b) instead of Run(a , b)
+resharper_csharp_space_before_comma = false
+
+# Put a space after a comma.
+# Effect: Run(a, b) instead of Run(a,b)
+resharper_csharp_space_after_comma = true
+
+# Do not put a space before a semicolon.
+# Effect: for (int i = 0; i < n; i++) instead of for (int i = 0 ; i < n ; i++)
+resharper_csharp_space_before_semicolon = false
+
+# Put a space after a semicolon.
+# Effect: for (int i = 0; i < n; i++) instead of for (int i = 0;i < n;i++)
+resharper_csharp_space_after_semicolon = true
+
+# Put a space before the inheritance colon.
+# Effect: class C : Base
+resharper_csharp_space_before_colon_in_inheritance_clause = true
+
+# Put a space after the inheritance colon.
+# Effect: class C : Base
+resharper_csharp_space_after_colon_in_inheritance_clause = true
+
+# Put spaces around assignment operators.
+# Effect: value = other instead of value=other
+resharper_csharp_space_around_assignment_op = true
+
+# Put spaces around logical operators.
+# Effect: a && b instead of a&&b
+resharper_csharp_space_around_logical_op = true
+
+# Put spaces around equality operators.
+# Effect: a == b instead of a==b
+resharper_csharp_space_around_equality_op = true
+
+# Put spaces around relational operators.
+# Effect: a < b instead of a<b
+resharper_csharp_space_around_relational_op = true
+
+# Put spaces around bitwise operators.
+# Effect: a | b instead of a|b
+resharper_csharp_space_around_bitwise_op = true
+
+# Put spaces around additive operators.
+# Effect: a + b instead of a+b
+resharper_csharp_space_around_additive_op = true
+
+# Put spaces around multiplicative operators.
+# Effect: a * b instead of a*b
+resharper_csharp_space_around_multiplicative_op = true
+
+# Put spaces around shift operators.
+# Effect: a << b instead of a<<b
+resharper_csharp_space_around_shift_op = true
+
+# Put spaces around the null-coalescing operator.
+# Effect: value ?? fallback instead of value??fallback
+resharper_csharp_space_around_nullcoalescing_op = true
+
+# Do not put spaces around member-access dots.
+# Effect: obj.Member instead of obj . Member
+resharper_csharp_space_around_dot = false
+
+# Do not put a space after a cast.
+# Effect: (int)value instead of (int) value
+resharper_csharp_space_after_cast = false
+
+# Do not put a space after the logical not operator.
+# Effect: !flag instead of ! flag
+resharper_csharp_space_after_logical_not_op = false
+
+# Do not put a space after unary minus.
+# Effect: -value instead of - value
+resharper_csharp_space_after_unary_minus_op = false
+
+# Do not put a space before method call parentheses.
+# Effect: Run(x) instead of Run (x)
+resharper_csharp_space_before_method_call_parentheses = false
+
+# Do not put a space before empty method call parentheses.
+# Effect: Run() instead of Run ()
+resharper_csharp_space_before_empty_method_call_parentheses = false
+
+# Do not put a space before method declaration parentheses.
+# Effect: void Run(int x) instead of void Run (int x)
+resharper_csharp_space_before_method_parentheses = false
+
+# Do not put a space before constructor parentheses.
+# Effect: C(int x) instead of C (int x)
+resharper_csharp_space_before_constructor_parentheses = false
+
+# Do not put spaces inside method call parentheses.
+# Effect: Run(x) instead of Run( x )
+resharper_csharp_space_within_method_call_parentheses = false
+
+# Do not put spaces inside method declaration parentheses.
+# Effect: void Run(int x) instead of void Run( int x )
+resharper_csharp_space_within_method_parentheses = false
+
+# Do not put spaces inside normal parentheses.
+# Effect: if (flag) instead of if ( flag )
+resharper_csharp_space_within_parentheses = false
+
+# Do not put spaces inside brackets.
+# Effect: items[i] instead of items[ i ]
+resharper_csharp_space_within_brackets = false
+
+# Do not put a space before an opening square bracket.
+# Effect: items[i] instead of items [i]
+resharper_csharp_space_before_open_square_brackets = false
+
+# Do not put a space before array access brackets.
+# Effect: items[i] instead of items [i]
+resharper_csharp_space_before_array_access_brackets = false
+
+# Do not put spaces inside array access brackets.
+# Effect: items[i] instead of items[ i ]
+resharper_csharp_space_within_array_access_brackets = false
+
+# Do not put a space before semicolons in for statements.
+# Effect: for (int i = 0; i < n; i++) instead of for (int i = 0 ; i < n ; i++)
+resharper_csharp_space_before_semicolon_in_for_statement = false
+
+# Put a space after semicolons in for statements.
+# Effect: for (int i = 0; i < n; i++) instead of for (int i = 0;i < n;i++)
+resharper_csharp_space_after_semicolon_in_for_statement = true
+
+resharper_suggest_var_or_type_simple_types_highlighting = none
+resharper_suggest_var_or_type_built_in_types_highlighting = none
+resharper_suggest_var_or_type_deconstruction_declarations_highlighting = none
+resharper_suggest_var_or_type_elsewhere_highlighting = none
+
+resharper_invert_if_highlighting = none
+
+resharper_convert_to_primary_constructor_highlighting = none
+
+
+# Do not prefer converting loops into LINQ
+
+
+# Disable suggestions to convert a whole loop into LINQ
+resharper_loop_can_be_converted_to_query_highlighting = none
+
+# Disable suggestions to convert part of a loop into LINQ
+resharper_loop_can_be_partly_converted_to_query_highlighting = none
+
+# Disable suggestions to convert a foreach loop into LINQ when another GetEnumerator would be used
+resharper_foreach_can_be_converted_to_query_using_another_get_enumerator_highlighting = none
+
+# Disable suggestions to convert part of a foreach loop into LINQ when another GetEnumerator would be used
+resharper_foreach_can_be_partly_converted_to_query_using_another_get_enumerator_highlighting = none
+
+# TODO
+#dotnet_style_prefer_collection_expression = when_types_loosely_match
+
+dotnet_style_prefer_collection_expression = when_types_loosely_match
+
+
+dotnet_diagnostic.CA1827.severity = none
+dotnet_diagnostic.CA1829.severity = warning
+dotnet_diagnostic.CA1836.severity = warning
+dotnet_diagnostic.CA1855.severity = warning
+dotnet_diagnostic.CA1856.severity = warning
+dotnet_diagnostic.CA1859.severity = warning
+dotnet_diagnostic.CA1860.severity = warning
+dotnet_diagnostic.CA1869.severity = suggestion
+dotnet_diagnostic.CA1873.severity = suggestion
+dotnet_diagnostic.CA1874.severity = suggestion
+dotnet_diagnostic.CA1875.severity = suggestion
+dotnet_diagnostic.CA1877.severity = suggestion
+
+dotnet_diagnostic.RS0030.severity = warning
+
+dotnet_diagnostic.IDE0010.severity = none
+dotnet_diagnostic.IDE0011.severity = warning
+dotnet_diagnostic.IDE0022.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0072.severity = warning
+dotnet_diagnostic.IDE0290.severity = none
+dotnet_diagnostic.IDE0301.severity = suggestion
+dotnet_diagnostic.IDE0305.severity = none

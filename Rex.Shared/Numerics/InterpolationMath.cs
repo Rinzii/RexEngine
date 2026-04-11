@@ -22,26 +22,26 @@ public static class InterpolationMath
     /// <summary>Hermite edge blend from 0 to 1. When both edges coincide, the result is 0 below that value and 1 at or above.</summary>
     public static float SmoothStep(float edge0, float edge1, float x)
     {
-        var denom = edge1 - edge0;
+        float denom = edge1 - edge0;
         if (denom == 0f)
         {
             return x < edge0 ? 0f : 1f;
         }
 
-        var t = Math.Clamp((x - edge0) / denom, 0f, 1f);
-        return t * t * (3f - 2f * t);
+        float t = Math.Clamp((x - edge0) / denom, 0f, 1f);
+        return t * t * (3f - (2f * t));
     }
 
     /// <summary>Hermite edge blend from 0 to 1. When both edges coincide, the result is 0 below that value and 1 at or above.</summary>
     public static double SmoothStep(double edge0, double edge1, double x)
     {
-        var denom = edge1 - edge0;
+        double denom = edge1 - edge0;
         if (denom == 0.0)
         {
             return x < edge0 ? 0.0 : 1.0;
         }
 
-        var t = Math.Clamp((x - edge0) / denom, 0.0, 1.0);
-        return t * t * (3.0 - 2.0 * t);
+        double t = Math.Clamp((x - edge0) / denom, 0.0, 1.0);
+        return t * t * (3.0 - (2.0 * t));
     }
 }

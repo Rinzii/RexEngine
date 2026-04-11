@@ -1,6 +1,6 @@
 using Rex.Shared.Numerics;
 
-namespace Rex.Shared.Tests.Numerics;
+namespace Rex.Shared.Tests.Math;
 
 public sealed class InterpolationMathTests
 {

@@ -1,5 +1,5 @@
-using Rex.Shared.Net.Messages;
 using Rex.Shared.Net;
+using Rex.Shared.Net.Messages;
 
 namespace Rex.Sandbox.Shared.Net.Messages;
 
@@ -8,17 +8,18 @@ namespace Rex.Sandbox.Shared.Net.Messages;
 /// </summary>
 public static class SandboxNetMessages
 {
-    private static bool _registered;
+    private static bool s_registered;
+
     public static void RegisterAll()
     {
         CoreNetMessages.RegisterAll();
 
-        if (_registered)
+        if (s_registered)
         {
             return;
         }
 
-        _registered = true;
+        s_registered = true;
 
         NetMessageRegistry.Register(ConnectRequestMessage.Id, ConnectRequestMessage.Deserialize);
         NetMessageRegistry.Register(ConnectResponseMessage.Id, ConnectResponseMessage.Deserialize);

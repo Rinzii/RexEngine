@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.IoC;
 
 /// <summary>Marks a field filled by the DI container. Do not assign in user code (analyzer warns).</summary>
