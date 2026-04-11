@@ -36,6 +36,11 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     /// <inheritdoc />
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
+        if (_peer.ConnectionState != LiteNetLib.ConnectionState.Connected)
+        {
+            return;
+        }
+
         _writer.Reset();
         message.Serialize(_writer);
         _peer.Send(_writer, channel, delivery);
@@ -51,6 +56,12 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     /// <inheritdoc />
     public void Disconnect(string reason)
     {
+        if (_peer.ConnectionState != LiteNetLib.ConnectionState.Connected)
+        {
+            State = ConnectionState.Disconnected;
+            return;
+        }
+
         State = ConnectionState.Disconnecting;
         _writer.Reset();
         _writer.Put(reason);
