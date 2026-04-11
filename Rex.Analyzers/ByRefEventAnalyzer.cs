@@ -12,6 +12,13 @@ namespace Rex.Analyzers;
 public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
 {
     private const string ByRefAttribute = "Rex.Shared.GameObjects.ByRefEventAttribute";
+    private static readonly string[] s_raiseTypeNames =
+    [
+        "Rex.Shared.GameObjects.EntitySystem",
+        "Rex.Shared.GameObjects.EntitySystemManager",
+        "Rex.Shared.GameObjects.EntityEventBus",
+        "Rex.Shared.GameObjects.IDirectedEventBus"
+    ];
 
     private static readonly DiagnosticDescriptor s_byRefEventSubscribedByValueRule = new(
         IdByRefEventSubscribedByValue,
@@ -55,29 +62,19 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(compilationContext =>
         {
-            IEnumerable<IMethodSymbol>? raiseMethods = compilationContext.Compilation
-                .GetTypeByMetadataName("Rex.Shared.GameObjects.EntitySystem")?
-                .GetMembers()
-                .Where(m => m.Name.Contains("RaiseLocalEvent") && m.Kind == SymbolKind.Method)
-                .Cast<IMethodSymbol>();
+            IMethodSymbol[] raiseMethodsArray = s_raiseTypeNames
+                .Select(compilationContext.Compilation.GetTypeByMetadataName)
+                .Where(static type => type != null)
+                .SelectMany(static type => type!.GetMembers())
+                .Where(static member => member.Name.Contains("RaiseLocalEvent", StringComparison.Ordinal)
+                                        && member.Kind == SymbolKind.Method)
+                .Cast<IMethodSymbol>()
+                .ToArray();
 
-            IEnumerable<IMethodSymbol>? busRaiseMethods = compilationContext.Compilation
-                .GetTypeByMetadataName("Rex.Shared.GameObjects.EntityEventBus")?
-                .GetMembers()
-                .Where(m => m.Name.Contains("RaiseLocalEvent") && m.Kind == SymbolKind.Method)
-                .Cast<IMethodSymbol>();
-
-            if (raiseMethods == null)
+            if (raiseMethodsArray.Length == 0)
             {
                 return;
             }
-
-            if (busRaiseMethods != null)
-            {
-                raiseMethods = raiseMethods.Concat(busRaiseMethods);
-            }
-
-            IMethodSymbol[] raiseMethodsArray = raiseMethods.ToArray();
 
             compilationContext.RegisterOperationAction(
                 ctx => CheckEventRaise(ctx, raiseMethodsArray),
@@ -101,14 +98,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
 
         if (!raiseMethods.Any(m => m.Equals(operation.TargetMethod.OriginalDefinition, Default)))
         {
-            // If you try to do this normally by concatenating like busRaiseMethods above
-            // the analyzer does not run without any errors
-            // I don't know man
-            const string DirectedBusMethod = "Rex.Shared.GameObjects.IDirectedEventBus.RaiseLocalEvent";
-            if (!operation.TargetMethod.ToString().StartsWith(DirectedBusMethod))
-            {
-                return;
-            }
+            return;
         }
 
         ImmutableArray<IArgumentOperation> arguments = operation.Arguments;

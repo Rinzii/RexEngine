@@ -30,7 +30,7 @@
         <Compile Remove="..\Rex.Roslyn.Shared\obj\**\*.cs"/>
     </ItemGroup>
 
-    <!-- Types compiled into the analyzer assembly for analyzer logic (mirrors RobustToolbox pattern). -->
+    <!-- Types compiled into the analyzer assembly for analyzer logic. -->
     <ItemGroup>
         <Compile Include="..\Rex.Shared\Analyzers\AccessAttribute.cs" LinkBase="Implementations"/>
         <Compile Include="..\Rex.Shared\Analyzers\AccessPermissions.cs" LinkBase="Implementations"/>
