@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "license": "LicenseRef-Epic-Games-Metahuman-Sample",
+  "copyright": "Epic Games reference asset for internal engine testing.",
+  "size": {
+    "x": 1.0,
+    "y": 0.8,
+    "z": 2.1
+  },
+  "sources": [
+    {
+      "id": "manny_collision",
+      "kind": "collision",
+      "format": "fbx",
+      "path": "source/Manny_Unreal_Engine_5.fbx",
+      "scale": 1.0,
+      "upAxis": "z",
+      "forwardAxis": "x",
+      "metadata": {
+        "purpose": "shared_collision"
+      }
+    },
+    {
+      "id": "manny_mesh",
+      "kind": "model",
+      "format": "fbx",
+      "path": "source/Manny_Unreal_Engine_5.fbx",
+      "scale": 1.0,
+      "upAxis": "z",
+      "forwardAxis": "x",
+      "metadata": {
+        "skeleton": "humanoid"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "name": "manny_body_primary",
+      "shader": "standard",
+      "domain": "opaque",
+      "textures": {
+        "albedo": "textures/T_Manny_01_D.png",
+        "ambientOcclusion": "textures/T_Manny_01_AO.png",
+        "metallic": "textures/T_Manny_01_METAL.png",
+        "roughness": "textures/T_Manny_01_ROUG.png",
+        "clearcoat": "textures/T_Manny_01_CCOAT.png",
+        "clearcoatRoughness": "textures/T_Manny_01_CCROUG.png"
+      }
+    },
+    {
+      "name": "manny_body_secondary",
+      "shader": "standard",
+      "domain": "opaque",
+      "textures": {
+        "albedo": "textures/T_Manny_02_D.png",
+        "ambientOcclusion": "textures/T_Manny_02_AO.png",
+        "metallic": "textures/T_Manny_02_METAL.png",
+        "roughness": "textures/T_Manny_02_ROUG.png",
+        "clearcoat": "textures/T_Manny_02_CCOAT.png",
+        "clearcoatRoughness": "textures/T_Manny_02_CCROUG.png"
+      }
+    }
+  ],
+  "states": [
+    {
+      "name": "reference",
+      "source": "manny_mesh",
+      "flags": {
+        "usage": "animation_reference"
+      },
+      "lods": [
+        {
+          "source": "manny_mesh",
+          "screenCoverage": 1.0
+        }
+      ],
+      "animations": [
+        {
+          "name": "idle",
+          "source": "manny_mesh",
+          "clip": "Idle",
+          "loop": true,
+          "rootMotion": false,
+          "events": [
+            {
+              "name": "footstep",
+              "time": 0.5,
+              "payload": {
+                "foot": "left"
+              }
+            }
+          ]
+        }
+      ],
+      "attachments": [
+        {
+          "name": "head",
+          "node": "head"
+        },
+        {
+          "name": "hand_l",
+          "node": "hand_l"
+        },
+        {
+          "name": "hand_r",
+          "node": "hand_r"
+        }
+      ],
+      "materials": [
+        {
+          "slot": "body_primary",
+          "material": "manny_body_primary"
+        },
+        {
+          "slot": "body_secondary",
+          "material": "manny_body_secondary"
+        }
+      ],
+      "collision": {
+        "source": "manny_collision",
+        "kind": "triangleMesh"
+      }
+    }
+  ],
+  "prototypes": [
+    {
+      "name": "humanoid_animation",
+      "kind": "animationSet",
+      "defaultState": "reference",
+      "states": [
+        "reference"
+      ],
+      "animations": [
+        "idle"
+      ],
+      "tags": {
+        "rig": "humanoid"
+      }
+    },
+    {
+      "name": "humanoid_render",
+      "kind": "render",
+      "defaultState": "reference",
+      "states": [
+        "reference"
+      ],
+      "materials": [
+        "manny_body_primary",
+        "manny_body_secondary"
+      ],
+      "tags": {
+        "shadowCaster": "true"
+      }
+    },
+    {
+      "name": "humanoid_attachments",
+      "kind": "attachmentSet",
+      "inherits": "humanoid_render",
+      "defaultState": "reference",
+      "states": [
+        "reference"
+      ],
+      "materials": [
+        "manny_body_primary",
+        "manny_body_secondary"
+      ],
+      "tags": {
+        "supportsEquipment": "true"
+      }
+    }
+  ],
+  "load": {
+    "srgb": true,
+    "generateNormals": true,
+    "generateTangents": true,
+    "optimizeMeshes": true,
+    "optimizeAnimations": true,
+    "gpuInstance": false,
+    "cpuReadable": true,
+    "stream": false,
+    "preferBinaryJson": true
+  }
+}
