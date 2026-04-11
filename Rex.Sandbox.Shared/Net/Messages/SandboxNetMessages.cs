@@ -27,5 +27,6 @@ public static class SandboxNetMessages
         NetMessageRegistry.Register(WorldSnapshotMessage.Id, WorldSnapshotMessage.Deserialize);
         NetMessageRegistry.Register(EntitySpawnMessage.Id, EntitySpawnMessage.Deserialize);
         NetMessageRegistry.Register(EntityDestroyMessage.Id, EntityDestroyMessage.Deserialize);
+        NetMessageRegistry.Register(RequestFullStateMessage.Id, RequestFullStateMessage.Deserialize);
     }
 }

@@ -1,14 +1,21 @@
 using Microsoft.Extensions.Logging;
 using Rex.Client.Net;
 using Rex.Sandbox.Client.Input;
+using Rex.Sandbox.Shared.Components;
+using Rex.Sandbox.Shared.Components.Registration;
 using Rex.Sandbox.Shared.Net;
 using Rex.Sandbox.Shared.Net.Messages;
 using Rex.Sandbox.Shared.Net.Transfer;
 using Rex.Sandbox.Shared.Simulation;
+using Rex.Shared.Components.BuiltIn;
+using Rex.Shared.Components.Registration;
+using Rex.Shared.GameStates;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Messages;
+using Rex.Shared.Net.Replication;
 using Rex.Shared.Net.Transfer;
+using Rex.Shared.Serialization.Components;
 using Rex.Shared.Utility;
 using ConnectionState = Rex.Shared.Net.ConnectionState;
 
@@ -23,6 +30,8 @@ public sealed partial class GameClient
     private readonly BulkTransferManager _transferManager;
     private IClientNetChannel? _channel;
     private InputCollector? _inputCollector;
+    // One resync flight at a time while the tracker waits for a full baseline snapshot.
+    private bool _awaitingFullState;
 
     public GameClient(ILoggerFactory loggerFactory)
     {
@@ -114,6 +123,13 @@ public sealed partial class GameClient
 
     private void OnDisconnected(string reason)
     {
+        // Drop session-scoped prediction and replicated state so the next connect starts clean.
+        ClientId = Guid.Empty;
+        LocalPlayerEntityId = 0;
+        WorldState.Reset();
+        Prediction.Reset();
+        InputBuffer.Clear();
+        _awaitingFullState = false;
         LogDisconnected(reason);
     }
 
@@ -134,9 +150,11 @@ public sealed partial class GameClient
                 _transferManager.HandleTransferChunk(transferChunk);
                 break;
             case EntitySpawnMessage spawn:
+                WorldState.ApplySpawn(spawn);
                 LogEntitySpawned(spawn.EntityId, spawn.EntityType);
                 break;
             case EntityDestroyMessage destroy:
+                WorldState.ApplyDestroy(destroy);
                 LogEntityDestroyed(destroy.EntityId);
                 break;
             default:
@@ -156,22 +174,48 @@ public sealed partial class GameClient
 
         ClientId = response.ClientId;
         LocalPlayerEntityId = response.LocalPlayerEntityId;
+        WorldState.Reset();
+        Prediction.Reset();
+        InputBuffer.Clear();
+        _awaitingFullState = false;
         _channel!.State = ConnectionState.InGame;
         LogConnectionAccepted(response.ClientId, response.TickRate);
     }
 
     private void HandleWorldSnapshot(WorldSnapshotMessage snapshot)
     {
-        WorldState.ApplySnapshot(snapshot);
+        GameStateApplyResult applyResult = WorldState.ApplySnapshot(snapshot);
+
+        if (snapshot.IsFullSnapshot && applyResult == GameStateApplyResult.Applied)
+        {
+            _awaitingFullState = false;
+        }
+
+        if (WorldState.NeedsFullState)
+        {
+            // Partial deltas without a trusted baseline never get acked. Ask once for a full snapshot then wait.
+            if (!_awaitingFullState && _channel != null)
+            {
+                RequestFullStateMessage request = new(WorldState.LastServerTick);
+                _channel.Send(request);
+                _awaitingFullState = true;
+                LogFullStateRequested(WorldState.LastServerTick);
+            }
+
+            return;
+        }
+
+        if (applyResult != GameStateApplyResult.Applied)
+        {
+            return;
+        }
+
         _channel?.Send(new StateAckMessage(snapshot.ServerTick));
 
-        foreach (EntityState entity in snapshot.Entities)
+        if (WorldState.TryGetEntityState(LocalPlayerEntityId, out EntityState entity))
         {
-            if (entity.EntityId == LocalPlayerEntityId)
-            {
-                Prediction.Reconcile(entity, snapshot.LastProcessedInputTick);
-                break;
-            }
+            // Server time for inputs already applied is the anchor for replaying local prediction ahead of it.
+            Prediction.Reconcile(entity, snapshot.LastProcessedInputTick);
         }
     }
 
@@ -229,6 +273,17 @@ public sealed class InputBuffer
         result.Sort((a, b) => a.Tick.CompareTo(b.Tick));
         return result;
     }
+
+    public void Clear()
+    {
+        // Clear every physical slot because ticks wrap and IsAssigned alone does not expose empties.
+        for (int i = 0; i < _buffer.Capacity; i++)
+        {
+            TickRingBuffer<PlayerInputMessage?>.Entry slot = _buffer.GetSlotAt(i);
+            slot.IsAssigned = false;
+            slot.Value = null;
+        }
+    }
 }
 
 public sealed class PredictionSystem
@@ -264,54 +319,204 @@ public sealed class PredictionSystem
             ApplyInputLocally(input);
         }
     }
+
+    public void Reset()
+    {
+        PredictedX = 0f;
+        PredictedY = 0f;
+        PredictedZ = 0f;
+    }
 }
 
 public sealed class ClientWorldState
 {
-    private WorldSnapshotMessage? _previousSnapshot;
+    private readonly AuthoritativeGameStateTracker<int, ReplicatedEntityState> _tracker = new(static entity => entity.EntityId);
+    private readonly List<EntityState> _currentEntities = [];
+    private readonly Dictionary<int, ReplicatedEntityState> _previousEntities = [];
+    private readonly List<EntityState> _interpolatedEntities = [];
+    private readonly int _transformComponentId;
+    private readonly int _sandboxActorComponentId;
 
-    public WorldSnapshotMessage? CurrentSnapshot { get; private set; }
-    public uint LastServerTick => CurrentSnapshot?.ServerTick ?? 0;
-
-    public void ApplySnapshot(WorldSnapshotMessage snapshot)
+    public ClientWorldState()
     {
-        _previousSnapshot = CurrentSnapshot;
-        CurrentSnapshot = snapshot;
+        ComponentRegistry registry = new();
+        SharedEcsBootstrap.RegisterAll(registry);
+        SandboxEcsBootstrap.RegisterAll(registry);
+        _transformComponentId = registry.GetComponentId<TransformComponent>();
+        _sandboxActorComponentId = registry.GetComponentId<SandboxActorComponent>();
+    }
+
+    public IGameState<ReplicatedEntityState>? CurrentSnapshot => _tracker.Current;
+    public IReadOnlyList<EntityState> CurrentEntities => BuildCurrentEntities();
+    public uint LastServerTick => _tracker.LastServerTick;
+    public bool NeedsFullState => _tracker.NeedsFullState;
+
+    public GameStateApplyResult ApplySnapshot(WorldSnapshotMessage snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        return _tracker.ApplySnapshot(snapshot);
+    }
+
+    public void ApplySpawn(EntitySpawnMessage spawn)
+    {
+        ArgumentNullException.ThrowIfNull(spawn);
+
+        // Spawns are thin protocol rows. Rebuild the same replicated shape snapshots use so ApplyUpsert matches ApplySnapshot.
+        List<ReplicatedComponentState> components =
+        [
+            new(_transformComponentId, ProtobufComponentSerializer<TransformComponent>.Instance.Serialize(new TransformComponent
+            {
+                X = spawn.X,
+                Y = spawn.Y,
+                Z = spawn.Z,
+                RotationY = spawn.RotationY
+            })),
+            new(_sandboxActorComponentId, ProtobufComponentSerializer<SandboxActorComponent>.Instance.Serialize(new SandboxActorComponent
+            {
+                NetEntityId = spawn.EntityId,
+                EntityType = spawn.EntityType
+            }))
+        ];
+
+        ReplicatedEntityState upsert = new(spawn.EntityId, components);
+        if (_tracker.TryGetCurrentEntity(spawn.EntityId, out ReplicatedEntityState existing))
+        {
+            upsert = MergeReplicatedEntityState(existing, upsert);
+        }
+
+        _tracker.ApplyUpsert(spawn.ServerTick, upsert);
+    }
+
+    public void ApplyDestroy(EntityDestroyMessage destroy)
+    {
+        ArgumentNullException.ThrowIfNull(destroy);
+        _tracker.ApplyRemove(destroy.ServerTick, destroy.EntityId);
+    }
+
+    public void Reset()
+    {
+        _tracker.Reset();
     }
 
     public IReadOnlyList<EntityState> GetInterpolatedState(float alpha)
     {
-        if (CurrentSnapshot == null)
+        if (_tracker.Current == null)
         {
             return [];
         }
 
-        if (_previousSnapshot == null)
+        _previousEntities.Clear();
+        if (_tracker.Previous != null)
         {
-            return CurrentSnapshot.Entities;
-        }
-
-        var result = new List<EntityState>();
-        var previousEntities = new Dictionary<int, EntityState>();
-
-        foreach (EntityState entity in _previousSnapshot.Entities)
-        {
-            previousEntities[entity.EntityId] = entity;
-        }
-
-        foreach (EntityState current in CurrentSnapshot.Entities)
-        {
-            if (previousEntities.TryGetValue(current.EntityId, out EntityState? previous))
+            foreach (ReplicatedEntityState entity in _tracker.Previous.Entities)
             {
-                result.Add(EntityStateInterpolation.Lerp(previous, current, alpha));
+                _previousEntities[entity.EntityId] = entity;
+            }
+        }
+
+        _interpolatedEntities.Clear();
+        foreach (ReplicatedEntityState current in _tracker.Current.Entities)
+        {
+            if (!TryReadEntityState(current, out EntityState currentState))
+            {
+                continue;
+            }
+
+            if (_previousEntities.TryGetValue(current.EntityId, out ReplicatedEntityState? previous)
+                && TryReadEntityState(previous, out EntityState previousState))
+            {
+                _interpolatedEntities.Add(EntityStateInterpolation.Lerp(previousState, currentState, alpha));
             }
             else
             {
-                result.Add(current);
+                _interpolatedEntities.Add(currentState);
             }
         }
 
-        return result;
+        return _interpolatedEntities;
+    }
+
+    private List<EntityState> BuildCurrentEntities()
+    {
+        _currentEntities.Clear();
+        if (_tracker.Current == null)
+        {
+            return _currentEntities;
+        }
+
+        foreach (ReplicatedEntityState entity in _tracker.Current.Entities)
+        {
+            if (TryReadEntityState(entity, out EntityState entityState))
+            {
+                _currentEntities.Add(entityState);
+            }
+        }
+
+        return _currentEntities;
+    }
+
+    public bool TryGetEntityState(int entityId, out EntityState entityState)
+    {
+        entityState = default!;
+        if (_tracker.Current == null)
+        {
+            return false;
+        }
+
+        foreach (ReplicatedEntityState entity in _tracker.Current.Entities)
+        {
+            if (entity.EntityId == entityId && TryReadEntityState(entity, out entityState))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryReadEntityState(ReplicatedEntityState replicatedEntity, out EntityState entityState)
+    {
+        entityState = default!;
+        // Legacy EntityState is still transform-only for render and prediction paths.
+        for (int i = 0; i < replicatedEntity.Components.Count; i++)
+        {
+            ReplicatedComponentState component = replicatedEntity.Components[i];
+            if (component.ComponentId != _transformComponentId)
+            {
+                continue;
+            }
+
+            TransformComponent transform = ProtobufComponentSerializer<TransformComponent>.Instance.Deserialize(component.Payload);
+            entityState = new EntityState(
+                replicatedEntity.EntityId,
+                transform.X,
+                transform.Y,
+                transform.Z,
+                transform.RotationY);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static ReplicatedEntityState MergeReplicatedEntityState(ReplicatedEntityState current, ReplicatedEntityState update)
+    {
+        Dictionary<int, ReplicatedComponentState> mergedComponents = [];
+        for (int i = 0; i < current.Components.Count; i++)
+        {
+            ReplicatedComponentState component = current.Components[i];
+            mergedComponents[component.ComponentId] = component;
+        }
+
+        for (int i = 0; i < update.Components.Count; i++)
+        {
+            ReplicatedComponentState component = update.Components[i];
+            mergedComponents[component.ComponentId] = component;
+        }
+
+        return new ReplicatedEntityState(
+            update.EntityId,
+            [.. mergedComponents.OrderBy(static pair => pair.Key).Select(static pair => pair.Value)]);
     }
 }
 
@@ -348,4 +553,8 @@ public sealed partial class GameClient
     [LoggerMessage(EventId = LogEventIds.GameClient.UnhandledNetMessage, Level = LogLevel.Debug,
         Message = "Unhandled inbound message: Id {MessageId} ({MessageType})")]
     private partial void LogUnhandledNetMessage(ushort messageId, string messageType);
+
+    [LoggerMessage(EventId = LogEventIds.GameClient.FullStateRequested, Level = LogLevel.Information,
+        Message = "Requested full authoritative state from tick {LastAppliedServerTick}")]
+    private partial void LogFullStateRequested(uint lastAppliedServerTick);
 }

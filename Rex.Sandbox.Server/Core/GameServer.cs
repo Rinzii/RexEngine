@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Sockets;
 using LiteNetLib;
 using Microsoft.Extensions.Logging;
 using Rex.Sandbox.Server.Simulation;
@@ -31,11 +32,13 @@ public sealed partial class GameServer
     {
         _listener = new EventBasedNetListener();
         _netManager = new NetManager(_listener);
+        LiteNetLibTransportConfiguration.ApplyServerDefaults(_netManager);
 
         _listener.ConnectionRequestEvent += OnConnectionRequest;
         _listener.PeerConnectedEvent += OnPeerConnected;
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
+        _listener.NetworkErrorEvent += OnNetworkError;
 
         if (!_netManager.Start(Host.Config.Port))
         {
@@ -104,7 +107,6 @@ public sealed partial class GameServer
     {
         if (!_peerToClientId.TryGetValue(peer, out Guid clientId))
         {
-            reader.Recycle();
             return;
         }
 
@@ -112,14 +114,17 @@ public sealed partial class GameServer
         try
         {
             INetMessage message = NetMessageRegistry.Deserialize(reader);
-            reader.Recycle();
             Host.HandleMessage(clientId, message);
         }
         catch (Exception ex)
         {
             LogDeserializeMessageFailed(clientId, ex);
-            reader.Recycle();
         }
+    }
+
+    private void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+    {
+        LogNetworkError(endPoint, socketError);
     }
 }
 
@@ -167,4 +172,8 @@ public sealed partial class GameServer
     [LoggerMessage(EventId = LogEventIds.GameServerNet.DeserializeMessageFailed, Level = LogLevel.Warning,
         Message = "Failed to deserialize inbound message for ClientId {ClientId}.")]
     private partial void LogDeserializeMessageFailed(Guid clientId, Exception ex);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerNet.NetworkError, Level = LogLevel.Warning,
+        Message = "LiteNetLib server transport error from {EndPoint}: {SocketError}.")]
+    private partial void LogNetworkError(IPEndPoint endPoint, SocketError socketError);
 }

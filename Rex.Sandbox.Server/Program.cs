@@ -14,15 +14,16 @@ internal static class Program
 {
     internal static void Main(string[] args)
     {
-        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
-
-        ILogger bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
-
         if (!CommandLineArgs.TryParse(args, out CommandLineArgs? parsed, out string? parseError))
         {
-            bootstrapLogger.CliParseFailed(parseError);
+            using ILoggerFactory parseLoggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
+            ILogger parseLogger = parseLoggerFactory.CreateLogger("Rex.Sandbox.Server");
+            parseLogger.CliParseFailed(parseError);
             return;
         }
+
+        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory(logLevels: parsed.LogLevels);
+        ILogger bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
 
         foreach (string arg in parsed.UnrecognizedArguments)
         {
@@ -151,12 +152,6 @@ internal sealed class CommandLineArgs
                     error = "Missing value for --cvar.";
                     return false;
                 case "--cvar":
-                {
-                    string cvar = enumerator.Current;
-                    DebugTools.AssertNotNull(cvar);
-                    int pos = cvar.IndexOf('=');
-
-                    if (pos == -1)
                     {
                         string cvar = enumerator.Current;
                         DebugTools.AssertNotNull(cvar);
@@ -172,19 +167,19 @@ internal sealed class CommandLineArgs
                         break;
                     }
 
-                    cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
-                    break;
-                }
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --cvar.";
+                            return false;
+                        }
+
+                        cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
+                        break;
+                    }
                 case "--logLevel" when !enumerator.MoveNext():
                     error = "Missing value for --logLevel.";
                     return false;
                 case "--logLevel":
-                {
-                    string logLevel = enumerator.Current;
-                    DebugTools.AssertNotNull(logLevel);
-                    int pos = logLevel.IndexOf('=');
-
-                    if (pos == -1)
                     {
                         string logLevel = enumerator.Current;
                         DebugTools.AssertNotNull(logLevel);
@@ -200,9 +195,15 @@ internal sealed class CommandLineArgs
                         break;
                     }
 
-                    loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
-                    break;
-                }
+                        if (pos == -1)
+                        {
+                            error = "Expected key=value after --logLevel.";
+                            return false;
+                        }
+
+                        loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
+                        break;
+                    }
                 default:
                     if (arg.StartsWith('+'))
                     {
