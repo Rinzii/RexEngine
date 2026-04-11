@@ -65,6 +65,9 @@ public static class LogEventIds
 
         /// <summary>No handler matched an inbound message id.</summary>
         public const int UnhandledNetMessage = 1107;
+
+        /// <summary>Client requested a full world state resend.</summary>
+        public const int FullStateRequested = 1108;
     }
 
     /// <summary>Ids for the remote client transport.</summary>
@@ -83,6 +86,12 @@ public static class LogEventIds
 
         /// <summary>Inbound bytes could not be deserialized.</summary>
         public const int DeserializeMessageFailed = 1201;
+
+        /// <summary>LiteNetLib reported a transport error from the host socket.</summary>
+        public const int NetworkError = 1202;
+
+        /// <summary>LiteNetLib updated a round trip latency sample.</summary>
+        public const int LatencyUpdated = 1203;
     }
 
     /// <summary>Ids for the top level client application.</summary>
@@ -212,6 +221,9 @@ public static class LogEventIds
 
         /// <summary>Inbound bytes could not be deserialized.</summary>
         public const int DeserializeMessageFailed = 1706;
+
+        /// <summary>LiteNetLib reported a transport error from the listen socket.</summary>
+        public const int NetworkError = 1707;
     }
 
     /// <summary>Ids for the dedicated server application loop.</summary>
@@ -278,5 +290,8 @@ public static class LogEventIds
 
         /// <summary>Start was requested while already running.</summary>
         public const int HostAlreadyRunning = 1909;
+
+        /// <summary>Client requested a full state resync.</summary>
+        public const int ClientRequestedFullState = 1910;
     }
 }
