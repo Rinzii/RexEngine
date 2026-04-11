@@ -4,10 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-namespace Rex.Shared.Profiling.Tracy;
-
 using static global::Tracy.PInvoke;
 
+namespace Rex.Shared.Profiling.Tracy;
 /// <summary>
 /// Defines the type of plot to be displayed in the Tracy profiler when using the <see cref="TracyProfiler.PlotConfig"/> method.
 /// </summary>
@@ -72,7 +71,7 @@ public static class TracyProfiler
             return;
         }
 
-        var nameStr = string.IsNullOrEmpty(name) ? default : GetOrCreateCString(name);
+        CString nameStr = string.IsNullOrEmpty(name) ? default : GetOrCreateCString(name);
         TracyEmitFrameMark(nameStr);
     }
 
@@ -143,7 +142,7 @@ public static class TracyProfiler
 
         Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
 
-        foreach (var cString in StringCache.Values)
+        foreach (CString cString in StringCache.Values)
         {
             cString.Dispose();
         }

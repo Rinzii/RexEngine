@@ -128,10 +128,10 @@ public sealed partial class ServerRuntimeHost : IDisposable
         while (IsRunning && !cancellationToken.IsCancellationRequested)
         {
             // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
-            using var _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
+            using TracyProfilerScope _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
 
-            var currentTime = stopwatch.Elapsed.TotalSeconds;
-            var frameTime = currentTime - previousTime;
+            double currentTime = stopwatch.Elapsed.TotalSeconds;
+            double frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
             // Drain wall time into fixed ticks, then expose the fractional remainder as alpha for blending reads.
