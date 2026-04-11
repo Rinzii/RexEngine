@@ -1,0 +1,35 @@
+[
+  {
+    "type": "entity",
+    "id": "sandboxBaseActor",
+    "abstract": true,
+    "parent": "baseEntity",
+    "name": "Sandbox Base Actor",
+    "description": "Base sandbox entity prototype used by the sample ECS world.",
+    "components": {
+      "sandboxActor": {
+        "entityType": "actor",
+        "prototypeId": "sandboxBaseActor"
+      },
+      "sandboxMover": {
+        "planarUnitsPerInputTick": 5
+      }
+    }
+  },
+  {
+    "type": "entity",
+    "id": "player",
+    "parent": "sandboxBaseActor",
+    "name": "Sandbox Player",
+    "description": "Sandbox player prototype backed by the shared Manny reference model.",
+    "components": {
+      "sandboxActor": {
+        "entityType": "player",
+        "prototypeId": "player"
+      },
+      "sandboxModel": {
+        "modelId": "mannyRefModel"
+      }
+    }
+  }
+]

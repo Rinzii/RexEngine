@@ -1,0 +1,31 @@
+[
+  {
+    "type": "prototypeCategory",
+    "id": "shared_entity_catalog",
+    "name": "Shared Entity Catalog",
+    "description": "Shared gameplay-facing entity prototypes.",
+    "prototypeType": "entity",
+    "entries": [
+      "baseEntity",
+      "ownedEntity"
+    ],
+    "tags": [
+      "shared",
+      "starter"
+    ]
+  },
+  {
+    "type": "prototypeCategory",
+    "id": "shared_world_catalog",
+    "name": "Shared World Catalog",
+    "description": "Shared map and scene prototypes.",
+    "prototypeType": "map",
+    "entries": [
+      "starterMap"
+    ],
+    "tags": [
+      "shared",
+      "starter"
+    ]
+  }
+]

@@ -1,0 +1,28 @@
+[
+  {
+    "type": "model",
+    "id": "baseHumanoidModel",
+    "abstract": true,
+    "name": "Base Humanoid Model",
+    "description": "Shared humanoid model prototype baseline.",
+    "rdm": "Models/MannyRef/manny.rdm",
+    "packagePrototype": "humanoid_render",
+    "tags": {
+      "rig": "humanoid",
+      "resourceClass": "reference"
+    }
+  },
+  {
+    "type": "model",
+    "id": "mannyRefModel",
+    "parent": "baseHumanoidModel",
+    "name": "Manny Reference Model",
+    "description": "Reference humanoid model package used to validate authored FBX import metadata and attachment setup.",
+    "packagePrototype": "humanoid_attachments",
+    "defaultState": "reference",
+    "tags": {
+      "sourceFormat": "fbx",
+      "usage": "testing"
+    }
+  }
+]
