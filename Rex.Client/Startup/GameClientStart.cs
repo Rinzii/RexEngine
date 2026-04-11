@@ -164,7 +164,7 @@ public static class GameClientStart
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
-            WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
+            WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)
         };
         process.EnableRaisingEvents = true;
 

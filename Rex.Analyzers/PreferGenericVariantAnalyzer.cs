@@ -262,7 +262,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
         memberAccess = memberAccess.WithName(SyntaxFactory.GenericName(memberAccess.Name.Identifier,
             SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList(types))));
 
-        root = root!.ReplaceNode(invocationExpression,
+        root = root.ReplaceNode(invocationExpression,
             invocationExpression
                 .WithArgumentList(
                     invocationExpression.ArgumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)))

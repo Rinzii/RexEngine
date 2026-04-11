@@ -138,7 +138,7 @@ internal static class Program
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
+                WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)
             },
             EnableRaisingEvents = true
         };
