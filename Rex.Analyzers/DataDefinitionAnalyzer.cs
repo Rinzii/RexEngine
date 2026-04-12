@@ -33,6 +33,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
     private const string DataFieldAttributeName = "DataField";
     private const string ViewVariablesAttributeName = "ViewVariables";
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataDefinitionPartialRule = new(
         IdDataDefinitionPartial,
         "Type must be partial",
@@ -43,6 +44,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to mark any type that is a data definition as partial."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor NestedDataDefinitionPartialRule = new(
         IdNestedDataDefinitionPartial,
         "Type must be partial",
@@ -53,6 +55,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to mark any type containing a nested data definition as partial."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataFieldWritableRule = new(
         IdDataFieldWritable,
         "Data field must not be readonly",
@@ -63,6 +66,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to remove the readonly modifier."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataFieldPropertyWritableRule = new(
         IdDataFieldPropertyWritable,
         "Data field property must have a setter",
@@ -73,6 +77,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to add a setter."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataFieldRedundantTagRule = new(
         IdDataFieldRedundantTag,
         "Data field has redundant tag specified",
@@ -83,6 +88,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to remove the tag string from the data field attribute."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataFieldNoVvReadWriteRule = new(
         IdDataFieldNoVVReadWrite,
         "Data field has VV ReadWrite",
@@ -93,6 +99,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
         "Make sure to remove the ViewVariables attribute."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor DataFieldYamlSerializableRule = new(
         IdDataFieldYamlSerializable,
         "Data field type is not YAML serializable",
@@ -177,7 +184,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (context.ContainingSymbol?.ContainingType is not INamedTypeSymbol type)
+        if (context.ContainingSymbol?.ContainingType is not { } type)
         {
             return;
         }
@@ -266,7 +273,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (propertySymbol.ContainingType is not INamedTypeSymbol type)
+        if (propertySymbol.ContainingType is not { } type)
         {
             return;
         }
@@ -276,12 +283,13 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return;
         }
 
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
         if (propertySymbol == null)
         {
             return;
         }
 
-        if (!IsDataField(propertySymbol, out _, out AttributeData datafieldAttribute))
+        if (!IsDataField(propertySymbol, out _, out AttributeData dataFieldAttribute))
         {
             return;
         }
@@ -295,7 +303,7 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
                 type.Name));
         }
 
-        if (HasRedundantTag(propertySymbol, datafieldAttribute))
+        if (HasRedundantTag(propertySymbol, dataFieldAttribute))
         {
             _ = TryGetAttributeLocation(property, DataFieldAttributeName, out Location location);
             context.ReportDiagnostic(Diagnostic.Create(DataFieldRedundantTagRule, location, propertySymbol.Name,
@@ -419,26 +427,13 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
 
     private static bool IsReadOnlyMember(ITypeSymbol type, ISymbol member)
     {
-        if (member is IFieldSymbol field)
+        return member switch
         {
-            return field.IsReadOnly;
-        }
-        else if (member is IPropertySymbol property)
-        {
-            if (property.SetMethod == null)
-            {
-                return true;
-            }
-
-            if (property.SetMethod.IsInitOnly)
-            {
-                return type.IsReferenceType;
-            }
-
-            return false;
-        }
-
-        return false;
+            IFieldSymbol field => field.IsReadOnly,
+            IPropertySymbol { SetMethod: null } => true,
+            IPropertySymbol { SetMethod.IsInitOnly: true } => type.IsReferenceType,
+            _ => false
+        };
     }
 
     private static bool HasAttribute(ITypeSymbol type, string attributeName)
@@ -471,10 +466,10 @@ public sealed class DataDefinitionAnalyzer : DiagnosticAnalyzer
             return false;
         }
 
-        // Get the name that sourcegen would provide
+        // Get the name that source gen would provide
         string? automaticName = DataDefinitionUtility.AutoGenerateTag(symbol.Name);
 
-        // If the explicit name matches the sourcegen name, we have a redundancy
+        // If the explicit name matches the source gen name, we have a redundancy
         return explicitName == automaticName;
     }
 

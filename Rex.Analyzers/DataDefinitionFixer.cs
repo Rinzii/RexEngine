@@ -285,8 +285,8 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 default,
                 SyntaxFactory.Token(SetKeyword),
-                default,
-                default,
+                null,
+                null,
                 SyntaxFactory.Token(SemicolonToken)
             )
             : SyntaxFactory.AccessorDeclaration(
@@ -294,8 +294,8 @@ public sealed class DefinitionFixer : CodeFixProvider
                 default,
                 SyntaxFactory.TokenList(SyntaxFactory.Token(PrivateKeyword)),
                 SyntaxFactory.Token(SetKeyword),
-                default,
-                default,
+                null,
+                null,
                 SyntaxFactory.Token(SemicolonToken)
             );
         newDeclaration = newDeclaration.AddAccessorListAccessors(setter);
