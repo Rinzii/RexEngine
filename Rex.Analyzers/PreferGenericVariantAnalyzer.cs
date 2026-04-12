@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -160,7 +161,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         {
             switch (invocationOperation.Arguments[i].Value)
             {
-                //todo figure out if ILocalReferenceOperation, IPropertyReferenceOperation or IFieldReferenceOperation is referencing static typeof assignments
+                // TODO: figure out if ILocalReferenceOperation, IPropertyReferenceOperation or IFieldReferenceOperation is referencing static typeof assignments
                 case ITypeOfOperation typeOfOperation:
                     typeOperands[i] =
                         typeOfOperation.TypeOperand.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -262,6 +263,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
         memberAccess = memberAccess.WithName(SyntaxFactory.GenericName(memberAccess.Name.Identifier,
             SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList(types))));
 
+        Debug.Assert(root != null, nameof(root) + " != null");
         root = root.ReplaceNode(invocationExpression,
             invocationExpression
                 .WithArgumentList(

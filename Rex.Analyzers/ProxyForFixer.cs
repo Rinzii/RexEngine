@@ -19,7 +19,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         IdProxyForRedundantMethodName
     ];
 
-    public override FixAllProvider? GetFixAllProvider()
+    public override FixAllProvider GetFixAllProvider()
     {
         return WellKnownFixAllProviders.BatchFixer;
     }
@@ -34,8 +34,6 @@ public sealed class ProxyForFixer : CodeFixProvider
                     return RegisterSubstituteProxy(context, diagnostic);
                 case IdProxyForRedundantMethodName:
                     return RegisterRemoveRedundantMethodName(context, diagnostic);
-                default:
-                    break;
             }
         }
 
@@ -54,7 +52,7 @@ public sealed class ProxyForFixer : CodeFixProvider
             return;
         }
 
-        if (diagnostic.Properties[ProxyForAnalyzer.ProxyMethodName] is not string methodName)
+        if (diagnostic.Properties[ProxyForAnalyzer.ProxyMethodName] is not { } methodName)
         {
             return;
         }
@@ -72,12 +70,7 @@ public sealed class ProxyForFixer : CodeFixProvider
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         SemanticModel? model = await document.GetSemanticModelAsync(cancellation);
 
-        if (model == null)
-        {
-            return document;
-        }
-
-        if (token.Expression is not MemberAccessExpressionSyntax expression)
+        if (model == null || token.Expression is not MemberAccessExpressionSyntax expression)
         {
             return document;
         }
@@ -90,7 +83,7 @@ public sealed class ProxyForFixer : CodeFixProvider
             // Copy over any type arguments from the old invocation
             GenericNameSyntax old => SyntaxFactory.GenericName(identifierToken, old.TypeArgumentList),
             // Handle methods with no type arguments
-            SimpleNameSyntax => SyntaxFactory.IdentifierName(identifierToken),
+            not null => SyntaxFactory.IdentifierName(identifierToken),
             _ => throw new InvalidOperationException()
         };
         // Create a replacement invocation expression

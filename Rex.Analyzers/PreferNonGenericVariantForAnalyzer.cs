@@ -55,10 +55,13 @@ public sealed class PreferNonGenericVariantForAnalyzer : DiagnosticAnalyzer
             break;
         }
 
+        // ReSharper disable HeuristicUnreachableCode
+        // ReSharper disable once ConditionIsAlwaysTrueOrFalse
         if (forTypes == null)
         {
             return;
         }
+        // ReSharper restore HeuristicUnreachableCode
 
         foreach (ITypeSymbol typeArg in invocationOperation.TargetMethod.TypeArguments)
         {

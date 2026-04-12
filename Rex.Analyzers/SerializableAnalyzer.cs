@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
@@ -16,7 +17,7 @@ public class SerializableAnalyzer : DiagnosticAnalyzer
 {
     // Metadata of the analyzer
 
-    // You could use LocalizedString but it's a little more complicated for this sample
+    // You could use LocalizedString, but it's a little more complicated for this sample
 
     private const string RequiresSerializableAttributeMetadataName =
         "Rex.Shared.Analyzers.RequiresSerializableAttribute";
@@ -124,7 +125,8 @@ public class SerializableCodeFixProvider : CodeFixProvider
         foreach (Diagnostic diagnostic in context.Diagnostics)
         {
             TextSpan span = diagnostic.Location.SourceSpan;
-            ClassDeclarationSyntax classDecl = root.FindToken(span.Start).Parent.AncestorsAndSelf()
+            Debug.Assert(root != null, nameof(root) + " != null");
+            ClassDeclarationSyntax classDecl = root.FindToken(span.Start).Parent!.AncestorsAndSelf()
                 .OfType<ClassDeclarationSyntax>()
                 .First();
 
@@ -160,11 +162,16 @@ public class SerializableCodeFixProvider : CodeFixProvider
             classDecl.AddAttributeLists(SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList(attributes)));
 
         var root = (CompilationUnitSyntax)await document.GetSyntaxRootAsync(cancellationToken);
+        Debug.Assert(root != null, nameof(root) + " != null");
         root = root.ReplaceNode(classDecl, newClassDecl);
 
         foreach (string ns in namespaces)
         {
-            if (root.Usings.Any(u => u.Name.ToString() == ns))
+            if (root.Usings.Any(u =>
+                {
+                    Debug.Assert(u.Name != null, "u.Name != null");
+                    return u.Name.ToString() == ns;
+                }))
             {
                 continue;
             }
