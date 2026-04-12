@@ -72,8 +72,7 @@ public static class TypeSymbolHelper
     // Modified from https://www.meziantou.net/working-with-types-in-a-roslyn-analyzer.htm
     public static ITypeSymbol GetNullableUnderlyingTypeOrSelf(ITypeSymbol type)
     {
-        if (type is INamedTypeSymbol namedType &&
-            namedType.ConstructedFrom.SpecialType == SpecialType.System_Nullable_T)
+        if (type is INamedTypeSymbol { ConstructedFrom.SpecialType: SpecialType.System_Nullable_T } namedType)
         {
             return namedType.TypeArguments[0];
         }
