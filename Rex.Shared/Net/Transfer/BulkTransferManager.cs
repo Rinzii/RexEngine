@@ -36,7 +36,7 @@ public sealed partial class BulkTransferManager
     {
         byte[] raw = ProtoSerializer.Serialize(data);
         int originalSize = raw.Length;
-        (byte[]? payload, bool isCompressed) = NetCompression.Compress(raw);
+        (byte[] payload, bool isCompressed) = NetCompression.Compress(raw);
         var transferId = Guid.CreateVersion7();
 
         List<byte[]> chunks = ChunkData(payload);
@@ -58,7 +58,7 @@ public sealed partial class BulkTransferManager
     {
         byte[] raw = ProtoSerializer.Serialize(data);
         int originalSize = raw.Length;
-        (byte[]? payload, bool isCompressed) = NetCompression.Compress(raw);
+        (byte[] payload, bool isCompressed) = NetCompression.Compress(raw);
         var transferId = Guid.CreateVersion7();
 
         List<byte[]> chunks = ChunkData(payload);
