@@ -16,6 +16,11 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
     public override void ReportSuppressions(SuppressionAnalysisContext context)
     {
         INamedTypeSymbol implAttr = context.Compilation.GetTypeByMetadataName(MeansImplicitAssignmentAttribute);
+        if (implAttr == null)
+        {
+            return;
+        }
+
         foreach (Diagnostic reportedDiagnostic in context.ReportedDiagnostics)
         {
             if (reportedDiagnostic.Id != MeansImplicitAssignment.SuppressedDiagnosticId)
@@ -23,14 +28,20 @@ public class MeansImplicitAssignmentSuppressor : DiagnosticSuppressor
                 continue;
             }
 
-            SyntaxNode node = reportedDiagnostic.Location.SourceTree?.GetRoot(context.CancellationToken)
+            SyntaxTree sourceTree = reportedDiagnostic.Location.SourceTree;
+            if (sourceTree == null)
+            {
+                continue;
+            }
+
+            SyntaxNode node = sourceTree.GetRoot(context.CancellationToken)
                 .FindNode(reportedDiagnostic.Location.SourceSpan);
             if (node == null)
             {
                 continue;
             }
 
-            ISymbol symbol = context.GetSemanticModel(reportedDiagnostic.Location.SourceTree).GetDeclaredSymbol(node);
+            ISymbol symbol = context.GetSemanticModel(sourceTree).GetDeclaredSymbol(node);
 
             if (symbol == null || !symbol.GetAttributes().Any(a =>
                     a.AttributeClass?.GetAttributes().Any(attr =>
