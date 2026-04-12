@@ -105,20 +105,25 @@ public sealed partial class GameServer
 
     private void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channel, DeliveryMethod deliveryMethod)
     {
-        if (!_peerToClientId.TryGetValue(peer, out Guid clientId))
-        {
-            return;
-        }
-
-        Host.Statistics.RecordReceived(0, reader.AvailableBytes);
+        Guid clientId = Guid.Empty;
         try
         {
+            if (!_peerToClientId.TryGetValue(peer, out clientId))
+            {
+                return;
+            }
+
+            Host.Statistics.RecordReceived(0, reader.AvailableBytes);
             INetMessage message = NetMessageRegistry.Deserialize(reader);
             Host.HandleMessage(clientId, message);
         }
         catch (Exception ex)
         {
             LogDeserializeMessageFailed(clientId, ex);
+        }
+        finally
+        {
+            reader.Recycle();
         }
     }
 

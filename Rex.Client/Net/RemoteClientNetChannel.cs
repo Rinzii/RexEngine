@@ -174,13 +174,16 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     {
         try
         {
-            // LiteNetLib owns reader pooling for this callback. Do not call Recycle after Deserialize.
             INetMessage message = NetMessageRegistry.Deserialize(reader);
             MessageReceived?.Invoke(message);
         }
         catch (Exception ex)
         {
             LogDeserializeMessageFailed(ex);
+        }
+        finally
+        {
+            reader.Recycle();
         }
     }
 
