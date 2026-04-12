@@ -95,8 +95,8 @@ public sealed record PartialTypeInfo(
             Accessibility.ProtectedOrInternal => "protected internal",
             Accessibility.Protected => "protected",
             Accessibility.Internal => "internal",
-            Accessibility.NotApplicable => throw new NotImplementedException(),
-            Accessibility.Public => throw new NotImplementedException(),
+            Accessibility.NotApplicable => "public",
+            Accessibility.Public => "public",
             _ => "public"
         };
 
