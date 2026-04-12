@@ -12,6 +12,7 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
     private const string PrototypeInterfaceType = "Rex.Shared.Prototypes.IPrototype";
     private const string NetSerializableAttributeType = "Rex.Shared.Serialization.NetSerializableAttribute";
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor RuleNetSerializable = new(
         IdPrototypeNetSerializable,
         "Prototypes should not be [NetSerializable]",
@@ -21,6 +22,7 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
         true);
 
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor RuleSerializable = new(
         IdPrototypeSerializable,
         "Prototypes should not be [Serializable]",

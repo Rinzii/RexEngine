@@ -13,6 +13,7 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
 {
     private const string Attribute = "Rex.Shared.Analyzers.ObsoleteInheritanceAttribute";
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor Rule = new(
         IdObsoleteInheritance,
         "Parent type has obsoleted inheritance",
@@ -21,6 +22,7 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor RuleWithMessage = new(
         IdObsoleteInheritanceWithMessage,
         "Parent type has obsoleted inheritance",
