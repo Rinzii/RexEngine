@@ -71,13 +71,13 @@ public struct HashCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Round(uint hash, uint input)
     {
-        return RotateLeft((hash + input) * Prime2, 13) * Prime1;
+        return RotateLeft(hash + (input * Prime2), 13) * Prime1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint QueueRound(uint hash, uint queuedValue)
     {
-        return RotateLeft((hash + queuedValue) * Prime3, 17) * Prime4;
+        return RotateLeft(hash + (queuedValue * Prime3), 17) * Prime4;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
