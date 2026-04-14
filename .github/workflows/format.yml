@@ -22,6 +22,7 @@ jobs:
               with:
                   token: ${{ secrets.GITHUB_TOKEN }}
                   ref: ${{ github.head_ref || github.ref }}
+                  lfs: true
 
             - name: Setup .NET
               uses: actions/setup-dotnet@v5
@@ -33,6 +34,9 @@ jobs:
 
             - name: Apply auto-fixes
               run: dotnet format Rex.sln --no-restore
+
+            - name: Verify format before pushing
+              run: dotnet format Rex.sln --verify-no-changes --no-restore
 
             - name: Commit and push when auto-fixes changed files on same-repo PRs or normal pushes
               if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
@@ -50,6 +54,3 @@ jobs:
                   fi
                   git commit -m "Apply dotnet format"
                   git push origin "HEAD:${BRANCH}"
-
-            - name: Verify no remaining fixable or manual issues
-              run: dotnet format Rex.sln --verify-no-changes --no-restore
