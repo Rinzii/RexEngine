@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
-using static Tracy.PInvoke;
 
 using static global::Tracy.PInvoke;
 
@@ -65,16 +64,6 @@ public readonly struct TracyProfilerScope : IDisposable
         int strLength = Encoding.UTF8.GetByteCount(name);
 
         TracyEmitZoneName(_context.Value, nameStr, (ulong)strLength);
-    }
-
-    /// <summary>
-    /// Sets the name of this profiling scope in the Tracy profiler. This name will be displayed in the profiler UI to help identify the zone. If the name is null or empty, no name will be set and the default zone name will be used.
-    /// </summary>
-    /// <param name="name">The name to set for this profiling scope. If null or empty, no name will be set.</param>
-    public void SetName(string name)
-    {
-        var nameStr = CString.FromString(name);
-        TracyEmitZoneName(_context, nameStr, (ulong)name.Length);
     }
 
     /// <summary>

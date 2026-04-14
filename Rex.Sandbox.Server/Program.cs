@@ -167,15 +167,6 @@ internal sealed class CommandLineArgs
                         break;
                     }
 
-                        if (pos == -1)
-                        {
-                            error = "Expected key=value after --cvar.";
-                            return false;
-                        }
-
-                        cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
-                        break;
-                    }
                 case "--logLevel" when !enumerator.MoveNext():
                     error = "Missing value for --logLevel.";
                     return false;
@@ -195,15 +186,6 @@ internal sealed class CommandLineArgs
                         break;
                     }
 
-                        if (pos == -1)
-                        {
-                            error = "Expected key=value after --logLevel.";
-                            return false;
-                        }
-
-                        loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
-                        break;
-                    }
                 default:
                     if (arg.StartsWith('+'))
                     {
