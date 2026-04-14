@@ -1,6 +1,6 @@
-using System.Runtime.CompilerServices;
 using Rex.Shared.Assets.Rdm;
 using Rex.Shared.Resources;
+using Rex.Shared.Tests.Support;
 
 namespace Rex.Shared.Tests.Assets;
 
@@ -94,7 +94,7 @@ public sealed class RdmCatalogTests
     [Fact]
     public void LoadResources_indexes_repository_manny_reference_package()
     {
-        ResourceManager resourceManager = new(GetRepositoryResourcesRoot());
+        ResourceManager resourceManager = new(EngineRepositoryPaths.GetResourcesRoot());
         RdmCatalog catalog = new();
 
         catalog.LoadResources(resourceManager);
@@ -105,11 +105,4 @@ public sealed class RdmCatalogTests
         Assert.Contains(package.Definition.States, state => state.Name == "reference");
     }
 
-    private static string GetRepositoryResourcesRoot([CallerFilePath] string callerFilePath = "")
-    {
-        string callerDirectory = Path.GetDirectoryName(callerFilePath)
-            ?? throw new InvalidOperationException("Could not resolve test file directory.");
-
-        return Path.GetFullPath(Path.Combine(callerDirectory, "..", "..", "..", "Resources"));
-    }
 }

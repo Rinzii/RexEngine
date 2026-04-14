@@ -1,7 +1,7 @@
-using System.Runtime.CompilerServices;
 using Rex.Shared.Prototypes;
 using Rex.Shared.Resources;
 using Rex.Shared.Serialization.Manager;
+using Rex.Shared.Tests.Support;
 
 namespace Rex.Shared.Tests.Architecture;
 
@@ -10,7 +10,7 @@ public sealed class EngineBoundaryTests
     [Fact]
     public void Core_projects_do_not_reference_sandbox_projects()
     {
-        string engineRoot = GetEngineRoot();
+        string engineRoot = EngineRepositoryPaths.GetEngineRoot();
         string[] projectPaths = Directory.EnumerateFiles(engineRoot, "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}tests{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(static path => !path.Contains("Rex.Sandbox.", StringComparison.Ordinal))
@@ -30,7 +30,7 @@ public sealed class EngineBoundaryTests
     [Fact]
     public void Shared_resource_load_excludes_sandbox_testing_sample_prototypes()
     {
-        ResourceManager resourceManager = new(GetRepositoryResourcesRoot());
+        ResourceManager resourceManager = new(EngineRepositoryPaths.GetResourcesRoot());
         SerializationManager serializationManager = new();
         PrototypeManager prototypeManager = new(serializationManager);
         SharedPrototypeBootstrap.RegisterAll(prototypeManager);
@@ -48,19 +48,4 @@ public sealed class EngineBoundaryTests
         Assert.False(prototypeManager.TryIndex<EntityPrototype>("sandboxBaseActor", out _));
     }
 
-    private static string GetEngineRoot([CallerFilePath] string callerFilePath = "")
-    {
-        string callerDirectory = Path.GetDirectoryName(callerFilePath)
-            ?? throw new InvalidOperationException("Could not resolve test file directory.");
-
-        return Path.GetFullPath(Path.Combine(callerDirectory, "..", "..", ".."));
-    }
-
-    private static string GetRepositoryResourcesRoot([CallerFilePath] string callerFilePath = "")
-    {
-        string callerDirectory = Path.GetDirectoryName(callerFilePath)
-            ?? throw new InvalidOperationException("Could not resolve test file directory.");
-
-        return Path.GetFullPath(Path.Combine(callerDirectory, "..", "..", "..", "Resources"));
-    }
 }

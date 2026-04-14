@@ -1,8 +1,8 @@
-using System.Runtime.CompilerServices;
 using Rex.Shared.Assets.Rdm;
 using Rex.Shared.Prototypes;
 using Rex.Shared.Resources;
 using Rex.Shared.Serialization.Manager;
+using Rex.Shared.Tests.Support;
 
 namespace Rex.Shared.Tests.Prototypes;
 
@@ -11,7 +11,7 @@ public sealed class ModelPrototypeResolverTests
     [Fact]
     public void Resolve_repository_manny_model_prototype()
     {
-        ResourceManager resourceManager = new(GetRepositoryResourcesRoot());
+        ResourceManager resourceManager = new(EngineRepositoryPaths.GetResourcesRoot());
         SerializationManager serializationManager = new();
         PrototypeManager prototypeManager = new(serializationManager);
         SharedPrototypeBootstrap.RegisterAll(prototypeManager);
@@ -101,11 +101,4 @@ public sealed class ModelPrototypeResolverTests
         }
     }
 
-    private static string GetRepositoryResourcesRoot([CallerFilePath] string callerFilePath = "")
-    {
-        string callerDirectory = Path.GetDirectoryName(callerFilePath)
-            ?? throw new InvalidOperationException("Could not resolve test file directory.");
-
-        return Path.GetFullPath(Path.Combine(callerDirectory, "..", "..", "..", "Resources"));
-    }
 }
