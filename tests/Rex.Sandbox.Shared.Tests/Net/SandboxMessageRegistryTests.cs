@@ -48,13 +48,47 @@ public sealed class SandboxMessageRegistryTests
     [Fact]
     public void CoreAndSandboxMessages_share_registry_without_conflict()
     {
-        var original = new DisconnectMessage("bye");
-        var writer = new NetDataWriter();
+        DisconnectMessage original = new("bye");
+        NetDataWriter writer = new();
         original.Serialize(writer);
-        var reader = new NetDataReader();
+        NetDataReader reader = new();
         reader.SetSource(writer.Data, 0, writer.Length);
 
         DisconnectMessage decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
         Assert.Equal("bye", decoded.Reason);
+    }
+
+    [Fact]
+    public void Deserialize_RequestFullState_round_trips()
+    {
+        RequestFullStateMessage original = new(123u);
+        NetDataWriter writer = new();
+        original.Serialize(writer);
+
+        NetDataReader reader = new();
+        reader.SetSource(writer.Data, 0, writer.Length);
+
+        RequestFullStateMessage decoded = Assert.IsType<RequestFullStateMessage>(NetMessageRegistry.Deserialize(reader));
+        Assert.Equal(123u, decoded.LastAppliedServerTick);
+    }
+
+    [Fact]
+    public void StateAck_and_request_full_state_use_distinct_wire_ids()
+    {
+        Assert.NotEqual(StateAckMessage.Id, RequestFullStateMessage.Id);
+    }
+
+    [Fact]
+    public void Deserialize_StateAck_after_sandbox_registration_still_returns_state_ack()
+    {
+        StateAckMessage original = new(321u);
+        NetDataWriter writer = new();
+        original.Serialize(writer);
+
+        NetDataReader reader = new();
+        reader.SetSource(writer.Data, 0, writer.Length);
+
+        StateAckMessage decoded = Assert.IsType<StateAckMessage>(NetMessageRegistry.Deserialize(reader));
+        Assert.Equal(321u, decoded.AcknowledgedTick);
     }
 }

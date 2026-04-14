@@ -115,7 +115,7 @@ public sealed partial class GameServerHost
         {
             World.DestroyEntity(session.PlayerEntityId);
 
-            var destroyMsg = new EntityDestroyMessage(session.PlayerEntityId);
+            var destroyMsg = new EntityDestroyMessage(CurrentTick, session.PlayerEntityId);
             foreach (ClientSession other in _sessions.Values)
             {
                 if (other.ClientId != clientId && other.Channel.State == ConnectionState.InGame)
@@ -145,6 +145,9 @@ public sealed partial class GameServerHost
                 break;
             case StateAckMessage stateAck:
                 session.LastAcknowledgedTick = stateAck.AcknowledgedTick;
+                break;
+            case RequestFullStateMessage fullStateRequest:
+                HandleFullStateRequest(session, fullStateRequest);
                 break;
             case BulkTransferAckMessage transferAck:
                 LogBulkTransferAcked(session.ClientId, transferAck.TransferId, transferAck.Success);
@@ -192,8 +195,6 @@ public sealed partial class GameServerHost
             return;
         }
 
-        _dirtyTracker.ClearTick(CurrentTick);
-
         foreach (ClientSession session in _sessions.Values)
         {
             while (session.TryDequeueInput(out PlayerInputMessage? input))
@@ -240,9 +241,12 @@ public sealed partial class GameServerHost
             }
 
             HashSet<int>? dirtyEntities = _dirtyTracker.GetDirtyEntities(session.LastAcknowledgedTick, CurrentTick);
+            HashSet<int>? removedEntities = _dirtyTracker.GetRemovedEntities(session.LastAcknowledgedTick, CurrentTick);
+            // Either ring lookup returning null means the ack window exceeded buffer history, so send a full snapshot.
             WorldSnapshotMessage snapshot = dirtyEntities == null
+                                           || removedEntities == null
                 ? World.BuildSnapshot(CurrentTick, session.LastProcessedInputTick)
-                : World.BuildDeltaSnapshot(CurrentTick, session.LastProcessedInputTick, dirtyEntities);
+                : World.BuildDeltaSnapshot(CurrentTick, session.LastProcessedInputTick, dirtyEntities, removedEntities);
             (byte channel, DeliveryMethod delivery) = AdaptiveReliability.GetAdaptiveDelivery(snapshot);
             session.Channel.Send(snapshot, channel, delivery);
         }
@@ -272,7 +276,7 @@ public sealed partial class GameServerHost
         WorldSnapshotMessage snapshot = World.BuildSnapshot(CurrentTick, 0);
         session.Channel.Send(snapshot, DeliveryChannel.Reliable, DeliveryChannel.ReliableMethod);
 
-        var spawnMsg = new EntitySpawnMessage(entityId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f);
+        var spawnMsg = new EntitySpawnMessage(CurrentTick, entityId, session.ClientId, EntityTypeIds.Player, 0f, 0f, 0f, 0f);
         foreach (ClientSession other in _sessions.Values)
         {
             if (other.ClientId != session.ClientId && other.Channel.State == ConnectionState.InGame)
@@ -280,6 +284,19 @@ public sealed partial class GameServerHost
                 other.Channel.Send(spawnMsg);
             }
         }
+    }
+
+    private void HandleFullStateRequest(ClientSession session, RequestFullStateMessage request)
+    {
+        if (session.Channel.State != ConnectionState.InGame)
+        {
+            return;
+        }
+
+        // Ignore LastAppliedServerTick for now. Always ship one fresh full snapshot at the current authority tick.
+        LogClientRequestedFullState(session.ClientId, request.LastAppliedServerTick);
+        WorldSnapshotMessage snapshot = World.BuildSnapshot(CurrentTick, session.LastProcessedInputTick);
+        session.Channel.Send(snapshot, DeliveryChannel.Reliable, DeliveryChannel.ReliableMethod);
     }
 }
 
@@ -316,6 +333,10 @@ public sealed partial class GameServerHost
     [LoggerMessage(EventId = LogEventIds.GameServerHost.ClientAuthenticated, Level = LogLevel.Information,
         Message = "Client {ClientId} authenticated as '{PlayerName}'")]
     private partial void LogClientAuthenticated(Guid clientId, string playerName);
+
+    [LoggerMessage(EventId = LogEventIds.GameServerHost.ClientRequestedFullState, Level = LogLevel.Information,
+        Message = "Client {ClientId} requested a full state resync from tick {LastAppliedServerTick}")]
+    private partial void LogClientRequestedFullState(Guid clientId, uint lastAppliedServerTick);
 
     [LoggerMessage(EventId = LogEventIds.GameServerHost.UnhandledNetMessage, Level = LogLevel.Debug,
         Message = "Unhandled message from ClientId {ClientId}: Id {MessageId} ({MessageType})")]

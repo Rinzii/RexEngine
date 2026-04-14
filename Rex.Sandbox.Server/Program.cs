@@ -14,15 +14,16 @@ internal static class Program
 {
     internal static void Main(string[] args)
     {
-        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
-
-        ILogger bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
-
         if (!CommandLineArgs.TryParse(args, out CommandLineArgs? parsed, out string? parseError))
         {
-            bootstrapLogger.CliParseFailed(parseError);
+            using ILoggerFactory parseLoggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
+            ILogger parseLogger = parseLoggerFactory.CreateLogger("Rex.Sandbox.Server");
+            parseLogger.CliParseFailed(parseError);
             return;
         }
+
+        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory(logLevels: parsed.LogLevels);
+        ILogger bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
 
         foreach (string arg in parsed.UnrecognizedArguments)
         {
@@ -165,6 +166,7 @@ internal sealed class CommandLineArgs
                         cvars.Add((cvar[..pos], cvar[(pos + 1)..]));
                         break;
                     }
+
                 case "--logLevel" when !enumerator.MoveNext():
                     error = "Missing value for --logLevel.";
                     return false;
@@ -183,6 +185,7 @@ internal sealed class CommandLineArgs
                         loglevels.Add((logLevel[..pos], logLevel[(pos + 1)..]));
                         break;
                     }
+
                 default:
                     if (arg.StartsWith('+'))
                     {

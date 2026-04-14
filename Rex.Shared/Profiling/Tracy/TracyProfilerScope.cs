@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-using static global::Tracy.PInvoke;
+using static Tracy.PInvoke;
 
 namespace Rex.Shared.Profiling.Tracy;
 /// <summary>

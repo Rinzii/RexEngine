@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Client", "Rex.Client\Rex.Client.csproj", "{C7BBC8E4-8779-4560-8460-79FA9433A604}"
 EndProject
@@ -42,6 +42,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Analyzers.Tests", "tests\Rex.Analyzers.Tests\Rex.Analyzers.Tests.csproj", "{C3D4E5F6-A7B8-4901-8234-56789ABCDEF3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Sandbox.Shared.Tests", "tests\Rex.Sandbox.Shared.Tests\Rex.Sandbox.Shared.Tests.csproj", "{9F592C0D-630F-423B-96C2-192F51000410}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rex.Resources", "Rex.Resources\Rex.Resources.csproj", "{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -245,6 +247,18 @@ Global
 		{9F592C0D-630F-423B-96C2-192F51000410}.Release|x64.Build.0 = Release|Any CPU
 		{9F592C0D-630F-423B-96C2-192F51000410}.Release|x86.ActiveCfg = Release|Any CPU
 		{9F592C0D-630F-423B-96C2-192F51000410}.Release|x86.Build.0 = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|x64.Build.0 = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Debug|x86.Build.0 = Debug|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|x64.ActiveCfg = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|x64.Build.0 = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|x86.ActiveCfg = Release|Any CPU
+		{4BF3D2DA-9E18-4DFC-A7C5-DA5332469024}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

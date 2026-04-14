@@ -7,13 +7,30 @@ public static class ConsoleStartupSupport
 {
     /// <summary>Builds an <see cref="ILoggerFactory"/> that writes to the console.</summary>
     /// <param name="minimumLevel">Lowest level emitted by console providers.</param>
+    /// <param name="logLevels">Optional category-specific log levels in <c>Category=Level</c> form.</param>
     /// <returns>A factory the caller owns and should dispose.</returns>
-    public static ILoggerFactory CreateLoggerFactory(LogLevel minimumLevel = LogLevel.Information)
+    public static ILoggerFactory CreateLoggerFactory(LogLevel minimumLevel = LogLevel.Information,
+        IEnumerable<(string key, string value)>? logLevels = null)
     {
         return LoggerFactory.Create(builder =>
         {
             _ = builder.AddConsole();
             _ = builder.SetMinimumLevel(minimumLevel);
+
+            if (logLevels == null)
+            {
+                return;
+            }
+
+            foreach ((string category, string levelText) in logLevels)
+            {
+                if (!Enum.TryParse(levelText, true, out LogLevel parsedLevel))
+                {
+                    continue;
+                }
+
+                _ = builder.AddFilter(category, parsedLevel);
+            }
         });
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -13,7 +14,8 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
 {
     private const string ForbidLiteralType = "Rex.Shared.Analyzers.ForbidLiteralAttribute";
 
-    public static DiagnosticDescriptor ForbidLiteralRule = new(
+    // ReSharper disable once MemberCanBePrivate.Global
+    public static readonly DiagnosticDescriptor ForbidLiteralRule = new(
         IdForbidLiteral,
         "Parameter forbids literal values",
         "The {0} parameter of {1} forbids literal values",
@@ -44,6 +46,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         foreach (IArgumentOperation argumentOperation in invocationOperation.Arguments)
         {
             // Check for our attribute on the parameter
+            Debug.Assert(argumentOperation.Parameter != null, "argumentOperation.Parameter != null");
             if (!AttributeHelper.HasAttribute(argumentOperation.Parameter, ForbidLiteralType, out _))
             {
                 continue;
@@ -91,10 +94,11 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
                     continue;
                 }
 
+                Debug.Assert(operation.Parameter != null, "operation.Parameter != null");
                 context.ReportDiagnostic(Diagnostic.Create(ForbidLiteralRule,
                     expressionSyntax.GetLocation(),
                     operation.Parameter.Name,
-                    (context.Operation as IInvocationOperation).TargetMethod.Name
+                    (context.Operation as IInvocationOperation)?.TargetMethod.Name
                 ));
             }
 
@@ -102,16 +106,17 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         }
 
         // Not a collection, just a single value to check
-        // Check if it's a literal
+        //  if it's a literal
         if (argumentSyntax.Expression is not LiteralExpressionSyntax)
         {
             return;
         }
 
+        Debug.Assert(operation.Parameter != null, "operation.Parameter != null");
         context.ReportDiagnostic(Diagnostic.Create(ForbidLiteralRule,
             argumentSyntax.GetLocation(),
             operation.Parameter.Name,
-            (context.Operation as IInvocationOperation).TargetMethod.Name
+            (context.Operation as IInvocationOperation)?.TargetMethod.Name
         ));
     }
 }

@@ -16,8 +16,9 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 {
     private const string ProxyForAttributeType = "Rex.Shared.Analyzers.ProxyForAttribute";
 
-    public static readonly string ProxyMethodName = "proxy";
+    public const string ProxyMethodName = "proxy";
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor PreferProxyDescriptor = new(
         IdPreferProxy,
         "Use the proxy method",
@@ -28,6 +29,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         "Use the proxy method."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor RedundantMethodNameDescriptor = new(
         IdProxyForRedundantMethodName,
         "Method name is redundant",
@@ -274,10 +276,10 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         for (int i = 0; i < firstParams.Length; i++)
         {
             // Check if the parameter type is a generic type symbol (like T, TComp, etc.)
-            if (firstParams[i].Type is INamedTypeSymbol namedType && namedType.IsGenericType)
+            if (firstParams[i].Type is INamedTypeSymbol { IsGenericType: true })
             {
                 // If the compared parameter also is a generic type symbol, consider that a match
-                if (secondParams[i].Type is INamedTypeSymbol namedTypeSecond && namedTypeSecond.IsGenericType)
+                if (secondParams[i].Type is INamedTypeSymbol { IsGenericType: true })
                 {
                     continue;
                 }

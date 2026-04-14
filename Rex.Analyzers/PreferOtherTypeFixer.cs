@@ -30,8 +30,6 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
             {
                 case IdPreferOtherType:
                     return RegisterReplaceType(context, diagnostic);
-                default:
-                    break;
             }
         }
 
@@ -63,12 +61,7 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
         SemanticModel? model = await document.GetSemanticModelAsync(cancellation);
 
-        if (model == null)
-        {
-            return document;
-        }
-
-        if (syntax.Type is not GenericNameSyntax genericNameSyntax)
+        if (model == null || syntax.Type is not GenericNameSyntax genericNameSyntax)
         {
             return document;
         }

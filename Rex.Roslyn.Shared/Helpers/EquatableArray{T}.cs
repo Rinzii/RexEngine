@@ -101,6 +101,7 @@ public readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>, IEnume
     /// <summary>Factory equivalent to the constructor.</summary>
     /// <param name="array">Source immutable array.</param>
     /// <returns>Wrapped value.</returns>
+    // ReSharper disable once MemberCanBePrivate.Global
     public static EquatableArray<T> FromImmutableArray(ImmutableArray<T> array)
     {
         return new EquatableArray<T>(array);

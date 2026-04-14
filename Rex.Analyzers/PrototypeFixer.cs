@@ -27,8 +27,6 @@ public sealed class PrototypeFixer : CodeFixProvider
             {
                 case IdPrototypeRedundantType:
                     return RegisterRemoveType(context, diagnostic);
-                default:
-                    break;
             }
         }
 

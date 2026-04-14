@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-using static global::Tracy.PInvoke;
+using static Tracy.PInvoke;
 
 namespace Rex.Shared.Profiling.Tracy;
 /// <summary>
@@ -44,20 +44,20 @@ public sealed class TracyConfiguration
 /// </summary>
 public static class TracyProfiler
 {
-    private static TracyConfiguration _configuration = new();
+    private static TracyConfiguration s_configuration = new();
 
     // ReSharper disable once CollectionNeverUpdated.Local
-    private static readonly ConcurrentDictionary<TracySourceLocationData, ulong> SourceLocationCache = new();
+    private static readonly ConcurrentDictionary<TracySourceLocationData, ulong> s_sourceLocationCache = new();
 
     // See Tracy documentation for details on string caching (section 3.1)
     // ReSharper disable once CollectionNeverUpdated.Local
-    private static readonly ConcurrentDictionary<string, CString> StringCache = new();
-    private static readonly CString EmptyString = CString.FromString(string.Empty);
+    private static readonly ConcurrentDictionary<string, CString> s_stringCache = new();
+    private static readonly CString s_emptyString = CString.FromString(string.Empty);
 
     /// <summary>
     /// Current configuration settings for the profiler. This can be updated at runtime by calling <see cref="EnableProfiler"/> with a new configuration instance.
     /// </summary>
-    public static TracyConfiguration Configuration => Volatile.Read(ref _configuration);
+    public static TracyConfiguration Configuration => Volatile.Read(ref s_configuration);
 
     /// <summary>
     /// Marks the end of a frame for Tracy. Should be called once per frame after all zones have ended to allow Tracy to calculate frame times and display them in the profiler UI.
@@ -126,7 +126,7 @@ public static class TracyProfiler
     [Conditional("REX_TRACY")]
     public static void EnableProfiler(TracyConfiguration configuration)
     {
-        Volatile.Write(ref _configuration, configuration);
+        Volatile.Write(ref s_configuration, configuration);
     }
 
     /// <summary>
@@ -140,15 +140,15 @@ public static class TracyProfiler
             return;
         }
 
-        Volatile.Write(ref _configuration, new TracyConfiguration { Enabled = false });
+        Volatile.Write(ref s_configuration, new TracyConfiguration { Enabled = false });
 
-        foreach (CString cString in StringCache.Values)
+        foreach (CString cString in s_stringCache.Values)
         {
             cString.Dispose();
         }
-        StringCache.Clear();
+        s_stringCache.Clear();
 
-        SourceLocationCache.Clear();
+        s_sourceLocationCache.Clear();
     }
 
     /// <summary>
@@ -272,19 +272,19 @@ public static class TracyProfiler
 #if REX_TRACY
         if (!Configuration.Enabled || string.IsNullOrEmpty(str))
         {
-            return EmptyString;
+            return s_emptyString;
         }
 
-        return StringCache.GetOrAdd(str, CString.FromString);
+        return s_stringCache.GetOrAdd(str, CString.FromString);
 #else
-        return EmptyString;
+        return s_emptyString;
 #endif
     }
 
 #if REX_TRACY
     private static ulong GetOrAddSourceLocationName(TracySourceLocationData key)
     {
-        var srcLoc = SourceLocationCache.GetOrAdd(
+        var srcLoc = s_sourceLocationCache.GetOrAdd(
             key,
             static key =>
             {

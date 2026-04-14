@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.7.134">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <IsPackable>false</IsPackable>
+        <EnableDefaultItems>false</EnableDefaultItems>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Folder Include="Resources\Audio\" />
+        <Folder Include="Resources\Fonts\" />
+        <Folder Include="Resources\Localization\" />
+        <Folder Include="Resources\Maps\" />
+        <Folder Include="Resources\Materials\" />
+        <Folder Include="Resources\Models\" />
+        <Folder Include="Resources\Prototypes\" />
+        <Folder Include="Resources\Scenes\" />
+        <Folder Include="Resources\Shaders\" />
+        <Folder Include="Resources\TestingSamples\" />
+        <Folder Include="Resources\Textures\" />
+        <Folder Include="Resources\UI\" />
+        <Folder Include="Resources\Vfx\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\Resources\**\*"
+              Exclude="..\Resources\**\bin\**;..\Resources\**\obj\**"
+              Link="Resources\%(RecursiveDir)%(Filename)%(Extension)" />
+    </ItemGroup>
+</Project>

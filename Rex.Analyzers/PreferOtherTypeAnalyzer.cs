@@ -9,6 +9,7 @@ using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
 
+/// <inheritdoc />
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PreferOtherTypeAnalyzer : DiagnosticAnalyzer
 {

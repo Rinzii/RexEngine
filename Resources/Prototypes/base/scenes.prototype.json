@@ -1,0 +1,22 @@
+[
+  {
+    "type": "scene",
+    "id": "starterScene",
+    "name": "Starter Scene",
+    "description": "Shared starter scene prototype.",
+    "map": "starterMap",
+    "tags": [
+      "starter"
+    ],
+    "entities": [
+      {
+        "prototype": "ownedEntity",
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "rotationY": 0
+      }
+    ]
+  }
+]
+

@@ -20,6 +20,7 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly HashSet<string> BadFunctions =
     [
         "Count",

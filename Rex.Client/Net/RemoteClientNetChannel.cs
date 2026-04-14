@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Sockets;
 using LiteNetLib;
 using LiteNetLib.Utils;
 using Microsoft.Extensions.Logging;
@@ -19,10 +21,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
 
     private readonly string _host;
     private readonly EventBasedNetListener _listener;
-    // TODO: Actually use this.
-#pragma warning disable IDE0052
     private readonly ILogger _logger;
-#pragma warning restore IDE0052
     private readonly NetManager _netManager;
     private readonly int _port;
 
@@ -45,10 +44,13 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         _logger = logger;
         _listener = new EventBasedNetListener();
         _netManager = new NetManager(_listener);
+        LiteNetLibTransportConfiguration.ApplyClientDefaults(_netManager);
 
         _listener.PeerConnectedEvent += OnPeerConnected;
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
+        _listener.NetworkErrorEvent += OnNetworkError;
+        _listener.NetworkLatencyUpdateEvent += OnNetworkLatencyUpdate;
 
         State = ConnectionState.Disconnected;
     }
@@ -111,7 +113,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// </remarks>
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
-        if (_serverPeer == null)
+        if (_serverPeer == null || _serverPeer.ConnectionState != LiteNetLib.ConnectionState.Connected)
         {
             return;
         }
@@ -173,13 +175,25 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
         try
         {
             INetMessage message = NetMessageRegistry.Deserialize(reader);
-            reader.Recycle(); // Return pooled buffer to LiteNetLib.
             MessageReceived?.Invoke(message);
         }
         catch (Exception ex)
         {
             LogDeserializeMessageFailed(ex);
+        }
+        finally
+        {
             reader.Recycle();
         }
+    }
+
+    private void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+    {
+        LogNetworkError(endPoint, socketError);
+    }
+
+    private void OnNetworkLatencyUpdate(NetPeer peer, int latency)
+    {
+        LogLatencyUpdated(peer.Address.ToString(), latency);
     }
 }

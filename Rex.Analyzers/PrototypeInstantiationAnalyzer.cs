@@ -12,6 +12,7 @@ public sealed class PrototypeInstantiationAnalyzer : DiagnosticAnalyzer
 {
     private const string PrototypeInterfaceType = "Rex.Shared.Prototypes.IPrototype";
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor Rule = new(
         IdPrototypeInstantiation,
         "Do not instantiate prototypes directly",

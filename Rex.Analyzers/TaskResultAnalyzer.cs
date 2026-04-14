@@ -32,6 +32,10 @@ public sealed class TaskResultAnalyzer : DiagnosticAnalyzer
     private static void Check(OperationAnalysisContext context)
     {
         INamedTypeSymbol taskType = context.Compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
+        if (taskType == null)
+        {
+            return;
+        }
 
         var operation = (IPropertyReferenceOperation)context.Operation;
         ISymbol member = operation.Member;

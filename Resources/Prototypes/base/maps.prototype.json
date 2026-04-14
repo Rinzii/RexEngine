@@ -1,0 +1,14 @@
+[
+  {
+    "type": "map",
+    "id": "starterMap",
+    "name": "Starter Map",
+    "description": "Shared starter map prototype.",
+    "map": "Maps/base/starter.map.json",
+    "scene": "starterScene",
+    "tags": [
+      "starter"
+    ]
+  }
+]
+

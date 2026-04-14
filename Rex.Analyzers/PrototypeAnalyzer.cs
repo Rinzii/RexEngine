@@ -13,6 +13,7 @@ namespace Rex.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
 {
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor PrototypeRedundantTypeRule = new(
         IdPrototypeRedundantType,
         "Redundant Prototype Type specification",
@@ -23,6 +24,7 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
         "Remove the redundant type specification."
     );
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public static readonly DiagnosticDescriptor PrototypeEndsWithPrototypeRule = new(
         IdPrototypeEndsWithPrototype,
         "Prototype name must end with the word Prototype",

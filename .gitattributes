@@ -1,25 +1,372 @@
-# Normalize text files to LF in the repo and working tree (matches .editorconfig end_of_line).
+# Default
+# Normalize text files to LF in both the repo and working tree unless explicitly overridden.
 * text=auto eol=lf
 
-# Shell scripts run on Unix; keep LF explicit for tools that ignore text=auto heuristics.
-*.sh text eol=lf
+# C# source
+*.cs text eol=lf
+*.csx text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.proj text eol=lf
+*.csproj text eol=lf
+*.sln text eol=lf
+*.slnx text eol=lf
+*.resx text eol=lf
+*.ruleset text eol=lf
+*.editorconfig text eol=lf
+*.globalconfig text eol=lf
+*.gitattributes text eol=lf
+*.gitignore text eol=lf
+*.gitmodules text eol=lf
+*.natvis text eol=lf
+*.natstepfilter text eol=lf
+Directory.Build.props text eol=lf
+Directory.Build.targets text eol=lf
+Directory.Packages.props text eol=lf
+NuGet.config text eol=lf
+global.json text eol=lf
+packages.lock.json text eol=lf
 
-# Windows-only launchers
+# Scripts and tooling
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.py text eol=lf
 *.cmd text eol=crlf
 *.bat text eol=crlf
 
-# Binary assets and build outputs (never line-ending normalized)
+# Build and repo tooling
+*.xml text eol=lf
+*.xaml text eol=lf
+*.json text eol=lf
+*.jsonc text eol=lf
+*.json5 text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.conf text eol=lf
+*.config text eol=lf
+*.txt text eol=lf
+*.md text eol=lf
+*.markdown text eol=lf
+*.rst text eol=lf
+*.csv text eol=lf
+*.tsv text eol=lf
+
+# Engine data formats
+*.rdm text eol=lf
+*.bson binary
+*.rdmb binary
+
+# Shaders
+*.hlsl text eol=lf
+*.hlsli text eol=lf
+*.fx text eol=lf
+*.fxh text eol=lf
+*.glsl text eol=lf
+*.vert text eol=lf
+*.frag text eol=lf
+*.geom text eol=lf
+*.tesc text eol=lf
+*.tese text eol=lf
+*.comp text eol=lf
+*.mesh text eol=lf
+*.task text eol=lf
+*.wgsl text eol=lf
+*.metal text eol=lf
+*.slang text eol=lf
+*.slangh text eol=lf
+
+# Common text-based asset metadata
+*.asset text eol=lf
+*.meta text eol=lf
+*.scene text eol=lf
+*.prefab text eol=lf
+*.anim text eol=lf
+*.controller text eol=lf
+*.mat text eol=lf
+*.material text eol=lf
+*.rendergraph text eol=lf
+*.graph text eol=lf
+*.shadergraph text eol=lf
+*.lang text eol=lf
+*.loc text eol=lf
+*.po text eol=lf
+*.pot text eol=lf
+*.strings text eol=lf
+
+# Images
 *.png binary
+*.apng binary
 *.jpg binary
 *.jpeg binary
+*.jpe binary
+*.jfif binary
 *.gif binary
+*.bmp binary
+*.dib binary
+*.tga binary
+*.dds binary
+*.ktx binary
+*.ktx2 binary
+*.basis binary
+*.hdr binary
+*.exr binary
+*.tif binary
+*.tiff binary
 *.ico binary
+*.icns binary
 *.webp binary
-*.dll binary
-*.exe binary
-*.pdb binary
-*.snk binary
+*.psd binary
+*.psb binary
+*.kra binary
+*.xcf binary
+
+# Audio
+*.wav binary
+*.mp3 binary
+*.ogg binary
+*.oga binary
+*.flac binary
+*.aac binary
+*.m4a binary
+*.wma binary
+*.aiff binary
+*.aif binary
+*.aifc binary
+*.opus binary
+*.mid binary
+*.midi binary
+*.it binary
+*.mod binary
+*.s3m binary
+*.xm binary
+
+# Video
+*.mp4 binary
+*.m4v binary
+*.mov binary
+*.avi binary
+*.mkv binary
+*.webm binary
+*.wmv binary
+*.mpg binary
+*.mpeg binary
+*.ogv binary
+*.bik binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.ttc binary
 *.woff binary
 *.woff2 binary
-*.ttf binary
 *.eot binary
+
+# 3D assets
+*.fbx binary
+*.obj binary
+*.mtl text eol=lf
+*.gltf text eol=lf
+*.glb binary
+*.dae binary
+*.3ds binary
+*.blend binary
+*.max binary
+*.ma text eol=lf
+*.mb binary
+*.abc binary
+*.usd text eol=lf
+*.usda text eol=lf
+*.usdc binary
+*.usdz binary
+*.stl binary
+*.ply binary
+*.x binary
+
+# Cooked data and packages
+*.nav binary
+*.navmesh binary
+*.bin binary
+*.blob binary
+*.bytes binary
+*.pak binary
+*.pck binary
+*.vpk binary
+*.bank binary
+*.bnk binary
+*.wem binary
+*.sav binary
+*.save binary
+*.meshdata binary
+*.animdata binary
+
+# Archives and documents
+*.zip binary
+*.7z binary
+*.rar binary
+*.tar binary
+*.gz binary
+*.tgz binary
+*.bz2 binary
+*.xz binary
+*.lz binary
+*.lz4 binary
+*.zst binary
+*.cab binary
+*.nupkg binary
+*.snupkg binary
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Native libraries and outputs
+*.a binary
+*.lib binary
+*.lo binary
+*.la binary
+*.o binary
+*.obj binary
+*.so binary
+*.dylib binary
+*.dll binary
+*.exe binary
+*.out binary
+*.app binary
+*.pdb binary
+*.idb binary
+*.ilk binary
+*.exp binary
+*.wasm binary
+
+# Debug, trace, and profiling artifacts
+*.dSYM binary
+*.dmp binary
+*.dump binary
+*.core binary
+*.trace binary
+*.etl binary
+*.tracy binary
+
+# Security and signing artifacts
+*.snk binary
+*.pfx binary
+*.p12 binary
+*.cer binary
+*.der binary
+*.key binary
+
+# Git LFS for committed authored resource payloads.
+# Git attributes cannot track by size, so keep LFS scoped to resource asset types that are expected
+# to grow large and are not meaningfully diffable in Git.
+Resources/**/*.png filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.apng filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.jpe filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.jfif filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.gif filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bmp filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.dib filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.dds filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ktx filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ktx2 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.basis filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.hdr filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.exr filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.tif filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.tiff filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ico filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.icns filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.webp filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.psd filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.psb filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.kra filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.xcf filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.wav filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.oga filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.flac filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.aac filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.m4a filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.wma filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.aiff filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.aif filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.aifc filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.opus filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mid filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.midi filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.it filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mod filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.s3m filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.xm filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.m4v filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mov filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.avi filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mkv filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.webm filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.wmv filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mpg filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mpeg filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ogv filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bik filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.otf filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ttc filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.woff filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.woff2 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.eot filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.obj filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.glb filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.dae filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.3ds filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.blend filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.max filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.mb filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.abc filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.usdc filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.usdz filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.stl filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.ply filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.x filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bson filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.rdmb filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.nav filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.navmesh filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bin filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.blob filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bytes filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.pak filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.pck filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.vpk filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bank filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bnk filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.wem filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.sav filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.save filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.meshdata filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.animdata filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.zip filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.7z filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.rar filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.tar filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.gz filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.tgz filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.bz2 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.xz filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.lz filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.lz4 filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.zst filter=lfs diff=lfs merge=lfs -text
+Resources/**/*.cab filter=lfs diff=lfs merge=lfs -text

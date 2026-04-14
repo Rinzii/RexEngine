@@ -11,7 +11,7 @@ namespace Rex.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class ExplicitVirtualAnalyzer : DiagnosticAnalyzer
 {
-    internal const string Attribute = "Rex.Shared.Analyzers.VirtualAttribute";
+    private const string Attribute = "Rex.Shared.Analyzers.VirtualAttribute";
 
     [SuppressMessage("ReSharper", "RS2008")]
     private static readonly DiagnosticDescriptor s_rule = new(

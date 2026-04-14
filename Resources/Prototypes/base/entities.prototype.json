@@ -1,0 +1,29 @@
+[
+  {
+    "type": "entity",
+    "id": "baseEntity",
+    "abstract": true,
+    "name": "Base Entity",
+    "description": "Base shared entity prototype.",
+    "components": {
+      "transform": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "rotationY": 0
+      }
+    }
+  },
+  {
+    "type": "entity",
+    "id": "ownedEntity",
+    "parent": "baseEntity",
+    "name": "Owned Entity",
+    "description": "Derived shared entity prototype.",
+    "components": {
+      "owner": {
+        "ownerClientId": "11111111-1111-1111-1111-111111111111"
+      }
+    }
+  }
+]

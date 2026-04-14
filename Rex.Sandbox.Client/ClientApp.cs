@@ -169,7 +169,17 @@ public sealed partial class ClientApp : IDisposable
         LogStandaloneWorldInitialized();
     }
 
-    private void SetupNetworked(string host, int port)
+    internal void InitializeStandaloneForTesting()
+    {
+        SetupStandalone();
+    }
+
+    internal void InitializeNetworkedForTesting(string? host = null, int port = ProtocolConstants.DefaultPort)
+    {
+        SetupNetworked(host ?? "127.0.0.1", port, autoConnect: false);
+    }
+
+    private void SetupNetworked(string host, int port, bool autoConnect = true)
     {
         Client = new GameClient(_loggerFactory);
         if (_inputCollector != null)
@@ -177,7 +187,10 @@ public sealed partial class ClientApp : IDisposable
             Client.SetInputCollector(_inputCollector);
         }
 
-        Client.Connect(host, port);
+        if (autoConnect)
+        {
+            Client.Connect(host, port);
+        }
     }
 
     private void TickStandalone()
