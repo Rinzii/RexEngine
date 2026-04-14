@@ -1,4 +1,8 @@
 #if REX_ANALYZERS_IMPL
+#nullable enable
+#endif
+
+#if REX_ANALYZERS_IMPL
 namespace Rex.Shared.Analyzers.Implementation;
 #else
 namespace Rex.Shared.Analyzers;
@@ -26,11 +30,11 @@ namespace Rex.Shared.Analyzers;
 public sealed class PreferGenericVariantAttribute : Attribute
 {
     /// <summary>Names the preferred generic overload for the analyzer.</summary>
-    public readonly string GenericVariant;
+    public readonly string? GenericVariant;
 
     /// <summary>Stores the optional overload hint for the analyzer.</summary>
-    /// <param name="genericVariant">Token owned by the analyzer that describes the replacement API.</param>
-    public PreferGenericVariantAttribute(string genericVariant = null!)
+    /// <param name="genericVariant">Optional overload name. Null lets the analyzer infer the generic overload from the decorated method.</param>
+    public PreferGenericVariantAttribute(string? genericVariant = null)
     {
         GenericVariant = genericVariant;
     }
