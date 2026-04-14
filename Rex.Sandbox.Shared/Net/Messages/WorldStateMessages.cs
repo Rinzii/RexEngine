@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Analyzers;
 using Rex.Shared.Net;
@@ -12,18 +11,19 @@ public sealed class WorldSnapshotMessage : INetMessage
 {
     public const ushort Id = 5;
 
-    public ushort MessageId => Id;
-    public MessageGroup Group => MessageGroup.Entity;
-    public uint ServerTick { get; }
-    public uint LastProcessedInputTick { get; }
-    public IReadOnlyList<EntityState> Entities { get; }
-
     public WorldSnapshotMessage(uint serverTick, uint lastProcessedInputTick, IReadOnlyList<EntityState> entities)
     {
         ServerTick = serverTick;
         LastProcessedInputTick = lastProcessedInputTick;
         Entities = entities;
     }
+
+    public uint ServerTick { get; }
+    public uint LastProcessedInputTick { get; }
+    public IReadOnlyList<EntityState> Entities { get; }
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.Entity;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -32,7 +32,7 @@ public sealed class WorldSnapshotMessage : INetMessage
         writer.Put(LastProcessedInputTick);
         writer.Put((ushort)Entities.Count);
 
-        foreach (var entity in Entities)
+        foreach (EntityState entity in Entities)
         {
             entity.Serialize(writer);
         }
@@ -40,12 +40,12 @@ public sealed class WorldSnapshotMessage : INetMessage
 
     public static WorldSnapshotMessage Deserialize(NetDataReader reader)
     {
-        var serverTick = reader.GetUInt();
-        var lastProcessedInputTick = reader.GetUInt();
-        var entityCount = reader.GetUShort();
+        uint serverTick = reader.GetUInt();
+        uint lastProcessedInputTick = reader.GetUInt();
+        ushort entityCount = reader.GetUShort();
         var entities = new List<EntityState>(entityCount);
 
-        for (var i = 0; i < entityCount; i++)
+        for (int i = 0; i < entityCount; i++)
         {
             entities.Add(EntityState.Deserialize(reader));
         }
@@ -59,12 +59,6 @@ public sealed class WorldSnapshotMessage : INetMessage
 /// </summary>
 public sealed class EntityState
 {
-    public int EntityId { get; }
-    public float X { get; }
-    public float Y { get; }
-    public float Z { get; }
-    public float RotationY { get; }
-
     public EntityState(int entityId, float x, float y, float z, float rotationY)
     {
         EntityId = entityId;
@@ -73,6 +67,12 @@ public sealed class EntityState
         Z = z;
         RotationY = rotationY;
     }
+
+    public int EntityId { get; }
+    public float X { get; }
+    public float Y { get; }
+    public float Z { get; }
+    public float RotationY { get; }
 
     public void Serialize(NetDataWriter writer)
     {
@@ -88,11 +88,11 @@ public sealed class EntityState
     /// </summary>
     public static EntityState Deserialize(NetDataReader reader)
     {
-        var entityId = reader.GetInt();
-        var x = reader.GetFloat();
-        var y = reader.GetFloat();
-        var z = reader.GetFloat();
-        var rotationY = reader.GetFloat();
+        int entityId = reader.GetInt();
+        float x = reader.GetFloat();
+        float y = reader.GetFloat();
+        float z = reader.GetFloat();
+        float rotationY = reader.GetFloat();
         return new EntityState(entityId, x, y, z, rotationY);
     }
 }
@@ -103,14 +103,6 @@ public sealed class EntityState
 public sealed class EntitySpawnMessage : INetMessage
 {
     public const ushort Id = 6;
-    public ushort MessageId => Id;
-    public MessageGroup Group => MessageGroup.EntityEvent;
-    public int EntityId { get; }
-    public Guid OwnerClientId { get; }
-    public string EntityType { get; }
-    public float X { get; }
-    public float Y { get; }
-    public float Z { get; }
 
     public EntitySpawnMessage(int entityId, Guid ownerClientId, [ForbidLiteral] string entityType, float x, float y,
         float z)
@@ -122,6 +114,15 @@ public sealed class EntitySpawnMessage : INetMessage
         Y = y;
         Z = z;
     }
+
+    public int EntityId { get; }
+    public Guid OwnerClientId { get; }
+    public string EntityType { get; }
+    public float X { get; }
+    public float Y { get; }
+    public float Z { get; }
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.EntityEvent;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -136,12 +137,12 @@ public sealed class EntitySpawnMessage : INetMessage
 
     public static EntitySpawnMessage Deserialize(NetDataReader reader)
     {
-        var entityId = reader.GetInt();
-        var ownerClientId = reader.ReadGuid();
-        var entityType = reader.GetString();
-        var x = reader.GetFloat();
-        var y = reader.GetFloat();
-        var z = reader.GetFloat();
+        int entityId = reader.GetInt();
+        Guid ownerClientId = reader.ReadGuid();
+        string entityType = reader.GetString();
+        float x = reader.GetFloat();
+        float y = reader.GetFloat();
+        float z = reader.GetFloat();
         return new EntitySpawnMessage(entityId, ownerClientId, entityType, x, y, z);
     }
 }
@@ -153,14 +154,15 @@ public sealed class EntityDestroyMessage : INetMessage
 {
     public const ushort Id = 7;
 
-    public ushort MessageId => Id;
-    public MessageGroup Group => MessageGroup.EntityEvent;
-    public int EntityId { get; }
-
     public EntityDestroyMessage(int entityId)
     {
         EntityId = entityId;
     }
+
+    public int EntityId { get; }
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.EntityEvent;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -173,7 +175,7 @@ public sealed class EntityDestroyMessage : INetMessage
     /// </summary>
     public static EntityDestroyMessage Deserialize(NetDataReader reader)
     {
-        var entityId = reader.GetInt();
+        int entityId = reader.GetInt();
         return new EntityDestroyMessage(entityId);
     }
 }

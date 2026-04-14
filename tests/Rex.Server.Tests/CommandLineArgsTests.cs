@@ -5,13 +5,13 @@ namespace Rex.Sandbox.Server.Tests;
 // Dedicated server command line parsing.
 public sealed class CommandLineArgsTests
 {
-    private static readonly string[] Port40000 = ["--port", "40000"];
+    private static readonly string[] s_port40000 = ["--port", "40000"];
 
     [Fact]
     // No args pick protocol defaults for port tick rate and max players.
     public void TryParse_empty_uses_defaults()
     {
-        var ok = CommandLineArgs.TryParse(Array.Empty<string>(), out var parsed, out var error);
+        bool ok = CommandLineArgs.TryParse(Array.Empty<string>(), out CommandLineArgs? parsed, out string? error);
 
         Assert.True(ok);
         Assert.Null(error);
@@ -25,7 +25,7 @@ public sealed class CommandLineArgsTests
     // Port flag overrides the default listen port.
     public void TryParse_port_override()
     {
-        var ok = CommandLineArgs.TryParse(Port40000, out var parsed, out _);
+        bool ok = CommandLineArgs.TryParse(s_port40000, out CommandLineArgs? parsed, out _);
 
         Assert.True(ok);
         Assert.Equal(40000, parsed!.Port);

@@ -20,13 +20,15 @@ public sealed class ServerRuntimeOptions
 /// Dedicated server main loop. Owns a <see cref="TickClock"/> and runs fixed time step simulation through
 /// <see cref="OnFixedUpdate"/> plus variable frame callbacks through <see cref="OnUpdate"/> and <see cref="OnLateUpdate"/>.
 /// Game or sandbox code wires <see cref="OnInitialize"/> and <see cref="OnShutdown"/> for startup and teardown.
-/// Engine entry <see cref="Rex.Server.Startup.GameServerStart"/> resolves this host and calls <see cref="Run"/>.
+/// Engine entry <see cref="Startup.GameServerStart"/> resolves this host and calls <see cref="Run"/>.
 /// </summary>
 public sealed partial class ServerRuntimeHost : IDisposable
 {
-    private readonly ILogger _logger;
     private readonly DeltaTimeSmoother _deltaSmoother = new();
-    private bool _isRunning;
+    // TODO: Use this at some point.
+#pragma warning disable IDE0052
+    private readonly ILogger _logger;
+#pragma warning restore IDE0052
     private bool _disposed;
 
     /// <summary>
@@ -54,7 +56,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
     /// <summary>
     /// True while <see cref="Run"/> is inside its main loop.
     /// </summary>
-    public bool IsRunning => _isRunning;
+    public bool IsRunning { get; private set; }
 
     /// <summary>
     /// Multiplier applied to frame deltas inside <see cref="FrameContext"/>.
@@ -77,6 +79,14 @@ public sealed partial class ServerRuntimeHost : IDisposable
     public Action? OnShutdown { get; set; }
 
     /// <summary>
+    /// Marks the host disposed so a subsequent <see cref="Run"/> throws.
+    /// </summary>
+    public void Dispose()
+    {
+        _disposed = true;
+    }
+
+    /// <summary>
     /// Enters the main loop until <see cref="Stop"/>, disposal or a canceled <paramref name="cancellationToken"/> ends it.
     /// </summary>
     /// <param name="cancellationToken">Stops the loop when canceled.</param>
@@ -91,7 +101,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
         }
         finally
         {
-            _isRunning = false;
+            IsRunning = false;
             OnShutdown?.Invoke();
         }
     }
@@ -101,15 +111,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
     /// </summary>
     public void Stop()
     {
-        _isRunning = false;
-    }
-
-    /// <summary>
-    /// Marks the host disposed so a subsequent <see cref="Run"/> throws.
-    /// </summary>
-    public void Dispose()
-    {
-        _disposed = true;
+        IsRunning = false;
     }
 
     /// <summary>
@@ -117,30 +119,30 @@ public sealed partial class ServerRuntimeHost : IDisposable
     /// </summary>
     private void RunMainLoop(CancellationToken cancellationToken)
     {
-        _isRunning = true;
+        IsRunning = true;
         var stopwatch = Stopwatch.StartNew();
-        var previousTime = stopwatch.Elapsed.TotalSeconds;
+        double previousTime = stopwatch.Elapsed.TotalSeconds;
         double accumulator = 0;
         ulong frameIndex = 0;
 
-        while (_isRunning && !cancellationToken.IsCancellationRequested)
+        while (IsRunning && !cancellationToken.IsCancellationRequested)
         {
             // TODO (xLuxy): This is for testing only and should be removed once we have fully integrated Tracy
-            using var _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
+            using TracyProfilerScope _ = TracyProfiler.Zone("MainLoop", true, 0xFF5A00);
 
-            var currentTime = stopwatch.Elapsed.TotalSeconds;
-            var frameTime = currentTime - previousTime;
+            double currentTime = stopwatch.Elapsed.TotalSeconds;
+            double frameTime = currentTime - previousTime;
             previousTime = currentTime;
 
             // Drain wall time into fixed ticks, then expose the fractional remainder as alpha for blending reads.
-            var fixedSteps = PhasedLoop.RunFixedSteps(Clock, ref accumulator, frameTime, () => OnFixedUpdate?.Invoke());
-            var alpha = (float)(accumulator / Clock.TickInterval);
+            int fixedSteps = PhasedLoop.RunFixedSteps(Clock, ref accumulator, frameTime, () => OnFixedUpdate?.Invoke());
+            float alpha = (float)(accumulator / Clock.TickInterval);
             Clock.SetAlpha(alpha);
             frameIndex++;
 
             // Variable phase timing. Clamp hitches for gameplay deltas and smooth the same value for cameras or UI.
-            var unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
-            var smoothDt = _deltaSmoother.Next(unscaledDt);
+            float unscaledDt = Math.Min((float)frameTime, PhasedLoop.DefaultMaxFrameSeconds);
+            float smoothDt = _deltaSmoother.Next(unscaledDt);
             var ctx = new FrameContext(
                 Clock,
                 unscaledDt,
@@ -154,7 +156,7 @@ public sealed partial class ServerRuntimeHost : IDisposable
             InvokeUpdateCallback(OnUpdate, ctx, LogOnUpdateFailed);
             InvokeUpdateCallback(OnLateUpdate, ctx, LogOnLateUpdateFailed);
             // No swap chain on the dedicated server. Yield so an uncapped loop does not burn a full core.
-            Thread.Yield();
+            bool unused = Thread.Yield();
 
             TracyProfiler.FrameMark();
         }
@@ -166,7 +168,8 @@ public sealed partial class ServerRuntimeHost : IDisposable
     }
 
     /// <summary>Invokes a frame callback and logs failures without tearing down the loop.</summary>
-    private static void InvokeUpdateCallback(Action<FrameContext>? callback, FrameContext ctx, Action<Exception> logFailure)
+    private static void InvokeUpdateCallback(Action<FrameContext>? callback, FrameContext ctx,
+        Action<Exception> logFailure)
     {
         if (callback == null)
         {

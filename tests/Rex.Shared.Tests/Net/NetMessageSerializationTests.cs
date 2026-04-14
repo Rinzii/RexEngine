@@ -18,8 +18,8 @@ public sealed class NetMessageSerializationTests
     public void RoundTrip_DisconnectMessage()
     {
         var original = new DisconnectMessage("server shutdown");
-        var decoded = RoundTrip(original);
-        var typed = Assert.IsType<DisconnectMessage>(decoded);
+        INetMessage decoded = RoundTrip(original);
+        DisconnectMessage typed = Assert.IsType<DisconnectMessage>(decoded);
         Assert.Equal(original.Reason, typed.Reason);
     }
 
@@ -28,7 +28,7 @@ public sealed class NetMessageSerializationTests
     public void RoundTrip_StateAckMessage()
     {
         var original = new StateAckMessage(12345u);
-        var typed = Assert.IsType<StateAckMessage>(RoundTrip(original));
+        StateAckMessage typed = Assert.IsType<StateAckMessage>(RoundTrip(original));
         Assert.Equal(original.AcknowledgedTick, typed.AcknowledgedTick);
     }
 
@@ -37,9 +37,9 @@ public sealed class NetMessageSerializationTests
     public void RoundTrip_BulkTransfer_messages()
     {
         var transferId = Guid.CreateVersion7();
-        const byte dataType = 77;
-        var init = new BulkTransferInitMessage(transferId, dataType, 1000, 2000, true, 3);
-        var decodedInit = Assert.IsType<BulkTransferInitMessage>(RoundTrip(init));
+        const byte DataType = 77;
+        BulkTransferInitMessage init = new(transferId, DataType, 1000, 2000, true, 3);
+        BulkTransferInitMessage decodedInit = Assert.IsType<BulkTransferInitMessage>(RoundTrip(init));
         Assert.Equal(init.TransferId, decodedInit.TransferId);
         Assert.Equal(init.DataType, decodedInit.DataType);
         Assert.Equal(init.TotalSize, decodedInit.TotalSize);
@@ -47,14 +47,14 @@ public sealed class NetMessageSerializationTests
         Assert.Equal(init.IsCompressed, decodedInit.IsCompressed);
         Assert.Equal(init.ChunkCount, decodedInit.ChunkCount);
 
-        var chunk = new BulkTransferChunkMessage(transferId, 1, new byte[] { 1, 2, 3 });
-        var decodedChunk = Assert.IsType<BulkTransferChunkMessage>(RoundTrip(chunk));
+        BulkTransferChunkMessage chunk = new(transferId, 1, [1, 2, 3]);
+        BulkTransferChunkMessage decodedChunk = Assert.IsType<BulkTransferChunkMessage>(RoundTrip(chunk));
         Assert.Equal(chunk.TransferId, decodedChunk.TransferId);
         Assert.Equal(chunk.ChunkIndex, decodedChunk.ChunkIndex);
         Assert.Equal(chunk.Data, decodedChunk.Data);
 
-        var ack = new BulkTransferAckMessage(transferId, true);
-        var decodedAck = Assert.IsType<BulkTransferAckMessage>(RoundTrip(ack));
+        BulkTransferAckMessage ack = new(transferId, true);
+        BulkTransferAckMessage decodedAck = Assert.IsType<BulkTransferAckMessage>(RoundTrip(ack));
         Assert.Equal(ack.TransferId, decodedAck.TransferId);
         Assert.Equal(ack.Success, decodedAck.Success);
     }

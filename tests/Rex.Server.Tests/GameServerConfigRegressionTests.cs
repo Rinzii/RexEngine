@@ -1,6 +1,6 @@
-using Rex.Shared.Net;
-using Rex.Sandbox.Shared.Net;
 using Rex.Sandbox.Server.Simulation;
+using Rex.Sandbox.Shared.Net;
+using Rex.Shared.Net;
 
 namespace Rex.Sandbox.Server.Tests;
 

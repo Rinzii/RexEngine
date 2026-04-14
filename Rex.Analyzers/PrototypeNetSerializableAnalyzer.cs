@@ -1,7 +1,6 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -43,8 +42,9 @@ public sealed class PrototypeNetSerializableAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationStartAction(static ctx =>
         {
-            var prototypeInterface = ctx.Compilation.GetTypeByMetadataName(PrototypeInterfaceType);
-            var netSerializableAttribute = ctx.Compilation.GetTypeByMetadataName(NetSerializableAttributeType);
+            INamedTypeSymbol prototypeInterface = ctx.Compilation.GetTypeByMetadataName(PrototypeInterfaceType);
+            INamedTypeSymbol netSerializableAttribute =
+                ctx.Compilation.GetTypeByMetadataName(NetSerializableAttributeType);
 
             if (prototypeInterface == null || netSerializableAttribute == null)
             {

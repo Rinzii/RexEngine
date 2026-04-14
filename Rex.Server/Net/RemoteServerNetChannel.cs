@@ -11,6 +11,16 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     private readonly NetPeer _peer;
     private readonly NetDataWriter _writer = new();
 
+    /// <summary>Binds send helpers to an accepted peer.</summary>
+    /// <param name="peer">LiteNetLib peer for this client after accept.</param>
+    /// <param name="clientId">Same id the host uses in sessions.</param>
+    public RemoteServerNetChannel(NetPeer peer, Guid clientId)
+    {
+        _peer = peer;
+        ClientId = clientId;
+        State = ConnectionState.Connected;
+    }
+
     /// <inheritdoc />
     public Guid ClientId { get; }
 
@@ -23,16 +33,6 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     /// <inheritdoc />
     public int RoundTripTimeMs => _peer.Ping;
 
-    /// <summary>Binds send helpers to an accepted peer.</summary>
-    /// <param name="peer">LiteNetLib peer for this client after accept.</param>
-    /// <param name="clientId">Same id the host uses in sessions.</param>
-    public RemoteServerNetChannel(NetPeer peer, Guid clientId)
-    {
-        _peer = peer;
-        ClientId = clientId;
-        State = ConnectionState.Connected;
-    }
-
     /// <inheritdoc />
     public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
     {
@@ -44,7 +44,7 @@ public sealed class RemoteServerNetChannel : IServerNetChannel
     /// <inheritdoc />
     public void Send(INetMessage message)
     {
-        var (channel, delivery) = message.Group.GetDeliveryInfo();
+        (byte channel, DeliveryMethod delivery) = message.Group.GetDeliveryInfo();
         Send(message, channel, delivery);
     }
 

@@ -7,6 +7,7 @@ using Rex.Sandbox.Shared.Net.Transfer;
 using Rex.Sandbox.Shared.Simulation;
 using Rex.Shared.Logging;
 using Rex.Shared.Net;
+using Rex.Shared.Net.Messages;
 using Rex.Shared.Net.Transfer;
 using Rex.Shared.Utility;
 using ConnectionState = Rex.Shared.Net.ConnectionState;
@@ -23,18 +24,6 @@ public sealed partial class GameClient
     private IClientNetChannel? _channel;
     private InputCollector? _inputCollector;
 
-    public Guid ClientId { get; private set; }
-    public int LocalPlayerEntityId { get; private set; }
-    public ClientWorldState WorldState { get; } = new();
-    public InputBuffer InputBuffer { get; } = new();
-    public PredictionSystem Prediction { get; }
-    public bool IsConnected => _channel?.State is ConnectionState.Connected
-        or ConnectionState.Authenticated or ConnectionState.InGame;
-    public ConnectionState State => _channel?.State ?? ConnectionState.Disconnected;
-    public int RoundTripTimeMs => _channel?.RoundTripTimeMs ?? 0;
-
-    public event Action<Guid, SandboxBulkDataType, byte[]>? BulkDataReceived;
-
     public GameClient(ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger<GameClient>();
@@ -42,6 +31,20 @@ public sealed partial class GameClient
         _transferManager = new BulkTransferManager(loggerFactory);
         _transferManager.TransferCompleted += OnTransferCompleted;
     }
+
+    public Guid ClientId { get; private set; }
+    public int LocalPlayerEntityId { get; private set; }
+    public ClientWorldState WorldState { get; } = new();
+    public InputBuffer InputBuffer { get; } = new();
+    public PredictionSystem Prediction { get; }
+
+    public bool IsConnected => _channel?.State is ConnectionState.Connected
+        or ConnectionState.Authenticated or ConnectionState.InGame;
+
+    public ConnectionState State => _channel?.State ?? ConnectionState.Disconnected;
+    public int RoundTripTimeMs => _channel?.RoundTripTimeMs ?? 0;
+
+    public event Action<Guid, SandboxBulkDataType, byte[]>? BulkDataReceived;
 
     public void SetInputCollector(InputCollector collector)
     {
@@ -76,7 +79,7 @@ public sealed partial class GameClient
 
         if (_inputCollector != null)
         {
-            var input = _inputCollector.Sample(currentTick);
+            PlayerInputMessage input = _inputCollector.Sample(currentTick);
             InputBuffer.Store(input);
             Prediction.ApplyInputLocally(input);
             _channel.Send(input);
@@ -160,9 +163,9 @@ public sealed partial class GameClient
     private void HandleWorldSnapshot(WorldSnapshotMessage snapshot)
     {
         WorldState.ApplySnapshot(snapshot);
-        _channel?.Send(new Rex.Shared.Net.Messages.StateAckMessage(snapshot.ServerTick));
+        _channel?.Send(new StateAckMessage(snapshot.ServerTick));
 
-        foreach (var entity in snapshot.Entities)
+        foreach (EntityState entity in snapshot.Entities)
         {
             if (entity.EntityId == LocalPlayerEntityId)
             {
@@ -191,7 +194,7 @@ public sealed class InputBuffer
 
     public void Store(PlayerInputMessage input)
     {
-        var slot = _buffer.GetSlot(input.Tick);
+        TickRingBuffer<PlayerInputMessage?>.Entry slot = _buffer.GetSlot(input.Tick);
         slot.Tick = input.Tick;
         slot.IsAssigned = true;
         slot.Value = input;
@@ -199,9 +202,9 @@ public sealed class InputBuffer
 
     public void AcknowledgeUpTo(uint tick)
     {
-        for (var i = 0; i < _buffer.Capacity; i++)
+        for (int i = 0; i < _buffer.Capacity; i++)
         {
-            var slot = _buffer.GetSlotAt(i);
+            TickRingBuffer<PlayerInputMessage?>.Entry slot = _buffer.GetSlotAt(i);
             if (slot is { IsAssigned: true, Value: not null } && slot.Tick <= tick)
             {
                 slot.IsAssigned = false;
@@ -214,9 +217,9 @@ public sealed class InputBuffer
     {
         var result = new List<PlayerInputMessage>();
 
-        for (var i = 0; i < _buffer.Capacity; i++)
+        for (int i = 0; i < _buffer.Capacity; i++)
         {
-            var slot = _buffer.GetSlotAt(i);
+            TickRingBuffer<PlayerInputMessage?>.Entry slot = _buffer.GetSlotAt(i);
             if (slot is { IsAssigned: true, Value: not null } && slot.Tick > tick)
             {
                 result.Add(slot.Value);
@@ -232,14 +235,14 @@ public sealed class PredictionSystem
 {
     private readonly InputBuffer _inputBuffer;
 
-    public float PredictedX { get; private set; }
-    public float PredictedY { get; private set; }
-    public float PredictedZ { get; private set; }
-
     public PredictionSystem(InputBuffer inputBuffer)
     {
         _inputBuffer = inputBuffer;
     }
+
+    public float PredictedX { get; private set; }
+    public float PredictedY { get; private set; }
+    public float PredictedZ { get; private set; }
 
     public void ApplyInputLocally(PlayerInputMessage input)
     {
@@ -255,8 +258,8 @@ public sealed class PredictionSystem
 
         _inputBuffer.AcknowledgeUpTo(lastProcessedInputTick);
 
-        var unacknowledged = _inputBuffer.GetInputsAfter(lastProcessedInputTick);
-        foreach (var input in unacknowledged)
+        IReadOnlyList<PlayerInputMessage> unacknowledged = _inputBuffer.GetInputsAfter(lastProcessedInputTick);
+        foreach (PlayerInputMessage input in unacknowledged)
         {
             ApplyInputLocally(input);
         }
@@ -266,39 +269,39 @@ public sealed class PredictionSystem
 public sealed class ClientWorldState
 {
     private WorldSnapshotMessage? _previousSnapshot;
-    private WorldSnapshotMessage? _currentSnapshot;
 
-    public WorldSnapshotMessage? CurrentSnapshot => _currentSnapshot;
-    public uint LastServerTick => _currentSnapshot?.ServerTick ?? 0;
+    public WorldSnapshotMessage? CurrentSnapshot { get; private set; }
+    public uint LastServerTick => CurrentSnapshot?.ServerTick ?? 0;
 
     public void ApplySnapshot(WorldSnapshotMessage snapshot)
     {
-        _previousSnapshot = _currentSnapshot;
-        _currentSnapshot = snapshot;
+        _previousSnapshot = CurrentSnapshot;
+        CurrentSnapshot = snapshot;
     }
+
     public IReadOnlyList<EntityState> GetInterpolatedState(float alpha)
     {
-        if (_currentSnapshot == null)
+        if (CurrentSnapshot == null)
         {
             return [];
         }
 
         if (_previousSnapshot == null)
         {
-            return _currentSnapshot.Entities;
+            return CurrentSnapshot.Entities;
         }
 
         var result = new List<EntityState>();
         var previousEntities = new Dictionary<int, EntityState>();
 
-        foreach (var entity in _previousSnapshot.Entities)
+        foreach (EntityState entity in _previousSnapshot.Entities)
         {
             previousEntities[entity.EntityId] = entity;
         }
 
-        foreach (var current in _currentSnapshot.Entities)
+        foreach (EntityState current in CurrentSnapshot.Entities)
         {
-            if (previousEntities.TryGetValue(current.EntityId, out var previous))
+            if (previousEntities.TryGetValue(current.EntityId, out EntityState? previous))
             {
                 result.Add(EntityStateInterpolation.Lerp(previous, current, alpha));
             }

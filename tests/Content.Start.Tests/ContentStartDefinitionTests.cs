@@ -1,4 +1,5 @@
 using Content.Shared;
+using Rex.Shared.Startup;
 
 namespace Content.Start.Tests;
 
@@ -7,7 +8,7 @@ public sealed class ContentStartDefinitionTests
     [Fact]
     public void CreateClientStartDefinition_maps_content_metadata_and_defaults()
     {
-        var definition = ContentGameInfo.CreateClientStartDefinition();
+        GameClientStartDefinition definition = ContentGameInfo.CreateClientStartDefinition();
 
         Assert.Equal(ContentGameInfo.GameName, definition.Identity.GameName);
         Assert.Equal(ContentGameInfo.SharedProject, definition.Identity.SharedProject);
@@ -25,8 +26,8 @@ public sealed class ContentStartDefinitionTests
     [Fact]
     public void CreateServerStartDefinition_maps_content_server_identity()
     {
-        var definition = ContentGameInfo.CreateServerStartDefinition();
-        var defaults = ContentGameInfo.CreateDefaultSessionSettings();
+        GameServerStartDefinition definition = ContentGameInfo.CreateServerStartDefinition();
+        ContentSessionSettings defaults = ContentGameInfo.CreateDefaultSessionSettings();
 
         Assert.Equal(ContentGameInfo.GameName, definition.Identity.GameName);
         Assert.Equal(ContentGameInfo.ServerProject, definition.Identity.ServerProject);

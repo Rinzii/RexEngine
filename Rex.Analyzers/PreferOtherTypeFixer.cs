@@ -5,7 +5,7 @@ using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
+using Microsoft.CodeAnalysis.Text;
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -15,9 +15,7 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
 {
     private const string PreferOtherTypeAttributeName = "PreferOtherTypeAttribute";
 
-    public override ImmutableArray<string> FixableDiagnosticIds => ImmutableArray.Create(
-        IdPreferOtherType
-    );
+    public override ImmutableArray<string> FixableDiagnosticIds => [IdPreferOtherType];
 
     public override FixAllProvider GetFixAllProvider()
     {
@@ -26,12 +24,14 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
 
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        foreach (var diagnostic in context.Diagnostics)
+        foreach (Diagnostic diagnostic in context.Diagnostics)
         {
             switch (diagnostic.Id)
             {
                 case IdPreferOtherType:
                     return RegisterReplaceType(context, diagnostic);
+                default:
+                    break;
             }
         }
 
@@ -40,9 +40,10 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
 
     private static async Task RegisterReplaceType(CodeFixContext context, Diagnostic diagnostic)
     {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
-        var span = diagnostic.Location.SourceSpan;
-        var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<VariableDeclarationSyntax>().First();
+        SyntaxNode? root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
+        TextSpan span = diagnostic.Location.SourceSpan;
+        VariableDeclarationSyntax? token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf()
+            .OfType<VariableDeclarationSyntax>().First();
 
         if (token == null)
         {
@@ -60,7 +61,7 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
         CancellationToken cancellation)
     {
         var root = (CompilationUnitSyntax?)await document.GetSyntaxRootAsync(cancellation);
-        var model = await document.GetSemanticModelAsync(cancellation);
+        SemanticModel? model = await document.GetSemanticModelAsync(cancellation);
 
         if (model == null)
         {
@@ -72,19 +73,19 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
             return document;
         }
 
-        var genericTypeSyntax = genericNameSyntax.TypeArgumentList.Arguments[0];
+        TypeSyntax genericTypeSyntax = genericNameSyntax.TypeArgumentList.Arguments[0];
         if (model.GetSymbolInfo(genericTypeSyntax).Symbol is not { } genericTypeSymbol)
         {
             return document;
         }
 
-        var symbolInfo = model.GetSymbolInfo(syntax.Type);
+        SymbolInfo symbolInfo = model.GetSymbolInfo(syntax.Type);
         if (symbolInfo.Symbol?.GetAttributes() is not { } attributes)
         {
             return document;
         }
 
-        foreach (var attribute in attributes)
+        foreach (AttributeData attribute in attributes)
         {
             if (attribute.AttributeClass?.Name != PreferOtherTypeAttributeName)
             {
@@ -106,8 +107,8 @@ public sealed class PreferOtherTypeFixer : CodeFixProvider
                 continue;
             }
 
-            var replacementIdentifier = SyntaxFactory.IdentifierName(replacementTypeSymbol.Name);
-            var replacementSyntax = syntax.WithType(replacementIdentifier);
+            IdentifierNameSyntax replacementIdentifier = SyntaxFactory.IdentifierName(replacementTypeSymbol.Name);
+            VariableDeclarationSyntax replacementSyntax = syntax.WithType(replacementIdentifier);
 
             root = root!.ReplaceNode(syntax, replacementSyntax);
             return document.WithSyntaxRoot(root);

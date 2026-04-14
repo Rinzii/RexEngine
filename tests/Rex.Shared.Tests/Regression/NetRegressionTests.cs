@@ -18,7 +18,7 @@ public sealed class NetRegressionTests
     [Fact]
     public void Regression_connect_address_embedded_port_overrides_default()
     {
-        var ok = ConnectEndpointParser.TryParse("192.168.0.2:28001", 27015, out var host, out var port);
+        bool ok = ConnectEndpointParser.TryParse("192.168.0.2:28001", 27015, out string? host, out int port);
 
         Assert.True(ok);
         Assert.Equal("192.168.0.2", host);
@@ -28,7 +28,7 @@ public sealed class NetRegressionTests
     [Fact]
     public void Regression_message_group_entity_uses_snapshot_sequenced()
     {
-        var (channel, delivery) = MessageGroup.Entity.GetDeliveryInfo();
+        (byte channel, DeliveryMethod delivery) = MessageGroup.Entity.GetDeliveryInfo();
 
         Assert.Equal(DeliveryChannel.Snapshot, channel);
         Assert.Equal(DeliveryMethod.Sequenced, delivery);
@@ -50,30 +50,30 @@ public sealed class NetRegressionTests
     [Fact]
     public void Regression_disconnect_message_registry_round_trip()
     {
-        var original = new DisconnectMessage("reason");
-        var decoded = RoundTrip(original);
-        var typed = Assert.IsType<DisconnectMessage>(decoded);
+        DisconnectMessage original = new("reason");
+        INetMessage decoded = RoundTrip(original);
+        DisconnectMessage typed = Assert.IsType<DisconnectMessage>(decoded);
         Assert.Equal(original.Reason, typed.Reason);
     }
 
     [Fact]
     public void Regression_adaptive_reliability_entity_at_threshold_stays_group_defaults()
     {
-        var message = new PayloadEntityMessage(AdaptiveReliability.ReliableThreshold);
-        var expected = MessageGroup.Entity.GetDeliveryInfo();
-        var actual = AdaptiveReliability.GetAdaptiveDelivery(message);
+        PayloadEntityMessage message = new(AdaptiveReliability.ReliableThreshold);
+        (byte channel, DeliveryMethod delivery) = MessageGroup.Entity.GetDeliveryInfo();
+        (byte actualChannel, DeliveryMethod actualDelivery) = AdaptiveReliability.GetAdaptiveDelivery(message);
 
-        Assert.Equal(expected.Channel, actual.Channel);
-        Assert.Equal(expected.Delivery, actual.Delivery);
+        Assert.Equal(channel, actualChannel);
+        Assert.Equal(delivery, actualDelivery);
     }
 
     [Fact]
     public void Regression_compression_below_threshold_returns_same_buffer()
     {
-        var data = new byte[NetCompression.CompressionThreshold - 1];
+        byte[] data = new byte[NetCompression.CompressionThreshold - 1];
         Array.Fill(data, (byte)3);
 
-        var (outData, isCompressed) = NetCompression.Compress(data);
+        (byte[] outData, bool isCompressed) = NetCompression.Compress(data);
 
         Assert.False(isCompressed);
         Assert.Same(data, outData);
@@ -83,7 +83,7 @@ public sealed class NetRegressionTests
     public void Regression_local_channel_pair_create_exposes_client_id_on_server()
     {
         var id = Guid.NewGuid();
-        var (_, server) = LocalNetChannelPair.Create(id);
+        LocalServerNetChannel server = LocalNetChannelPair.Create(id).Server;
 
         Assert.Equal(id, server.ClientId);
     }
@@ -116,7 +116,7 @@ public sealed class NetRegressionTests
 
         public void Serialize(NetDataWriter writer)
         {
-            for (var i = 0; i < bodyBytes; i++)
+            for (int i = 0; i < bodyBytes; i++)
             {
                 writer.Put((byte)0xCD);
             }

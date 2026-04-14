@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using ProtoBuf;
 using Rex.Shared.Net;
 using Rex.Shared.Net.Transfer;
+using NetConnectionState = Rex.Shared.Net.ConnectionState;
 
 namespace Rex.Shared.Tests.Net.Transfer;
 
@@ -17,7 +18,7 @@ public sealed class BulkTransferManagerTests
     {
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
         var transferId = Guid.CreateVersion7();
-        var payload = new byte[5000];
+        byte[] payload = new byte[5000];
         Random.Shared.NextBytes(payload);
 
         byte[]? received = null;
@@ -27,8 +28,8 @@ public sealed class BulkTransferManagerTests
             received = raw;
         };
 
-        var first = new byte[BulkTransferManager.MaxChunkSize];
-        var second = new byte[payload.Length - first.Length];
+        byte[] first = new byte[BulkTransferManager.MaxChunkSize];
+        byte[] second = new byte[payload.Length - first.Length];
         Buffer.BlockCopy(payload, 0, first, 0, first.Length);
         Buffer.BlockCopy(payload, first.Length, second, 0, second.Length);
 
@@ -58,9 +59,9 @@ public sealed class BulkTransferManagerTests
 
         manager.SendBulkData(channel, TestDataType, payload);
 
-        var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
+        BulkTransferInitMessage init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         manager.HandleTransferInit(init);
-        foreach (var chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
+        foreach (BulkTransferChunkMessage chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
         {
             manager.HandleTransferChunk(chunk);
         }
@@ -74,10 +75,10 @@ public sealed class BulkTransferManagerTests
     public void HandleTransferChunk_without_init_does_not_complete()
     {
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
-        var fired = false;
+        bool fired = false;
         manager.TransferCompleted += (_, _, _) => fired = true;
 
-        var chunk = new BulkTransferChunkMessage(Guid.CreateVersion7(), 0, new byte[] { 1 });
+        var chunk = new BulkTransferChunkMessage(Guid.CreateVersion7(), 0, [1]);
         manager.HandleTransferChunk(chunk);
 
         Assert.False(fired);
@@ -99,9 +100,9 @@ public sealed class BulkTransferManagerTests
 
         manager.SendBulkData(channel, TestDataType, payload);
 
-        var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
+        BulkTransferInitMessage init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         manager.HandleTransferInit(init);
-        foreach (var chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
+        foreach (BulkTransferChunkMessage chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
         {
             manager.HandleTransferChunk(chunk);
         }
@@ -117,7 +118,7 @@ public sealed class BulkTransferManagerTests
         var manager = new BulkTransferManager(NullLoggerFactory.Instance);
         var channel = new RecordingServerChannel();
         var payload = new SampleTransferPayload { Name = "heavy" };
-        for (var i = 0; i < 12_000; i++)
+        for (int i = 0; i < 12_000; i++)
         {
             payload.Numbers.Add(7);
         }
@@ -130,11 +131,11 @@ public sealed class BulkTransferManagerTests
 
         manager.SendBulkData(channel, TestDataType, payload);
 
-        var init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
+        BulkTransferInitMessage init = channel.Sent.OfType<BulkTransferInitMessage>().Single();
         Assert.True(init.IsCompressed, "expected Brotli to shrink this payload");
 
         manager.HandleTransferInit(init);
-        foreach (var chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
+        foreach (BulkTransferChunkMessage chunk in channel.Sent.OfType<BulkTransferChunkMessage>())
         {
             manager.HandleTransferChunk(chunk);
         }
@@ -147,13 +148,13 @@ public sealed class BulkTransferManagerTests
     // Records outbound messages from SendBulkData.
     private sealed class RecordingServerChannel : IServerNetChannel
     {
-        public List<INetMessage> Sent { get; } = new();
+        public List<INetMessage> Sent { get; } = [];
 
         public Guid ClientId => Guid.Empty;
 
         public bool IsLocal => true;
 
-        public Rex.Shared.Net.ConnectionState State { get; set; }
+        public NetConnectionState State { get; set; }
 
         public int RoundTripTimeMs => 0;
 
@@ -167,19 +168,33 @@ public sealed class BulkTransferManagerTests
             Sent.Add(message);
         }
 
-        public void Disconnect(string reason)
-        {
-        }
+        public void Disconnect(string reason) { }
     }
 
     // Same as RecordingServerChannel for IClientNetChannel SendBulkData overload.
     private sealed class RecordingClientChannel : IClientNetChannel
     {
-        public List<INetMessage> Sent { get; } = new();
+        public List<INetMessage> Sent { get; } = [];
 
-        public Rex.Shared.Net.ConnectionState State { get; set; }
+        public NetConnectionState State { get; set; }
 
         public int RoundTripTimeMs => 0;
+
+        public void Connect() { }
+
+        public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
+        {
+            Sent.Add(message);
+        }
+
+        public void Send(INetMessage message)
+        {
+            Sent.Add(message);
+        }
+
+        public void Disconnect(string reason) { }
+
+        public void PollEvents() { }
 
 #pragma warning disable CS0067
         public event Action<INetMessage>? MessageReceived;
@@ -188,34 +203,12 @@ public sealed class BulkTransferManagerTests
 
         public event Action<string>? Disconnected;
 #pragma warning restore CS0067
-
-        public void Connect()
-        {
-        }
-
-        public void Send(INetMessage message, byte channel, DeliveryMethod delivery)
-        {
-            Sent.Add(message);
-        }
-
-        public void Send(INetMessage message)
-        {
-            Sent.Add(message);
-        }
-
-        public void Disconnect(string reason)
-        {
-        }
-
-        public void PollEvents()
-        {
-        }
     }
 
     [ProtoContract]
     private sealed class SampleTransferPayload
     {
         [ProtoMember(1)] public string Name { get; set; } = string.Empty;
-        [ProtoMember(2)] public List<int> Numbers { get; set; } = new();
+        [ProtoMember(2)] public List<int> Numbers { get; set; } = [];
     }
 }

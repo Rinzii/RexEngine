@@ -19,7 +19,7 @@ public sealed class RexNetStatisticsTests
         Assert.Equal(0, stats.BytesReceived);
         Assert.Equal(0, stats.MessagesReceived);
 
-        var perType = stats.GetPerTypeStats();
+        Dictionary<ushort, (long Count, long Bytes)> perType = stats.GetPerTypeStats();
         Assert.Equal(2, perType.Count);
         Assert.Equal((2L, 150L), perType[10]);
         Assert.Equal((1L, 25L), perType[20]);
@@ -37,7 +37,7 @@ public sealed class RexNetStatisticsTests
         Assert.Equal(2, stats.MessagesReceived);
         Assert.Equal(0, stats.BytesSent);
 
-        var perType = stats.GetPerTypeStats();
+        Dictionary<ushort, (long Count, long Bytes)> perType = stats.GetPerTypeStats();
         Assert.Equal(2, perType.Count);
         Assert.Equal((1L, 0L), perType[0]);
         Assert.Equal((1L, 0L), perType[7]);

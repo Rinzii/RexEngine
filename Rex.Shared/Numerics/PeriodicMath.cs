@@ -7,13 +7,13 @@ public static class PeriodicMath
     public static float Repeat(float value, float period)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(period, 0f);
-        return value - MathF.Floor(value / period) * period;
+        return value - (MathF.Floor(value / period) * period);
     }
 
     /// <summary>Maps <paramref name="value"/> into [0, <paramref name="period"/>). Requires a positive <paramref name="period"/>.</summary>
     public static double Repeat(double value, double period)
     {
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(period, 0.0);
-        return value - Math.Floor(value / period) * period;
+        return value - (Math.Floor(value / period) * period);
     }
 }

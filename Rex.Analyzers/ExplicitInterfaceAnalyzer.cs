@@ -1,17 +1,9 @@
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CodeActions;
-using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Document = Microsoft.CodeAnalysis.Document;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -19,15 +11,11 @@ namespace Rex.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
 {
-    public readonly SyntaxKind[] ExcludedModifiers =
-    {
-        SyntaxKind.VirtualKeyword,
-        SyntaxKind.AbstractKeyword,
-        SyntaxKind.OverrideKeyword
-    };
+    private const string RequiresExplicitImplementationAttributeMetadataName =
+        "Rex.Shared.Analyzers.RequiresExplicitImplementationAttribute";
 
     [SuppressMessage("ReSharper", "RS2008")]
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdExplicitInterface,
         "No explicit interface specified",
         "No explicit interface specified",
@@ -36,10 +24,14 @@ public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
         true,
         "Make sure to specify the interface in your method-declaration.");
 
-    private const string RequiresExplicitImplementationAttributeMetadataName =
-        "Rex.Shared.Analyzers.RequiresExplicitImplementationAttribute";
+    private readonly SyntaxKind[] _excludedModifiers =
+    [
+        SyntaxKind.VirtualKeyword,
+        SyntaxKind.AbstractKeyword,
+        SyntaxKind.OverrideKeyword
+    ];
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -58,11 +50,11 @@ public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
             //we already have a explicit interface specified, no need to check further
             case MethodDeclarationSyntax methodDecl when methodDecl.ExplicitInterfaceSpecifier != null ||
                                                          methodDecl.Modifiers.Any(m =>
-                                                             ExcludedModifiers.Contains(m.Kind())):
+                                                             _excludedModifiers.Contains(m.Kind())):
                 return;
             case PropertyDeclarationSyntax propertyDecl when propertyDecl.ExplicitInterfaceSpecifier != null ||
                                                              propertyDecl.Modifiers.Any(m =>
-                                                                 ExcludedModifiers.Contains(m.Kind())):
+                                                                 _excludedModifiers.Contains(m.Kind())):
                 return;
 
             case MethodDeclarationSyntax methodDecl:
@@ -78,9 +70,10 @@ public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
                 return;
         }
 
-        var attrSymbol = context.Compilation.GetTypeByMetadataName(RequiresExplicitImplementationAttributeMetadataName);
+        INamedTypeSymbol attrSymbol =
+            context.Compilation.GetTypeByMetadataName(RequiresExplicitImplementationAttributeMetadataName);
 
-        var isInterfaceMember = symbol?.ContainingType.AllInterfaces.Any(i =>
+        bool isInterfaceMember = symbol?.ContainingType.AllInterfaces.Any(i =>
             i.GetMembers().Any(m =>
                 SymbolEqualityComparer.Default.Equals(symbol,
                     symbol.ContainingType.FindImplementationForInterfaceMember(m)))
@@ -91,7 +84,7 @@ public class ExplicitInterfaceAnalyzer : DiagnosticAnalyzer
         {
             //we do not have an explicit interface specified. bad!
             var diagnostic = Diagnostic.Create(
-                Rule,
+                s_rule,
                 location);
             context.ReportDiagnostic(diagnostic);
         }

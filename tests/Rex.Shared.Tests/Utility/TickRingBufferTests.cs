@@ -9,15 +9,15 @@ public sealed class TickRingBufferTests
     // Zero or negative capacity throws.
     public void Constructor_rejects_non_positive_capacity()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new TickRingBuffer<int>(0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => new TickRingBuffer<int>(-1));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new TickRingBuffer<int>(0));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => new TickRingBuffer<int>(-1));
     }
 
     [Fact]
     // Null value factory throws.
     public void Constructor_rejects_null_factory()
     {
-        Assert.Throws<ArgumentNullException>(() => new TickRingBuffer<int>(4, null!));
+        _ = Assert.Throws<ArgumentNullException>(() => new TickRingBuffer<int>(4, null!));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class TickRingBufferTests
     public void Entry_properties_round_trip()
     {
         var buffer = new TickRingBuffer<string>(2);
-        var slot = buffer.GetSlot(1);
+        TickRingBuffer<string>.Entry slot = buffer.GetSlot(1);
         slot.Value = "a";
         slot.Tick = 99;
         slot.IsAssigned = true;

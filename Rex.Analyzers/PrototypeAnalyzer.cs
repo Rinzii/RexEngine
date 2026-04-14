@@ -4,9 +4,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using Rex.Shared.Prototypes;
-
 using Rex.Roslyn.Shared;
+using Rex.Shared.Prototypes;
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -45,7 +44,7 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
 
         context.RegisterCompilationStartAction(static ctx =>
         {
-            var prototypeAttribute =
+            INamedTypeSymbol? prototypeAttribute =
                 ctx.Compilation.GetTypeByMetadataName("Rex.Shared.Prototypes.PrototypeAttribute");
 
             // No attribute, no analyzer.
@@ -67,20 +66,20 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDeclarationSyntax);
+        INamedTypeSymbol? classSymbol = context.SemanticModel.GetDeclaredSymbol(classDeclarationSyntax);
         if (classSymbol is null)
         {
             return;
         }
 
-        var className = classSymbol.Name;
+        string className = classSymbol.Name;
 
-        if (!AttributeHelper.HasAttribute(classSymbol, prototypeAttributeSymbol, out var attributeData))
+        if (!AttributeHelper.HasAttribute(classSymbol, prototypeAttributeSymbol, out AttributeData? attributeData))
         {
             return;
         }
 
-        var prototypeAttribute = GetAttributeSyntax(attributeData, classDeclarationSyntax);
+        AttributeSyntax? prototypeAttribute = GetAttributeSyntax(attributeData, classDeclarationSyntax);
         if (prototypeAttribute == null)
         {
             return;
@@ -106,13 +105,13 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var literalValue = context.SemanticModel.GetConstantValue(literalSyntax);
+        Optional<object?> literalValue = context.SemanticModel.GetConstantValue(literalSyntax);
         if (literalValue.Value is not string specifiedName)
         {
             return;
         }
 
-        var autoName = PrototypeUtility.CalculatePrototypeName(className);
+        string autoName = PrototypeUtility.CalculatePrototypeName(className);
 
         // Check for name redundancy
         if (autoName == specifiedName)
@@ -123,7 +122,7 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            var location = argumentSyntax.GetLocation();
+            Location location = argumentSyntax.GetLocation();
             context.ReportDiagnostic(Diagnostic.Create(PrototypeRedundantTypeRule,
                 location,
                 className,
@@ -140,9 +139,9 @@ public sealed class PrototypeAnalyzer : DiagnosticAnalyzer
             return null;
         }
 
-        foreach (var attributeList in classSyntax.AttributeLists)
+        foreach (AttributeListSyntax attributeList in classSyntax.AttributeLists)
         {
-            foreach (var attribute in attributeList.Attributes)
+            foreach (AttributeSyntax attribute in attributeList.Attributes)
             {
                 if (syntaxReference.SyntaxTree != attribute.SyntaxTree)
                 {

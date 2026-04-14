@@ -16,7 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\Content.Shared\Content.Shared.csproj"/>
+    <ProjectReference Include="..\..\..\RexGame\Content.Shared\Content.Shared.csproj"/>
   </ItemGroup>
 
 </Project>

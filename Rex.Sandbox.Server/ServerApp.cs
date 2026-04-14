@@ -13,16 +13,29 @@ namespace Rex.Sandbox.Server;
 public sealed partial class ServerApp : IDisposable
 {
     private readonly ILogger _logger;
-    private readonly GameServerConfig _config;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ServerRuntimeHost _runtime;
 
-    private GameServer? _server;
+    public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
+    {
+        Config = config;
+        _loggerFactory = loggerFactory;
+        _logger = loggerFactory.CreateLogger<ServerApp>();
+        _runtime = new ServerRuntimeHost(
+            new ServerRuntimeOptions { TickRate = config.TickRate },
+            loggerFactory)
+        {
+            OnInitialize = InitializeServer,
+            OnFixedUpdate = TickServer,
+            OnShutdown = ShutdownServer
+        };
+    }
 
-    public GameServerConfig Config => _config;
+    public GameServerConfig Config { get; }
     public TickClock Clock => _runtime.Clock;
-    public GameServer? Server => _server;
+    public GameServer? Server { get; private set; }
     public bool IsRunning => _runtime.IsRunning;
+
     public float TimeScale
     {
         get => _runtime.TimeScale;
@@ -40,19 +53,15 @@ public sealed partial class ServerApp : IDisposable
         get => _runtime.OnLateUpdate;
         set => _runtime.OnLateUpdate = value;
     }
-    public ServerApp(GameServerConfig config, ILoggerFactory loggerFactory)
+
+    /// <summary>
+    /// Releases resources owned by this instance.
+    /// </summary>
+    public void Dispose()
     {
-        _config = config;
-        _loggerFactory = loggerFactory;
-        _logger = loggerFactory.CreateLogger<ServerApp>();
-        _runtime = new ServerRuntimeHost(
-            new ServerRuntimeOptions { TickRate = config.TickRate },
-            loggerFactory)
-        {
-            OnInitialize = InitializeServer,
-            OnFixedUpdate = TickServer,
-            OnShutdown = ShutdownServer
-        };
+        _runtime.Dispose();
+        Server?.Shutdown();
+        Server = null;
     }
 
     public void Run(CancellationToken cancellationToken = default)
@@ -66,32 +75,22 @@ public sealed partial class ServerApp : IDisposable
         _runtime.Stop();
     }
 
-    /// <summary>
-    /// Releases resources owned by this instance.
-    /// </summary>
-    public void Dispose()
-    {
-        _runtime.Dispose();
-        _server?.Shutdown();
-        _server = null;
-    }
-
     private void InitializeServer()
     {
-        _server = new GameServer(_config, _loggerFactory);
-        _server.Start();
+        Server = new GameServer(Config, _loggerFactory);
+        Server.Start();
         LogDedicatedServerRunning();
     }
 
     private void TickServer()
     {
-        _server!.Tick();
+        Server!.Tick();
     }
 
     private void ShutdownServer()
     {
-        _server?.Shutdown();
-        _server = null;
+        Server?.Shutdown();
+        Server = null;
     }
 }
 

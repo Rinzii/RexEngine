@@ -11,14 +11,14 @@ public sealed class FrameContextTests
     {
         var clock = new TickClock(60);
         clock.SetAlpha(0.25f);
-        const float unscaled = 0.02f;
-        const float smooth = 0.018f;
-        const float scale = 0.5f;
+        const float Unscaled = 0.02f;
+        const float Smooth = 0.018f;
+        const float Scale = 0.5f;
 
-        var ctx = new FrameContext(clock, unscaled, smooth, scale, 2, 0.25f, 10ul, 123.4);
+        var ctx = new FrameContext(clock, Unscaled, Smooth, Scale, 2, 0.25f, 10ul, 123.4);
 
-        Assert.Equal(unscaled * scale, ctx.ScaledDeltaTime);
-        Assert.Equal(smooth * scale, ctx.SmoothDeltaTime);
+        Assert.Equal(Unscaled * Scale, ctx.ScaledDeltaTime);
+        Assert.Equal(Smooth * Scale, ctx.SmoothDeltaTime);
         Assert.Equal(2, ctx.FixedStepsThisFrame);
         Assert.Equal(0.25f, ctx.InterpolationAlpha);
         Assert.Equal(10ul, ctx.FrameIndex);

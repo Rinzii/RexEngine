@@ -1,3 +1,4 @@
+using System.Net;
 using LiteNetLib;
 using Microsoft.Extensions.Logging;
 using Rex.Sandbox.Server.Simulation;
@@ -11,20 +12,20 @@ namespace Rex.Sandbox.Server.Core;
 /// <summary>LiteNetLib facade for the Sandbox server.</summary>
 public sealed partial class GameServer
 {
-    private readonly GameServerHost _host;
     private readonly ILogger _logger;
-    private readonly Dictionary<NetPeer, Guid> _peerToClientId = new();
+    private readonly Dictionary<NetPeer, Guid> _peerToClientId = [];
 
     private EventBasedNetListener? _listener;
     private NetManager? _netManager;
 
-    public GameServerHost Host => _host;
-
+    // ReSharper disable once ConvertToPrimaryConstructor
     public GameServer(GameServerConfig config, ILoggerFactory loggerFactory)
     {
-        _host = new GameServerHost(config, loggerFactory);
+        Host = new GameServerHost(config, loggerFactory);
         _logger = loggerFactory.CreateLogger<GameServer>();
     }
+
+    public GameServerHost Host { get; }
 
     public void Start()
     {
@@ -36,29 +37,29 @@ public sealed partial class GameServer
         _listener.PeerDisconnectedEvent += OnPeerDisconnected;
         _listener.NetworkReceiveEvent += OnNetworkReceive;
 
-        if (!_netManager.Start(_host.Config.Port))
+        if (!_netManager.Start(Host.Config.Port))
         {
-            LogCannotListenOnPort(_host.Config.Port);
+            LogCannotListenOnPort(Host.Config.Port);
             _netManager.Stop();
             _netManager = null;
             _listener = null;
-            throw new PortAlreadyInUseException(_host.Config.Port);
+            throw new PortAlreadyInUseException(Host.Config.Port);
         }
 
-        _host.Start();
-        LogServerListening(_host.Config.Port);
+        Host.Start();
+        LogServerListening(Host.Config.Port);
         Console.Out.WriteLine(SandboxProtocolConstants.ListenProcessReadyLine);
     }
 
     public void Tick()
     {
         _netManager?.PollEvents();
-        _host.Tick();
+        Host.Tick();
     }
 
     public void Shutdown()
     {
-        _host.Shutdown();
+        Host.Shutdown();
         _peerToClientId.Clear();
         _netManager?.Stop();
         LogServerNetworkStopped();
@@ -66,22 +67,22 @@ public sealed partial class GameServer
 
     private void OnConnectionRequest(ConnectionRequest request)
     {
-        if (_host.IsFull)
+        if (Host.IsFull)
         {
             request.Reject();
             LogConnectionRejectedServerFull();
             return;
         }
 
-        request.AcceptIfKey(_host.Config.ConnectionKey);
+        _ = request.AcceptIfKey(Host.Config.ConnectionKey);
     }
 
     private void OnPeerConnected(NetPeer peer)
     {
-        var clientId = GameServerHost.AllocateClientId();
+        Guid clientId = GameServerHost.AllocateClientId();
         var channel = new RemoteServerNetChannel(peer, clientId);
         var session = new ClientSession(channel);
-        _host.AddSession(session);
+        Host.AddSession(session);
         _peerToClientId[peer] = clientId;
 
         LogPeerConnected(peer.Address, clientId);
@@ -89,30 +90,30 @@ public sealed partial class GameServer
 
     private void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
     {
-        if (!_peerToClientId.TryGetValue(peer, out var clientId))
+        if (!_peerToClientId.TryGetValue(peer, out Guid clientId))
         {
             return;
         }
 
         LogPeerDisconnected(clientId, disconnectInfo.Reason);
-        _host.RemoveSession(clientId);
-        _peerToClientId.Remove(peer);
+        Host.RemoveSession(clientId);
+        _ = _peerToClientId.Remove(peer);
     }
 
     private void OnNetworkReceive(NetPeer peer, NetPacketReader reader, byte channel, DeliveryMethod deliveryMethod)
     {
-        if (!_peerToClientId.TryGetValue(peer, out var clientId))
+        if (!_peerToClientId.TryGetValue(peer, out Guid clientId))
         {
             reader.Recycle();
             return;
         }
 
-        _host.Statistics.RecordReceived(0, reader.AvailableBytes);
+        Host.Statistics.RecordReceived(0, reader.AvailableBytes);
         try
         {
-            var message = NetMessageRegistry.Deserialize(reader);
+            INetMessage message = NetMessageRegistry.Deserialize(reader);
             reader.Recycle();
-            _host.HandleMessage(clientId, message);
+            Host.HandleMessage(clientId, message);
         }
         catch (Exception ex)
         {
@@ -132,6 +133,7 @@ public sealed class PortAlreadyInUseException : InvalidOperationException
     {
         Port = port;
     }
+
     public int Port { get; }
 }
 
@@ -156,7 +158,7 @@ public sealed partial class GameServer
 
     [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerConnected, Level = LogLevel.Information,
         Message = "Peer connected: {Address} -> ClientId {ClientId}")]
-    private partial void LogPeerConnected(System.Net.IPAddress address, Guid clientId);
+    private partial void LogPeerConnected(IPAddress address, Guid clientId);
 
     [LoggerMessage(EventId = LogEventIds.GameServerNet.PeerDisconnected, Level = LogLevel.Information,
         Message = "Peer disconnected: ClientId {ClientId} ({Reason})")]

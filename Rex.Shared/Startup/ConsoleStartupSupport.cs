@@ -12,8 +12,8 @@ public static class ConsoleStartupSupport
     {
         return LoggerFactory.Create(builder =>
         {
-            builder.AddConsole();
-            builder.SetMinimumLevel(minimumLevel);
+            _ = builder.AddConsole();
+            _ = builder.SetMinimumLevel(minimumLevel);
         });
     }
 }

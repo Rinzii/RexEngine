@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.Prototypes;
 
 /// <summary>Naming helpers for prototype types. Used by analyzers when <c>PrototypeAttribute</c> exists.</summary>
@@ -15,14 +13,14 @@ public static class PrototypeUtility
     /// </summary>
     public static string CalculatePrototypeName(string type)
     {
-        var name = type.AsSpan();
+        ReadOnlySpan<char> name = type.AsSpan();
 
         if (!type.EndsWith(PrototypeNameEnding))
         {
-            return $"{char.ToLowerInvariant(name[0])}{name.Slice(1).ToString()}";
+            return char.ToLowerInvariant(name[0]) + name[1..].ToString();
         }
 
         return
-            $"{char.ToLowerInvariant(name[0])}{name.Slice(1, name.Length - PrototypeNameEnding.Length - 1).ToString()}";
+            char.ToLowerInvariant(name[0]) + name[1..^PrototypeNameEnding.Length].ToString();
     }
 }

@@ -2,10 +2,9 @@ using System.Diagnostics;
 using System.Text;
 using bottlenoselabs.C2CS.Runtime;
 
-namespace Rex.Shared.Profiling.Tracy;
-
 using static global::Tracy.PInvoke;
 
+namespace Rex.Shared.Profiling.Tracy;
 /// <summary>
 /// Represents a profiling scope for the Tracy profiler.
 /// </summary>
@@ -62,7 +61,7 @@ public readonly struct TracyProfilerScope : IDisposable
         }
 
         var nameStr = CString.FromString(name);
-        var strLength = Encoding.UTF8.GetByteCount(name);
+        int strLength = Encoding.UTF8.GetByteCount(name);
 
         TracyEmitZoneName(_context.Value, nameStr, (ulong)strLength);
     }
@@ -80,7 +79,7 @@ public readonly struct TracyProfilerScope : IDisposable
         }
 
         var textStr = CString.FromString(text);
-        var strLength = Encoding.UTF8.GetByteCount(text);
+        int strLength = Encoding.UTF8.GetByteCount(text);
 
         TracyEmitZoneText(_context.Value, textStr, (ulong)strLength);
     }

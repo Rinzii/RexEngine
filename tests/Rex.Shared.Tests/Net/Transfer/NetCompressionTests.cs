@@ -9,10 +9,10 @@ public sealed class NetCompressionTests
     // Small payloads skip compression and return the same array reference.
     public void Compress_below_threshold_returns_original_and_not_compressed()
     {
-        var data = new byte[NetCompression.CompressionThreshold - 1];
+        byte[] data = new byte[NetCompression.CompressionThreshold - 1];
         Array.Fill(data, (byte)7);
 
-        var (outData, isCompressed) = NetCompression.Compress(data);
+        (byte[] outData, bool isCompressed) = NetCompression.Compress(data);
 
         Assert.False(isCompressed);
         Assert.Same(data, outData);
@@ -22,16 +22,16 @@ public sealed class NetCompressionTests
     // Larger repeating data compresses then decompresses to the original bytes.
     public void Compress_decompress_round_trip_for_compressible_payload()
     {
-        var originalLength = NetCompression.CompressionThreshold + 512;
-        var data = new byte[originalLength];
+        int originalLength = NetCompression.CompressionThreshold + 512;
+        byte[] data = new byte[originalLength];
         Array.Fill(data, (byte)9);
 
-        var (compressed, isCompressed) = NetCompression.Compress(data);
+        (byte[] compressed, bool isCompressed) = NetCompression.Compress(data);
 
         Assert.True(isCompressed);
         Assert.True(compressed.Length < data.Length);
 
-        var restored = NetCompression.Decompress(compressed, originalLength);
+        byte[] restored = NetCompression.Decompress(compressed, originalLength);
 
         Assert.Equal(data, restored);
     }
@@ -41,11 +41,11 @@ public sealed class NetCompressionTests
     public void Compress_keeps_original_when_brotli_output_is_not_smaller()
     {
         byte[]? candidate = null;
-        for (var seed = 0; seed < 4096 && candidate == null; seed++)
+        for (int seed = 0; seed < 4096 && candidate == null; seed++)
         {
-            var buf = new byte[384];
+            byte[] buf = new byte[384];
             new Random(seed).NextBytes(buf);
-            var (outBytes, isCompressed) = NetCompression.Compress(buf);
+            (byte[] outBytes, bool isCompressed) = NetCompression.Compress(buf);
             if (!isCompressed && ReferenceEquals(buf, outBytes))
             {
                 candidate = buf;

@@ -14,17 +14,17 @@ internal static class Program
 {
     internal static void Main(string[] args)
     {
-        using var loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
+        using ILoggerFactory loggerFactory = ConsoleStartupSupport.CreateLoggerFactory();
 
-        var bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
+        ILogger bootstrapLogger = loggerFactory.CreateLogger("Rex.Sandbox.Server");
 
-        if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
+        if (!CommandLineArgs.TryParse(args, out CommandLineArgs? parsed, out string? parseError))
         {
             bootstrapLogger.CliParseFailed(parseError);
             return;
         }
 
-        foreach (var arg in parsed.UnrecognizedArguments)
+        foreach (string arg in parsed.UnrecognizedArguments)
         {
             bootstrapLogger.UnrecognizedCliArgument(arg);
         }
@@ -51,11 +51,32 @@ internal static class Program
             Environment.Exit(1);
         }
     }
-
 }
 
 internal sealed class CommandLineArgs
 {
+    private CommandLineArgs(
+        string? configFile,
+        string? dataDir,
+        IReadOnlyCollection<(string, string)> cVars,
+        IReadOnlyCollection<(string, string)> logLevels,
+        IReadOnlyList<string> execCommands,
+        int port,
+        int maxPlayers,
+        int tickRate,
+        IReadOnlyList<string> unrecognizedArguments)
+    {
+        ConfigFile = configFile;
+        DataDir = dataDir;
+        CVars = cVars;
+        LogLevels = logLevels;
+        ExecCommands = execCommands;
+        Port = port;
+        MaxPlayers = maxPlayers;
+        TickRate = tickRate;
+        UnrecognizedArguments = unrecognizedArguments;
+    }
+
     public string? ConfigFile { get; }
     public string? DataDir { get; }
     public IReadOnlyCollection<(string key, string value)> CVars { get; }
@@ -79,15 +100,15 @@ internal sealed class CommandLineArgs
         var loglevels = new List<(string, string)>();
         var execCommands = new List<string>();
         var unrecognized = new List<string>();
-        var port = ProtocolConstants.DefaultPort;
-        var maxPlayers = ProtocolConstants.DefaultMaxPlayers;
-        var tickRate = ProtocolConstants.DefaultTickRate;
+        int port = ProtocolConstants.DefaultPort;
+        int maxPlayers = ProtocolConstants.DefaultMaxPlayers;
+        int tickRate = ProtocolConstants.DefaultTickRate;
 
-        using var enumerator = args.GetEnumerator();
+        using IEnumerator<string> enumerator = args.GetEnumerator();
 
         while (enumerator.MoveNext())
         {
-            var arg = enumerator.Current;
+            string arg = enumerator.Current;
             switch (arg)
             {
                 case "--config-file" when !enumerator.MoveNext():
@@ -131,9 +152,9 @@ internal sealed class CommandLineArgs
                     return false;
                 case "--cvar":
                     {
-                        var cvar = enumerator.Current;
+                        string cvar = enumerator.Current;
                         DebugTools.AssertNotNull(cvar);
-                        var pos = cvar.IndexOf('=');
+                        int pos = cvar.IndexOf('=');
 
                         if (pos == -1)
                         {
@@ -149,9 +170,9 @@ internal sealed class CommandLineArgs
                     return false;
                 case "--logLevel":
                     {
-                        var logLevel = enumerator.Current;
+                        string logLevel = enumerator.Current;
                         DebugTools.AssertNotNull(logLevel);
-                        var pos = logLevel.IndexOf('=');
+                        int pos = logLevel.IndexOf('=');
 
                         if (pos == -1)
                         {
@@ -188,28 +209,6 @@ internal sealed class CommandLineArgs
             unrecognized);
 
         return true;
-    }
-
-    private CommandLineArgs(
-        string? configFile,
-        string? dataDir,
-        IReadOnlyCollection<(string, string)> cVars,
-        IReadOnlyCollection<(string, string)> logLevels,
-        IReadOnlyList<string> execCommands,
-        int port,
-        int maxPlayers,
-        int tickRate,
-        IReadOnlyList<string> unrecognizedArguments)
-    {
-        ConfigFile = configFile;
-        DataDir = dataDir;
-        CVars = cVars;
-        LogLevels = logLevels;
-        ExecCommands = execCommands;
-        Port = port;
-        MaxPlayers = maxPlayers;
-        TickRate = tickRate;
-        UnrecognizedArguments = unrecognizedArguments;
     }
 }
 

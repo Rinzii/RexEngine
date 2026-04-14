@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -12,7 +11,7 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
 {
     private const string DependencyAttributeType = "Rex.Shared.IoC.DependencyAttribute";
 
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdDependencyFieldAssigned,
         "Assignment to dependency field",
         "Tried to assign to [Dependency] field '{0}'. Remove [Dependency] or inject it via field injection instead.",
@@ -20,7 +19,7 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         true);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -41,25 +40,25 @@ public sealed class DependencyAssignAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var field = fieldRef.Field;
-        var attributes = field.GetAttributes();
+        IFieldSymbol field = fieldRef.Field;
+        ImmutableArray<AttributeData> attributes = field.GetAttributes();
         if (attributes.Length == 0)
         {
             return;
         }
 
-        var depAttribute = context.Compilation.GetTypeByMetadataName(DependencyAttributeType);
+        INamedTypeSymbol depAttribute = context.Compilation.GetTypeByMetadataName(DependencyAttributeType);
         if (!HasAttribute(attributes, depAttribute))
         {
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, assignment.Syntax.GetLocation(), field.Name));
+        context.ReportDiagnostic(Diagnostic.Create(s_rule, assignment.Syntax.GetLocation(), field.Name));
     }
 
     private static bool HasAttribute(ImmutableArray<AttributeData> attributes, ISymbol symbol)
     {
-        foreach (var attribute in attributes)
+        foreach (AttributeData attribute in attributes)
         {
             if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, symbol))
             {

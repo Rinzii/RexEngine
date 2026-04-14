@@ -1,6 +1,7 @@
 using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Net;
+using NetConnectionState = Rex.Shared.Net.ConnectionState;
 
 namespace Rex.Shared.Tests.Net;
 
@@ -12,8 +13,7 @@ public sealed class LocalNetChannelPairTests
     public void Create_pairs_queues_and_server_has_client_id()
     {
         var clientId = Guid.NewGuid();
-
-        var (client, server) = LocalNetChannelPair.Create(clientId);
+        LocalServerNetChannel server = LocalNetChannelPair.Create(clientId).Server;
 
         Assert.Equal(clientId, server.ClientId);
         Assert.True(server.IsLocal);
@@ -23,8 +23,8 @@ public sealed class LocalNetChannelPairTests
     // Client Send reaches server DrainMessages with the same instance.
     public void Client_send_is_visible_to_server_DrainMessages()
     {
-        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var sent = new TestMessage(3, "player");
+        (LocalClientNetChannel client, LocalServerNetChannel server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        TestMessage sent = new(3, "player");
         client.Connect();
         client.Send(sent);
 
@@ -38,10 +38,10 @@ public sealed class LocalNetChannelPairTests
     // Server Send raises client MessageReceived after PollEvents.
     public void Server_send_is_delivered_on_client_PollEvents()
     {
-        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        (LocalClientNetChannel client, LocalServerNetChannel server) = LocalNetChannelPair.Create(Guid.NewGuid());
         client.Connect();
 
-        var outbound = new TestMessage(60, "server");
+        TestMessage outbound = new(60, "server");
         INetMessage? received = null;
         client.MessageReceived += m => received = m;
 
@@ -55,22 +55,22 @@ public sealed class LocalNetChannelPairTests
     // Connect raises Connected and moves state to Connected.
     public void Client_Connect_raises_Connected_and_sets_state()
     {
-        var (client, _) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var raised = false;
+        LocalClientNetChannel client = LocalNetChannelPair.Create(Guid.NewGuid()).Client;
+        bool raised = false;
         client.Connected += () => raised = true;
 
-        Assert.Equal(Rex.Shared.Net.ConnectionState.Disconnected, client.State);
+        Assert.Equal(NetConnectionState.Disconnected, client.State);
         client.Connect();
 
         Assert.True(raised);
-        Assert.Equal(Rex.Shared.Net.ConnectionState.Connected, client.State);
+        Assert.Equal(NetConnectionState.Connected, client.State);
     }
 
     [Fact]
     // Disconnect raises Disconnected with the reason and resets state.
     public void Client_Disconnect_raises_Disconnected_and_resets_state()
     {
-        var (client, _) = LocalNetChannelPair.Create(Guid.NewGuid());
+        LocalClientNetChannel client = LocalNetChannelPair.Create(Guid.NewGuid()).Client;
         client.Connect();
 
         string? reason = null;
@@ -79,15 +79,15 @@ public sealed class LocalNetChannelPairTests
         client.Disconnect("bye");
 
         Assert.Equal("bye", reason);
-        Assert.Equal(Rex.Shared.Net.ConnectionState.Disconnected, client.State);
+        Assert.Equal(NetConnectionState.Disconnected, client.State);
     }
 
     [Fact]
     // Send with channel and delivery still reaches the server queue.
     public void Client_Send_with_channel_overload_enqueues_for_server()
     {
-        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var sent = new TestMessage(1, "c");
+        (LocalClientNetChannel client, LocalServerNetChannel server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        TestMessage sent = new(1, "c");
         client.Connect();
         client.Send(sent, 3, DeliveryMethod.Unreliable);
 
@@ -101,14 +101,14 @@ public sealed class LocalNetChannelPairTests
     // DrainMessages invokes the handler once per queued client message in order.
     public void Server_DrainMessages_delivers_multiple_client_sends_in_order()
     {
-        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
-        var first = new TestMessage(1, "a");
-        var second = new TestMessage(1, "b");
+        (LocalClientNetChannel client, LocalServerNetChannel server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        TestMessage first = new(1, "a");
+        TestMessage second = new(1, "b");
         client.Connect();
         client.Send(first);
         client.Send(second);
 
-        var received = new List<INetMessage>();
+        List<INetMessage> received = [];
         server.DrainMessages(received.Add);
 
         Assert.Equal(2, received.Count);
@@ -120,12 +120,12 @@ public sealed class LocalNetChannelPairTests
     // PollEvents raises MessageReceived for each server message in order.
     public void Client_PollEvents_delivers_multiple_server_sends_in_order()
     {
-        var (client, server) = LocalNetChannelPair.Create(Guid.NewGuid());
+        (LocalClientNetChannel client, LocalServerNetChannel server) = LocalNetChannelPair.Create(Guid.NewGuid());
         client.Connect();
 
-        var first = new TestMessage(1, "yes");
-        var second = new TestMessage(2, "no");
-        var received = new List<INetMessage>();
+        TestMessage first = new(1, "yes");
+        TestMessage second = new(2, "no");
+        List<INetMessage> received = [];
         client.MessageReceived += received.Add;
 
         server.Send(first);
@@ -136,6 +136,7 @@ public sealed class LocalNetChannelPairTests
         Assert.Same(first, received[0]);
         Assert.Same(second, received[1]);
     }
+
     private sealed class TestMessage : INetMessage
     {
         public TestMessage(int sequence, string payload)

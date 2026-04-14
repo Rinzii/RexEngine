@@ -1,4 +1,3 @@
-using LiteNetLib;
 using LiteNetLib.Utils;
 using Rex.Shared.Net;
 
@@ -11,15 +10,6 @@ public sealed class PlayerInputMessage : INetMessage
 {
     public const ushort Id = 4;
 
-    public ushort MessageId => Id;
-    public MessageGroup Group => MessageGroup.Input;
-    public uint Tick { get; }
-    public float MoveX { get; }
-    public float MoveY { get; }
-    public float LookX { get; }
-    public float LookY { get; }
-    public uint ActionFlags { get; }
-
     public PlayerInputMessage(uint tick, float moveX, float moveY, float lookX, float lookY, uint actionFlags)
     {
         Tick = tick;
@@ -29,6 +19,16 @@ public sealed class PlayerInputMessage : INetMessage
         LookY = lookY;
         ActionFlags = actionFlags;
     }
+
+    public uint Tick { get; }
+    public float MoveX { get; }
+    public float MoveY { get; }
+    public float LookX { get; }
+    public float LookY { get; }
+    public uint ActionFlags { get; }
+
+    public ushort MessageId => Id;
+    public MessageGroup Group => MessageGroup.Input;
 
     public void Serialize(NetDataWriter writer)
     {
@@ -46,12 +46,12 @@ public sealed class PlayerInputMessage : INetMessage
     /// </summary>
     public static PlayerInputMessage Deserialize(NetDataReader reader)
     {
-        var tick = reader.GetUInt();
-        var moveX = reader.GetFloat();
-        var moveY = reader.GetFloat();
-        var lookX = reader.GetFloat();
-        var lookY = reader.GetFloat();
-        var actionFlags = reader.GetUInt();
+        uint tick = reader.GetUInt();
+        float moveX = reader.GetFloat();
+        float moveY = reader.GetFloat();
+        float lookX = reader.GetFloat();
+        float lookY = reader.GetFloat();
+        uint actionFlags = reader.GetUInt();
         return new PlayerInputMessage(tick, moveX, moveY, lookX, lookY, actionFlags);
     }
 }

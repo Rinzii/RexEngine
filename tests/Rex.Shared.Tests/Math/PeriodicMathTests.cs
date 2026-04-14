@@ -1,6 +1,6 @@
 using Rex.Shared.Numerics;
 
-namespace Rex.Shared.Tests.Numerics;
+namespace Rex.Shared.Tests.Math;
 
 public sealed class PeriodicMathTests
 {
@@ -15,7 +15,7 @@ public sealed class PeriodicMathTests
     [Fact]
     public void Repeat_throws_when_period_not_positive()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => PeriodicMath.Repeat(1f, 0f));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PeriodicMath.Repeat(1f, -1f));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => PeriodicMath.Repeat(1f, 0f));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => PeriodicMath.Repeat(1f, -1f));
     }
 }

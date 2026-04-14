@@ -2,6 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // Taken from https://raw.githubusercontent.com/CommunityToolkit/dotnet/ecd1711b740f4f88d2bb943ce292ae4fc90df1bc/src/CommunityToolkit.Mvvm.SourceGenerators/Helpers/HashCode.cs
 
+// ReSharper disable once RedundantNullableDirective
+
+#pragma warning disable IDE0240
+#nullable enable
+#pragma warning restore IDE0240
+
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
@@ -9,9 +15,6 @@ using System.Security.Cryptography;
 #pragma warning disable CS0809
 
 namespace Rex.Roslyn.Shared.Helpers;
-
-// ReSharper disable once RedundantNullableDirective
-#nullable enable
 
 /// <summary>
 /// A polyfill type that mirrors some methods from <see cref="HashCode"/> on .NET 6.
@@ -24,7 +27,7 @@ public struct HashCode
     private const uint Prime4 = 668265263U;
     private const uint Prime5 = 374761393U;
 
-    private static readonly uint Seed = GenerateGlobalSeed();
+    private static readonly uint s_seed = GenerateGlobalSeed();
 
     private uint _v1, _v2, _v3, _v4;
     private uint _queue1, _queue2, _queue3;
@@ -36,7 +39,7 @@ public struct HashCode
     /// <returns>A random seed.</returns>
     private static uint GenerateGlobalSeed()
     {
-        var bytes = new byte[4];
+        byte[] bytes = new byte[4];
 
         using (var generator = RandomNumberGenerator.Create())
         {
@@ -59,22 +62,22 @@ public struct HashCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void Initialize(out uint v1, out uint v2, out uint v3, out uint v4)
     {
-        v1 = Seed + Prime1 + Prime2;
-        v2 = Seed + Prime2;
-        v3 = Seed;
-        v4 = Seed - Prime1;
+        v1 = s_seed + Prime1 + Prime2;
+        v2 = s_seed + Prime2;
+        v3 = s_seed;
+        v4 = s_seed - Prime1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint Round(uint hash, uint input)
     {
-        return RotateLeft(hash + input * Prime2, 13) * Prime1;
+        return RotateLeft((hash + input) * Prime2, 13) * Prime1;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint QueueRound(uint hash, uint queuedValue)
     {
-        return RotateLeft(hash + queuedValue * Prime3, 17) * Prime4;
+        return RotateLeft((hash + queuedValue) * Prime3, 17) * Prime4;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -86,7 +89,7 @@ public struct HashCode
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint MixEmptyState()
     {
-        return Seed + Prime5;
+        return s_seed + Prime5;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,9 +106,9 @@ public struct HashCode
 
     private void Add(int value)
     {
-        var val = (uint)value;
-        var previousLength = _length++;
-        var position = previousLength % 4;
+        uint val = (uint)value;
+        uint previousLength = _length++;
+        uint position = previousLength % 4;
 
         if (position == 0)
         {
@@ -135,11 +138,11 @@ public struct HashCode
 
     /// <summary>Final 32-bit hash after all prior Add calls.</summary>
     /// <returns>Combined hash value.</returns>
-    public int ToHashCode()
+    public readonly int ToHashCode()
     {
-        var length = _length;
-        var position = length % 4;
-        var hash = length < 4 ? MixEmptyState() : MixState(_v1, _v2, _v3, _v4);
+        uint length = _length;
+        uint position = length % 4;
+        uint hash = length < 4 ? MixEmptyState() : MixState(_v1, _v2, _v3, _v4);
 
         hash += length * 4;
 

@@ -2,7 +2,6 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -13,15 +12,13 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
     private const string RegexTypeName = "Regex";
     private const string RegexType = $"System.Text.RegularExpressions.{RegexTypeName}";
 
-    private static readonly DiagnosticDescriptor Rule = new(
+    private static readonly DiagnosticDescriptor s_rule = new(
         IdUncachedRegex,
         "Use of uncached static Regex function",
         "Usage of a static Regex function that takes in a pattern string. This can cause constant re-parsing of the pattern.",
         "Usage",
         DiagnosticSeverity.Warning,
         true);
-
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 
     public static readonly HashSet<string> BadFunctions =
     [
@@ -33,6 +30,8 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
         "Replace",
         "Split"
     ];
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [s_rule];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -49,7 +48,7 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
         }
 
         // All Regex functions we care about are static.
-        var targetMethod = invocation.TargetMethod;
+        IMethodSymbol targetMethod = invocation.TargetMethod;
         if (!targetMethod.IsStatic)
         {
             return;
@@ -61,7 +60,7 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var regexType = context.Compilation.GetTypeByMetadataName(RegexType);
+        INamedTypeSymbol regexType = context.Compilation.GetTypeByMetadataName(RegexType);
         if (!SymbolEqualityComparer.Default.Equals(regexType, targetMethod.ContainingType))
         {
             return;
@@ -72,6 +71,6 @@ public sealed class NoUncachedRegexAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        context.ReportDiagnostic(Diagnostic.Create(Rule, invocation.Syntax.GetLocation()));
+        context.ReportDiagnostic(Diagnostic.Create(s_rule, invocation.Syntax.GetLocation()));
     }
 }

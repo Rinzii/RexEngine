@@ -16,27 +16,32 @@ public sealed record ServerStartOptions(int Port, int TickRate, int MaxPlayers)
         out ServerStartOptions options,
         out string? error)
     {
-        var port = definition.DefaultPort;
-        var tickRate = definition.TickRate;
-        var maxPlayers = definition.MaxPlayers;
+        int port = definition.DefaultPort;
+        int tickRate = definition.TickRate;
+        int maxPlayers = definition.MaxPlayers;
 
-        using var enumerator = args.GetEnumerator();
+        using IEnumerator<string> enumerator = args.GetEnumerator();
         while (enumerator.MoveNext())
         {
             switch (enumerator.Current)
             {
-                case "--port" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port) || port is <= 0 or > 65535:
+                case "--port" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out port)
+                                                          || port is <= 0 or > 65535:
                     options = null!;
                     error = "Missing or invalid value for --port.";
                     return false;
-                case "--tick-rate" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate) || tickRate <= 0:
+                case "--tick-rate" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out tickRate)
+                                                               || tickRate <= 0:
                     options = null!;
                     error = "Missing or invalid value for --tick-rate.";
                     return false;
-                case "--max-players" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers) || maxPlayers <= 0:
+                case "--max-players" when !enumerator.MoveNext() || !int.TryParse(enumerator.Current, out maxPlayers)
+                                                                 || maxPlayers <= 0:
                     options = null!;
                     error = "Missing or invalid value for --max-players.";
                     return false;
+                default:
+                    continue;
             }
         }
 

@@ -1,3 +1,9 @@
+// ReSharper disable once RedundantNullableDirective
+
+#pragma warning disable IDE0240
+#nullable enable
+#pragma warning restore IDE0240
+
 using System.Collections.Immutable;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -6,9 +12,6 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rex.Roslyn.Shared.Helpers;
 
 namespace Rex.Roslyn.Shared;
-
-// ReSharper disable once RedundantNullableDirective
-#nullable enable
 
 /// <summary>
 /// All the information to make a partial type alternative for a type.
@@ -27,11 +30,11 @@ public sealed record PartialTypeInfo(
 {
     public static PartialTypeInfo FromSymbol(INamedTypeSymbol symbol, TypeDeclarationSyntax syntax)
     {
-        var typeParameters = ImmutableArray<string>.Empty;
+        ImmutableArray<string> typeParameters = [];
         if (symbol.TypeParameters.Length > 0)
         {
-            var builder = ImmutableArray.CreateBuilder<string>(symbol.TypeParameters.Length);
-            foreach (var typeParameter in symbol.TypeParameters)
+            ImmutableArray<string>.Builder builder = ImmutableArray.CreateBuilder<string>(symbol.TypeParameters.Length);
+            foreach (ITypeParameterSymbol typeParameter in symbol.TypeParameters)
             {
                 builder.Add(typeParameter.Name);
             }
@@ -65,7 +68,7 @@ public sealed record PartialTypeInfo(
 
     public string GetGeneratedFileName()
     {
-        var name = Namespace == null ? Name : $"{Namespace}.{Name}";
+        string name = Namespace == null ? Name : $"{Namespace}.{Name}";
         if (TypeParameterNames.AsImmutableArray().Length > 0)
         {
             name += $"`{TypeParameterNames.AsImmutableArray().Length}";
@@ -80,47 +83,40 @@ public sealed record PartialTypeInfo(
     {
         if (Namespace != null)
         {
-            builder.AppendLine($"namespace {Namespace};\n");
+            _ = builder.AppendLine($"namespace {Namespace};\n");
         }
 
         // TODO: Nested classes
 
-        var access = Accessibility switch
+        string access = Accessibility switch
         {
             Accessibility.Private => "private",
             Accessibility.ProtectedAndInternal => "private protected",
             Accessibility.ProtectedOrInternal => "protected internal",
             Accessibility.Protected => "protected",
             Accessibility.Internal => "internal",
+            Accessibility.NotApplicable => throw new NotImplementedException(),
+            Accessibility.Public => throw new NotImplementedException(),
             _ => "public"
         };
 
-        string keyword;
-        if (Kind == TypeKind.Interface)
-        {
-            keyword = "interface";
-        }
-        else
-        {
-            if (IsRecord)
-            {
-                keyword = Kind == TypeKind.Struct ? "record struct" : "record";
-            }
-            else
-            {
-                keyword = Kind == TypeKind.Struct ? "struct" : "class";
-            }
-        }
-
-        builder.Append($"{access} {(IsAbstract ? "abstract " : "")}partial {keyword} {Name}");
+        string keyword = Kind == TypeKind.Interface
+            ? "interface"
+            : IsRecord
+                ? Kind == TypeKind.Struct ? "record struct" : "record"
+                : Kind == TypeKind.Struct
+                    ? "struct"
+                    : "class";
+        _ = builder.Append($"{access} {(IsAbstract ? "abstract " : "")}partial {keyword} {Name}");
         if (TypeParameterNames.AsSpan().Length > 0)
         {
-            builder.Append($"<{string.Join(", ", TypeParameterNames.AsImmutableArray())}>");
+            _ = builder.Append($"<{string.Join(", ", TypeParameterNames.AsImmutableArray())}>");
         }
     }
 
     public void WriteFooter(StringBuilder builder)
     {
+        _ = builder;
         // TODO: Nested classes
     }
 }

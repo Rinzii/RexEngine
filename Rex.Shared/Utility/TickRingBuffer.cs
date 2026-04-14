@@ -9,9 +9,7 @@ public sealed class TickRingBuffer<T>
     /// <summary>Allocates slots using <c>default!</c> for each entry.</summary>
     /// <param name="capacity">Number of ring slots (at least one).</param>
     public TickRingBuffer(int capacity)
-        : this(capacity, static () => default!)
-    {
-    }
+        : this(capacity, static () => default!) { }
 
     /// <summary>Allocates slots using <paramref name="valueFactory"/>.</summary>
     /// <param name="capacity">Number of ring slots (at least one).</param>
@@ -22,7 +20,7 @@ public sealed class TickRingBuffer<T>
         ArgumentNullException.ThrowIfNull(valueFactory);
 
         _entries = new Entry[capacity];
-        for (var i = 0; i < _entries.Length; i++)
+        for (int i = 0; i < _entries.Length; i++)
         {
             _entries[i] = new Entry(valueFactory());
         }

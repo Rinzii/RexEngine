@@ -15,14 +15,14 @@ public static class ConnectEndpointParser
             return true;
         }
 
-        var trimmed = connectAddress.Trim();
+        string trimmed = connectAddress.Trim();
 
         if (trimmed.StartsWith('['))
         {
             return TryParseBracketedIpv6(trimmed, defaultPort, out host, out port);
         }
 
-        var lastColon = trimmed.LastIndexOf(':');
+        int lastColon = trimmed.LastIndexOf(':');
         if (lastColon <= 0)
         {
             host = trimmed;
@@ -30,13 +30,13 @@ public static class ConnectEndpointParser
             return true;
         }
 
-        var tail = trimmed[(lastColon + 1)..];
+        string tail = trimmed[(lastColon + 1)..];
         if (tail.Length > 0
             && IsAsciiDigitsOnly(tail)
-            && int.TryParse(tail, out var parsedPort)
+            && int.TryParse(tail, out int parsedPort)
             && parsedPort is > 0 and <= 65535)
         {
-            var hostPart = trimmed[..lastColon];
+            string hostPart = trimmed[..lastColon];
             if (hostPart.Length == 0)
             {
                 return false;
@@ -60,7 +60,7 @@ public static class ConnectEndpointParser
         host = "127.0.0.1";
         port = defaultPort;
 
-        var close = trimmed.IndexOf(']', 1);
+        int close = trimmed.IndexOf(']', 1);
         if (close <= 1)
         {
             return false;
@@ -83,9 +83,9 @@ public static class ConnectEndpointParser
             return false;
         }
 
-        var portPart = trimmed[(close + 2)..];
+        string portPart = trimmed[(close + 2)..];
         if (portPart.Length == 0
-            || !int.TryParse(portPart, out var p)
+            || !int.TryParse(portPart, out int p)
             || p is <= 0 or > 65535)
         {
             return false;
@@ -97,7 +97,7 @@ public static class ConnectEndpointParser
 
     private static bool IsAsciiDigitsOnly(ReadOnlySpan<char> s)
     {
-        foreach (var c in s)
+        foreach (char c in s)
         {
             if (c is < '0' or > '9')
             {

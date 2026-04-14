@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.Analyzers;
 
 /// <summary>
@@ -16,12 +14,12 @@ namespace Rex.Shared.Analyzers;
 public sealed class ProxyForAttribute(Type type, string? method = null) : Attribute
 {
     /// <summary>
-    ///     <see cref="Type"/> containing the target method.
-    /// </summary>
-    public Type Type = type;
-
-    /// <summary>
     ///     Name of the target method. If null, the name of the proxy method will be used.
     /// </summary>
     public string? Method = method;
+
+    /// <summary>
+    ///     <see cref="Type"/> containing the target method.
+    /// </summary>
+    public Type Type = type;
 }

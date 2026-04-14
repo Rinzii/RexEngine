@@ -10,6 +10,6 @@ public interface IGameRenderer<in TEntity> : IGraphicsRenderer
     /// Draws the world snapshot for the current frame.
     /// </summary>
     /// <param name="entities">Latest authoritative or predicted entities to visualize.</param>
-    /// <param name="interpolationAlpha">Blend factor between simulation ticks from <see cref="Rex.Shared.Timing.TickClock"/>.</param>
+    /// <param name="interpolationAlpha">Blend factor between simulation ticks from <see cref="Shared.Timing.TickClock"/>.</param>
     void RenderWorld(IReadOnlyList<TEntity> entities, float interpolationAlpha);
 }

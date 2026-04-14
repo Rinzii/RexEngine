@@ -20,9 +20,9 @@ public sealed class MapData
     [ProtoMember(1)] public string MapName { get; set; } = string.Empty;
     [ProtoMember(2)] public int Width { get; set; }
     [ProtoMember(3)] public int Height { get; set; }
-    [ProtoMember(4)] public List<MapTile> Tiles { get; set; } = new();
-    [ProtoMember(5)] public List<MapEntity> Entities { get; set; } = new();
-    [ProtoMember(6)] public Dictionary<string, string> Properties { get; set; } = new();
+    [ProtoMember(4)] public List<MapTile> Tiles { get; set; } = [];
+    [ProtoMember(5)] public List<MapEntity> Entities { get; set; } = [];
+    [ProtoMember(6)] public Dictionary<string, string> Properties { get; set; } = [];
 }
 
 [ProtoContract]
@@ -43,14 +43,14 @@ public sealed class MapEntity
     [ProtoMember(4)] public float Y { get; set; }
     [ProtoMember(5)] public float Z { get; set; }
     [ProtoMember(6)] public float RotationY { get; set; }
-    [ProtoMember(7)] public Dictionary<string, byte[]> ComponentData { get; set; } = new();
+    [ProtoMember(7)] public Dictionary<string, byte[]> ComponentData { get; set; } = [];
 }
 
 [ProtoContract]
 public sealed class AssetManifest
 {
     [ProtoMember(1)] public int Version { get; set; }
-    [ProtoMember(2)] public List<AssetEntry> Assets { get; set; } = new();
+    [ProtoMember(2)] public List<AssetEntry> Assets { get; set; } = [];
 }
 
 [ProtoContract]
@@ -68,14 +68,14 @@ public sealed class ServerConfigData
     [ProtoMember(2)] public int TickRate { get; set; }
     [ProtoMember(3)] public int MaxPlayers { get; set; }
     [ProtoMember(4)] public string MapName { get; set; } = string.Empty;
-    [ProtoMember(5)] public Dictionary<string, string> CVars { get; set; } = new();
+    [ProtoMember(5)] public Dictionary<string, string> CVars { get; set; } = [];
 }
 
 [ProtoContract]
 public sealed class EntityBulkState
 {
     [ProtoMember(1)] public uint ServerTick { get; set; }
-    [ProtoMember(2)] public List<BulkEntityData> Entities { get; set; } = new();
+    [ProtoMember(2)] public List<BulkEntityData> Entities { get; set; } = [];
 }
 
 [ProtoContract]
@@ -88,5 +88,5 @@ public sealed class BulkEntityData
     [ProtoMember(5)] public float Y { get; set; }
     [ProtoMember(6)] public float Z { get; set; }
     [ProtoMember(7)] public float RotationY { get; set; }
-    [ProtoMember(8)] public Dictionary<string, byte[]> ComponentData { get; set; } = new();
+    [ProtoMember(8)] public Dictionary<string, byte[]> ComponentData { get; set; } = [];
 }

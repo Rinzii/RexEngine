@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.Serialization;
 
 /// <summary>
@@ -9,6 +7,4 @@ namespace Rex.Shared.Serialization;
 /// </summary>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Enum, AllowMultiple = false,
     Inherited = false)]
-public sealed class NetSerializableAttribute : Attribute
-{
-}
+public sealed class NetSerializableAttribute : Attribute { }

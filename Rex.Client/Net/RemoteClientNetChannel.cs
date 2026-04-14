@@ -15,19 +15,43 @@ namespace Rex.Client.Net;
 /// </remarks>
 public sealed partial class RemoteClientNetChannel : IClientNetChannel
 {
+    private readonly string _connectionKey;
+
+    private readonly string _host;
     private readonly EventBasedNetListener _listener;
+    // TODO: Actually use this.
+#pragma warning disable IDE0052
+    private readonly ILogger _logger;
+#pragma warning restore IDE0052
     private readonly NetManager _netManager;
+    private readonly int _port;
 
     // Shared buffer for outbound packets. Reset before each send.
     private readonly NetDataWriter _writer = new();
 
-    private readonly string _host;
-    private readonly int _port;
-    private readonly string _connectionKey;
-    private readonly ILogger _logger;
-
     // Non-null only while the server peer is connected.
     private NetPeer? _serverPeer;
+
+    /// <summary>Outgoing LiteNetLib client to <paramref name="host"/> and <paramref name="port"/> with <paramref name="connectionKey"/>.</summary>
+    /// <param name="host">Server host name or IP address.</param>
+    /// <param name="port">Server UDP port.</param>
+    /// <param name="connectionKey">Connection key from the caller. Must match the remote host's expected key.</param>
+    /// <param name="logger">Logger for transport failures and deserialize errors.</param>
+    public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
+    {
+        _host = host;
+        _port = port;
+        _connectionKey = connectionKey;
+        _logger = logger;
+        _listener = new EventBasedNetListener();
+        _netManager = new NetManager(_listener);
+
+        _listener.PeerConnectedEvent += OnPeerConnected;
+        _listener.PeerDisconnectedEvent += OnPeerDisconnected;
+        _listener.NetworkReceiveEvent += OnNetworkReceive;
+
+        State = ConnectionState.Disconnected;
+    }
 
     /// <summary>
     /// LiteNetLib handshake and session state for this channel.
@@ -54,27 +78,6 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// </summary>
     public event Action<string>? Disconnected;
 
-    /// <summary>Outgoing LiteNetLib client to <paramref name="host"/> and <paramref name="port"/> with <paramref name="connectionKey"/>.</summary>
-    /// <param name="host">Server host name or IP address.</param>
-    /// <param name="port">Server UDP port.</param>
-    /// <param name="connectionKey">Connection key from the caller. Must match the remote host's expected key.</param>
-    /// <param name="logger">Logger for transport failures and deserialize errors.</param>
-    public RemoteClientNetChannel(string host, int port, string connectionKey, ILogger logger)
-    {
-        _host = host;
-        _port = port;
-        _connectionKey = connectionKey;
-        _logger = logger;
-        _listener = new EventBasedNetListener();
-        _netManager = new NetManager(_listener);
-
-        _listener.PeerConnectedEvent += OnPeerConnected;
-        _listener.PeerDisconnectedEvent += OnPeerDisconnected;
-        _listener.NetworkReceiveEvent += OnNetworkReceive;
-
-        State = ConnectionState.Disconnected;
-    }
-
     /// <summary>
     /// Starts the client socket and begins the LiteNetLib connect handshake.
     /// </summary>
@@ -93,7 +96,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
             return;
         }
 
-        _netManager.Connect(_host, _port, _connectionKey);
+        _ = _netManager.Connect(_host, _port, _connectionKey);
     }
 
     /// <summary>
@@ -121,7 +124,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     /// <inheritdoc />
     public void Send(INetMessage message)
     {
-        var (channel, delivery) = message.Group.GetDeliveryInfo();
+        (byte channel, DeliveryMethod delivery) = message.Group.GetDeliveryInfo();
         Send(message, channel, delivery);
     }
 
@@ -169,7 +172,7 @@ public sealed partial class RemoteClientNetChannel : IClientNetChannel
     {
         try
         {
-            var message = NetMessageRegistry.Deserialize(reader);
+            INetMessage message = NetMessageRegistry.Deserialize(reader);
             reader.Recycle(); // Return pooled buffer to LiteNetLib.
             MessageReceived?.Invoke(message);
         }

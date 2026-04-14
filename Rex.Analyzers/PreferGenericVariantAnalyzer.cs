@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
@@ -11,7 +6,6 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -21,11 +15,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
 {
     private const string AttributeType = "Rex.Shared.Analyzers.PreferGenericVariantAttribute";
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-        UseGenericVariantDescriptor, UseGenericVariantInvalidUsageDescriptor,
-        UseGenericVariantAttributeValueErrorDescriptor);
-
-    private static readonly DiagnosticDescriptor UseGenericVariantDescriptor = new(
+    private static readonly DiagnosticDescriptor s_useGenericVariantDescriptor = new(
         IdUseGenericVariant,
         "Consider using the generic variant of this method",
         "Consider using the generic variant of this method to avoid potential allocations",
@@ -34,7 +24,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         true,
         "Consider using the generic variant of this method to avoid potential allocations.");
 
-    private static readonly DiagnosticDescriptor UseGenericVariantInvalidUsageDescriptor = new(
+    private static readonly DiagnosticDescriptor s_useGenericVariantInvalidUsageDescriptor = new(
         IdUseGenericVariantInvalidUsage,
         "Invalid generic variant provided",
         "Generic variant provided mismatches the amount of type parameters of non-generic variant",
@@ -43,7 +33,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         true,
         "The non-generic variant should have at least as many type parameter at the beginning of the method as there are generic type parameters on the generic variant.");
 
-    private static readonly DiagnosticDescriptor UseGenericVariantAttributeValueErrorDescriptor = new(
+    private static readonly DiagnosticDescriptor s_useGenericVariantAttributeValueErrorDescriptor = new(
         IdUseGenericVariantAttributeValueError,
         "Failed resolving generic variant value",
         "Failed resolving generic variant value: {0}",
@@ -51,6 +41,12 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Error,
         true,
         "Consider using nameof to avoid any typos.");
+
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+    [
+        s_useGenericVariantDescriptor, s_useGenericVariantInvalidUsageDescriptor,
+        s_useGenericVariantAttributeValueErrorDescriptor
+    ];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -67,11 +63,11 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var preferGenericAttribute = obj.Compilation.GetTypeByMetadataName(AttributeType);
+        INamedTypeSymbol preferGenericAttribute = obj.Compilation.GetTypeByMetadataName(AttributeType);
 
         string genericVariant = null;
         AttributeData foundAttribute = null;
-        foreach (var attribute in invocationOperation.TargetMethod.GetAttributes())
+        foreach (AttributeData attribute in invocationOperation.TargetMethod.GetAttributes())
         {
             if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, preferGenericAttribute))
             {
@@ -88,9 +84,9 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var maxTypeParams = 0;
-        var typeTypeSymbol = obj.Compilation.GetTypeByMetadataName("System.Type");
-        foreach (var parameter in invocationOperation.TargetMethod.Parameters)
+        int maxTypeParams = 0;
+        INamedTypeSymbol typeTypeSymbol = obj.Compilation.GetTypeByMetadataName("System.Type");
+        foreach (IParameterSymbol parameter in invocationOperation.TargetMethod.Parameters)
         {
             if (!SymbolEqualityComparer.Default.Equals(parameter.Type, typeTypeSymbol))
             {
@@ -103,13 +99,13 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         if (maxTypeParams == 0)
         {
             obj.ReportDiagnostic(
-                Diagnostic.Create(UseGenericVariantInvalidUsageDescriptor,
+                Diagnostic.Create(s_useGenericVariantInvalidUsageDescriptor,
                     foundAttribute.ApplicationSyntaxReference?.GetSyntax().GetLocation()));
             return;
         }
 
         IMethodSymbol genericVariantMethod = null;
-        foreach (var member in invocationOperation.TargetMethod.ContainingType.GetMembers())
+        foreach (ISymbol member in invocationOperation.TargetMethod.ContainingType.GetMembers())
         {
             if (member is not IMethodSymbol methodSymbol
                 || methodSymbol.Name != genericVariant
@@ -122,10 +118,10 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            var typeParamCount = methodSymbol.TypeParameters.Length;
-            var failedParamComparison = false;
-            var objType = obj.Compilation.GetSpecialType(SpecialType.System_Object);
-            for (var i = 0; i < methodSymbol.Parameters.Length; i++)
+            int typeParamCount = methodSymbol.TypeParameters.Length;
+            bool failedParamComparison = false;
+            INamedTypeSymbol objType = obj.Compilation.GetSpecialType(SpecialType.System_Object);
+            for (int i = 0; i < methodSymbol.Parameters.Length; i++)
             {
                 if (methodSymbol.Parameters[i].Type is ITypeParameterSymbol &&
                     SymbolEqualityComparer.Default.Equals(
@@ -153,14 +149,14 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         if (genericVariantMethod == null)
         {
             obj.ReportDiagnostic(Diagnostic.Create(
-                UseGenericVariantAttributeValueErrorDescriptor,
+                s_useGenericVariantAttributeValueErrorDescriptor,
                 foundAttribute.ApplicationSyntaxReference?.GetSyntax().GetLocation(),
                 genericVariant));
             return;
         }
 
-        var typeOperands = new string[genericVariantMethod.TypeParameters.Length];
-        for (var i = 0; i < genericVariantMethod.TypeParameters.Length; i++)
+        string[] typeOperands = new string[genericVariantMethod.TypeParameters.Length];
+        for (int i = 0; i < genericVariantMethod.TypeParameters.Length; i++)
         {
             switch (invocationOperation.Arguments[i].Value)
             {
@@ -175,7 +171,7 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
         }
 
         obj.ReportDiagnostic(Diagnostic.Create(
-            UseGenericVariantDescriptor,
+            s_useGenericVariantDescriptor,
             invocationOperation.Syntax.GetLocation(),
             ImmutableDictionary.CreateRange(new Dictionary<string, string>
             {
@@ -187,6 +183,9 @@ public sealed class PreferGenericVariantAnalyzer : DiagnosticAnalyzer
 [ExportCodeFixProvider(LanguageNames.CSharp)]
 public class PreferGenericVariantCodeFixProvider : CodeFixProvider
 {
+    public override ImmutableArray<string> FixableDiagnosticIds =>
+        [IdUseGenericVariant];
+
     private static string Title(string method, string[] types)
     {
         return $"Use {method}<{string.Join(",", types)}>.";
@@ -199,21 +198,21 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
 
     public override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        var root = await context.Document.GetSyntaxRootAsync();
+        SyntaxNode root = await context.Document.GetSyntaxRootAsync();
         if (root == null)
         {
             return;
         }
 
-        foreach (var diagnostic in context.Diagnostics)
+        foreach (Diagnostic diagnostic in context.Diagnostics)
         {
-            if (!diagnostic.Properties.TryGetValue("typeOperands", out var typeOperandsRaw)
+            if (!diagnostic.Properties.TryGetValue("typeOperands", out string typeOperandsRaw)
                 || typeOperandsRaw == null)
             {
                 continue;
             }
 
-            var node = root.FindNode(diagnostic.Location.SourceSpan);
+            SyntaxNode node = root.FindNode(diagnostic.Location.SourceSpan);
             if (node is ArgumentSyntax argumentSyntax)
             {
                 node = argumentSyntax.Expression;
@@ -224,7 +223,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
                 continue;
             }
 
-            var typeOperands = typeOperandsRaw.Split(',');
+            string[] typeOperands = typeOperandsRaw.Split(',');
 
             context.RegisterCodeFix(
                 CodeAction.Create(
@@ -248,7 +247,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
         var arguments = new ArgumentSyntax[invocationExpression.ArgumentList.Arguments.Count - typeOperands.Length];
         var types = new TypeSyntax[typeOperands.Length];
 
-        for (var i = 0; i < typeOperands.Length; i++)
+        for (int i = 0; i < typeOperands.Length; i++)
         {
             types[i] = ((TypeOfExpressionSyntax)invocationExpression.ArgumentList.Arguments[i].Expression).Type;
         }
@@ -263,7 +262,7 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
         memberAccess = memberAccess.WithName(SyntaxFactory.GenericName(memberAccess.Name.Identifier,
             SyntaxFactory.TypeArgumentList(SyntaxFactory.SeparatedList(types))));
 
-        root = root!.ReplaceNode(invocationExpression,
+        root = root.ReplaceNode(invocationExpression,
             invocationExpression
                 .WithArgumentList(
                     invocationExpression.ArgumentList.WithArguments(SyntaxFactory.SeparatedList(arguments)))
@@ -271,7 +270,4 @@ public class PreferGenericVariantCodeFixProvider : CodeFixProvider
 
         return contextDocument.WithSyntaxRoot(root);
     }
-
-    public override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(IdUseGenericVariant);
 }

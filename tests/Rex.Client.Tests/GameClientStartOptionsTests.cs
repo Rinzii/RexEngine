@@ -6,7 +6,7 @@ namespace Rex.Sandbox.Client.Tests;
 
 public sealed class GameClientStartOptionsTests
 {
-    private static readonly GameClientStartDefinition Definition = new(
+    private static readonly GameClientStartDefinition s_definition = new(
         new GameRuntimeIdentity("TestGame", "Test.Shared", "Test.Client", "Test.Server"),
         "127.0.0.1",
         27015,
@@ -17,25 +17,26 @@ public sealed class GameClientStartOptionsTests
     [Fact]
     public void TryParse_empty_defaults_to_standalone()
     {
-        var ok = ClientStartOptions.TryParse(Array.Empty<string>(), Definition, out var parsed, out var error);
+        bool ok = ClientStartOptions.TryParse(Array.Empty<string>(), s_definition, out ClientStartOptions? parsed,
+            out string? error);
 
         Assert.True(ok);
         Assert.Null(error);
         Assert.NotNull(parsed);
         Assert.False(parsed!.Headless);
         Assert.Equal(NetMode.Standalone, parsed.Mode);
-        Assert.Equal(Definition.DefaultHost, parsed.ConnectAddress);
-        Assert.Equal(Definition.DefaultPort, parsed.Port);
+        Assert.Equal(s_definition.DefaultHost, parsed.ConnectAddress);
+        Assert.Equal(s_definition.DefaultPort, parsed.Port);
     }
 
     [Fact]
     public void TryParse_listen_and_headless_preserve_runtime_flags()
     {
-        var ok = ClientStartOptions.TryParse(
+        bool ok = ClientStartOptions.TryParse(
             ["--headless", "--listen", "--port", "28000"],
-            Definition,
-            out var parsed,
-            out var error);
+            s_definition,
+            out ClientStartOptions? parsed,
+            out string? error);
 
         Assert.True(ok);
         Assert.Null(error);
@@ -48,10 +49,10 @@ public sealed class GameClientStartOptionsTests
     [Fact]
     public void TryParse_standalone_overrides_connect_for_mode()
     {
-        var ok = ClientStartOptions.TryParse(
+        bool ok = ClientStartOptions.TryParse(
             ["--connect", "host.example", "--standalone"],
-            Definition,
-            out var parsed,
+            s_definition,
+            out ClientStartOptions? parsed,
             out _);
 
         Assert.True(ok);
@@ -62,7 +63,7 @@ public sealed class GameClientStartOptionsTests
     [Fact]
     public void TryParse_missing_connect_value_fails()
     {
-        var ok = ClientStartOptions.TryParse(["--connect"], Definition, out _, out var error);
+        bool ok = ClientStartOptions.TryParse(["--connect"], s_definition, out _, out string? error);
 
         Assert.False(ok);
         Assert.Equal("Missing value for --connect.", error);
@@ -71,7 +72,7 @@ public sealed class GameClientStartOptionsTests
     [Fact]
     public void TryParse_invalid_port_value_fails()
     {
-        var ok = ClientStartOptions.TryParse(["--port", "bad"], Definition, out _, out var error);
+        bool ok = ClientStartOptions.TryParse(["--port", "bad"], s_definition, out _, out string? error);
 
         Assert.False(ok);
         Assert.Equal("Invalid value for --port.", error);
@@ -82,7 +83,7 @@ public sealed class GameClientStartOptionsTests
     [InlineData("70000")]
     public void TryParse_out_of_range_port_fails(string port)
     {
-        var ok = ClientStartOptions.TryParse(["--port", port], Definition, out _, out var error);
+        bool ok = ClientStartOptions.TryParse(["--port", port], s_definition, out _, out string? error);
 
         Assert.False(ok);
         Assert.Equal("Invalid value for --port.", error);

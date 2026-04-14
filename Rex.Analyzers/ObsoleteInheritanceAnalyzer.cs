@@ -1,8 +1,8 @@
 #nullable enable
+
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -50,12 +50,12 @@ public sealed class ObsoleteInheritanceAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        if (!AttributeHelper.HasAttribute(baseType, Attribute, out var data))
+        if (!AttributeHelper.HasAttribute(baseType, Attribute, out AttributeData? data))
         {
             return;
         }
 
-        var location = context.Symbol.Locations[0];
+        Location location = context.Symbol.Locations[0];
 
         if (GetMessageFromAttributeData(data) is { } message)
         {

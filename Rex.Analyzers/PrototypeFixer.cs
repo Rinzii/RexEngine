@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-
+using Microsoft.CodeAnalysis.Text;
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -21,12 +21,14 @@ public sealed class PrototypeFixer : CodeFixProvider
 
     public override Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        foreach (var diagnostic in context.Diagnostics)
+        foreach (Diagnostic diagnostic in context.Diagnostics)
         {
             switch (diagnostic.Id)
             {
                 case IdPrototypeRedundantType:
                     return RegisterRemoveType(context, diagnostic);
+                default:
+                    break;
             }
         }
 
@@ -35,9 +37,10 @@ public sealed class PrototypeFixer : CodeFixProvider
 
     private static async Task RegisterRemoveType(CodeFixContext context, Diagnostic diagnostic)
     {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
-        var span = diagnostic.Location.SourceSpan;
-        var token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf().OfType<AttributeArgumentSyntax>().First();
+        SyntaxNode? root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
+        TextSpan span = diagnostic.Location.SourceSpan;
+        AttributeArgumentSyntax? token = root?.FindToken(span.Start).Parent?.AncestorsAndSelf()
+            .OfType<AttributeArgumentSyntax>().First();
 
         if (token == null)
         {
@@ -69,13 +72,15 @@ public sealed class PrototypeFixer : CodeFixProvider
                 return document;
             }
 
-            var newAttributeSyntax = attributeSyntax.RemoveNode(argListSyntax, SyntaxRemoveOptions.KeepNoTrivia);
+            AttributeSyntax? newAttributeSyntax =
+                attributeSyntax.RemoveNode(argListSyntax, SyntaxRemoveOptions.KeepNoTrivia);
             root = root!.ReplaceNode(attributeSyntax, newAttributeSyntax!);
         }
         else
         {
             // Otherwise, just remove the argument.
-            var newArgListSyntax = argListSyntax.WithArguments(argListSyntax.Arguments.Remove(syntax));
+            AttributeArgumentListSyntax newArgListSyntax =
+                argListSyntax.WithArguments(argListSyntax.Arguments.Remove(syntax));
             root = root!.ReplaceNode(argListSyntax, newArgListSyntax);
         }
 

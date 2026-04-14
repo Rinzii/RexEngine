@@ -1,11 +1,11 @@
 #nullable enable
+
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -76,7 +76,7 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
                 }
 
                 // Find information about all marked proxy methods available to this class
-                if (!TryGetProxyMethods(typeSymbol, proxyForAttributeType, out var proxyMethods))
+                if (!TryGetProxyMethods(typeSymbol, proxyForAttributeType, out ProxyMethod[]? proxyMethods))
                 {
                     return;
                 }
@@ -99,15 +99,6 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Data about a proxy method and its target.
-    /// </summary>
-    private record class ProxyMethod(
-        IMethodSymbol Method,
-        INamedTypeSymbol TargetType,
-        string TargetMethod
-    );
-
-    /// <summary>
     /// Returns information about all proxy methods available to the specified class.
     /// </summary>
     private static bool TryGetProxyMethods(INamedTypeSymbol typeSymbol, INamedTypeSymbol proxyForAttribute,
@@ -123,11 +114,11 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
 
         HashSet<ProxyMethod> proxySet = [];
         // Search for methods in each type this inherits from
-        foreach (var baseType in TypeSymbolHelper.GetBaseTypes(typeSymbol))
+        foreach (ITypeSymbol? baseType in TypeSymbolHelper.GetBaseTypes(typeSymbol))
         {
             HashSet<ProxyMethod> classMethods = [];
             // Check each member
-            foreach (var member in baseType.GetMembers())
+            foreach (ISymbol? member in baseType.GetMembers())
             {
                 // We only care about methods
                 if (member is not IMethodSymbol method)
@@ -136,15 +127,15 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
                 }
 
                 // Make sure the method is marked as a proxy
-                if (!AttributeHelper.HasAttribute(method, proxyForAttribute, out var attributeData))
+                if (!AttributeHelper.HasAttribute(method, proxyForAttribute, out AttributeData? attributeData))
                 {
                     continue;
                 }
 
                 var targetType = attributeData.ConstructorArguments[0].Value as INamedTypeSymbol;
-                var targetMethod = attributeData.ConstructorArguments[1].Value as string ?? member.Name;
+                string targetMethod = attributeData.ConstructorArguments[1].Value as string ?? member.Name;
 
-                classMethods.Add(new ProxyMethod(method, targetType!, targetMethod));
+                _ = classMethods.Add(new ProxyMethod(method, targetType!, targetMethod));
             }
 
             proxySet.UnionWith(classMethods);
@@ -159,7 +150,162 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private sealed class AnalyzerState(ProxyMethod[] ProxyMethods)
+    /// <summary>
+    /// Check for incorrect use of the attribute.
+    /// </summary>
+    private static void AnalyzeAttribute(OperationAnalysisContext context, INamedTypeSymbol proxyForAttribute)
+    {
+        if (context.ContainingSymbol is not IMethodSymbol methodSymbol)
+        {
+            return;
+        }
+
+        if (context.Operation is not IAttributeOperation operation)
+        {
+            return;
+        }
+
+        if (operation.Syntax is not AttributeSyntax)
+        {
+            return;
+        }
+
+        if (operation.Operation is not IObjectCreationOperation creationOperation)
+        {
+            return;
+        }
+
+        // Make sure we're looking at the right attribute
+        if (!SymbolEqualityComparer.Default.Equals(creationOperation.Type, proxyForAttribute))
+        {
+            return;
+        }
+
+        // Get the target Type specified by the attribute
+        if ((creationOperation.Arguments[0].Value as ITypeOfOperation)?.TypeOperand is not { } targetType)
+        {
+            return;
+        }
+
+        // Try to get the set method name from the attribute constructor
+        string? targetMethodName = creationOperation.Arguments[1].Value.ConstantValue.Value as string;
+        // Check for a redundant set method name
+        if (targetMethodName == methodSymbol.Name)
+        {
+            Location location = creationOperation.Arguments[1].Syntax.GetLocation();
+            context.ReportDiagnostic(Diagnostic.Create(
+                RedundantMethodNameDescriptor,
+                location
+            ));
+        }
+
+        // Fall back to the method name
+        targetMethodName ??= methodSymbol.Name;
+
+        // Find all methods belonging to the target Type that have the right name
+        IEnumerable<IMethodSymbol> members = targetType.GetMembers(targetMethodName).Where(m => m is IMethodSymbol)
+            .Cast<IMethodSymbol>();
+
+        // Find the location of the argument's node
+        Location targetArgumentLocation = creationOperation.Arguments[0].Syntax.GetLocation();
+
+        // Make sure there's a method with the right name and matching signature
+        bool found = false;
+        foreach (IMethodSymbol? member in members)
+        {
+            if (DoSignaturesMatch(member, methodSymbol))
+            {
+                found = true;
+            }
+        }
+
+        if (!found)
+        {
+            IEnumerable<string> methodParams = methodSymbol.Parameters.Length > 0
+                ? methodSymbol.Parameters.Select(p => p.ToDisplayString())
+                : [];
+            string methodSignature = $"{targetType.Name}.{targetMethodName}({string.Join(", ", methodParams)})";
+            context.ReportDiagnostic(Diagnostic.Create(
+                TargetMethodNotFoundDescriptor,
+                targetArgumentLocation,
+                methodSignature
+            ));
+        }
+    }
+
+    private static bool DoSignaturesMatch(IMethodSymbol first, IMethodSymbol second)
+    {
+        // Make sure the number of type arguments is the same
+        if (first.TypeArguments.Length != second.TypeArguments.Length)
+        {
+            return false;
+        }
+
+        // Make sure any type constraints on the methods are the same
+        for (int i = 0; i < first.TypeParameters.Length; i++)
+        {
+            ImmutableArray<ITypeSymbol> firstConstraints = first.TypeParameters[i].ConstraintTypes;
+            ImmutableArray<ITypeSymbol> secondConstraints = second.TypeParameters[i].ConstraintTypes;
+            for (int j = 0; j < firstConstraints.Length; j++)
+            {
+                if (!SymbolEqualityComparer.Default.Equals(firstConstraints[j], secondConstraints[j]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        // Convert any type arguments in second to use the types of first
+        if (second.IsGenericMethod)
+        {
+            second = second.Construct(first.TypeArguments, first.TypeArgumentNullableAnnotations);
+        }
+
+        // Filter out any optional parameters
+        IParameterSymbol[] firstParams = first.Parameters.Where(p => !p.IsOptional).ToArray();
+        IParameterSymbol[] secondParams = second.Parameters.Where(p => !p.IsOptional).ToArray();
+
+        // A different number of parameters means no match
+        if (firstParams.Length != secondParams.Length)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < firstParams.Length; i++)
+        {
+            // Check if the parameter type is a generic type symbol (like T, TComp, etc.)
+            if (firstParams[i].Type is INamedTypeSymbol namedType && namedType.IsGenericType)
+            {
+                // If the compared parameter also is a generic type symbol, consider that a match
+                if (secondParams[i].Type is INamedTypeSymbol namedTypeSecond && namedTypeSecond.IsGenericType)
+                {
+                    continue;
+                }
+
+                // Otherwise, no match
+                return false;
+            }
+
+            // Make sure the Types match
+            if (!SymbolEqualityComparer.IncludeNullability.Equals(firstParams[i].Type, secondParams[i].Type))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Data about a proxy method and its target.
+    /// </summary>
+    private record ProxyMethod(
+        IMethodSymbol Method,
+        INamedTypeSymbol TargetType,
+        string TargetMethod
+    );
+
+    private sealed class AnalyzerState(ProxyMethod[] proxyMethods)
     {
         public void AnalyzeInvocation(OperationAnalysisContext context)
         {
@@ -181,10 +327,10 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
             }
 
             // Get the method being invoked
-            var invokedMethod = operation.TargetMethod;
+            IMethodSymbol invokedMethod = operation.TargetMethod;
 
             // Check each method we found
-            foreach (var (method, targetType, targetMethod) in ProxyMethods)
+            foreach ((IMethodSymbol method, INamedTypeSymbol targetType, string targetMethod) in proxyMethods)
             {
                 // Make sure the Type specified by the attribute is the one containing the method being invoked
                 if (!SymbolEqualityComparer.Default.Equals(targetType, invokedMethod.ContainingType))
@@ -221,150 +367,5 @@ public sealed class ProxyForAnalyzer : DiagnosticAnalyzer
                 break;
             }
         }
-    }
-
-    /// <summary>
-    /// Check for incorrect use of the attribute.
-    /// </summary>
-    private static void AnalyzeAttribute(OperationAnalysisContext context, INamedTypeSymbol proxyForAttribute)
-    {
-        if (context.ContainingSymbol is not IMethodSymbol methodSymbol)
-        {
-            return;
-        }
-
-        if (context.Operation is not IAttributeOperation operation)
-        {
-            return;
-        }
-
-        if (operation.Syntax is not AttributeSyntax attributeSyntax)
-        {
-            return;
-        }
-
-        if (operation.Operation is not IObjectCreationOperation creationOperation)
-        {
-            return;
-        }
-
-        // Make sure we're looking at the right attribute
-        if (!SymbolEqualityComparer.Default.Equals(creationOperation.Type, proxyForAttribute))
-        {
-            return;
-        }
-
-        // Get the target Type specified by the attribute
-        if ((creationOperation.Arguments[0].Value as ITypeOfOperation)?.TypeOperand is not { } targetType)
-        {
-            return;
-        }
-
-        // Try to get the set method name from the attribute constructor
-        var targetMethodName = creationOperation.Arguments[1].Value.ConstantValue.Value as string;
-        // Check for a redundant set method name
-        if (targetMethodName == methodSymbol.Name)
-        {
-            var location = creationOperation.Arguments[1].Syntax.GetLocation();
-            context.ReportDiagnostic(Diagnostic.Create(
-                RedundantMethodNameDescriptor,
-                location
-            ));
-        }
-
-        // Fall back to the method name
-        targetMethodName ??= methodSymbol.Name;
-
-        // Find all methods belonging to the target Type that have the right name
-        var members = targetType.GetMembers(targetMethodName).Where(m => m is IMethodSymbol).Cast<IMethodSymbol>();
-
-        // Find the location of the argument's node
-        var targetArgumentLocation = creationOperation.Arguments[0].Syntax.GetLocation();
-
-        // Make sure there's a method with the right name and matching signature
-        var found = false;
-        foreach (var member in members)
-        {
-            if (DoSignaturesMatch(member, methodSymbol))
-            {
-                found = true;
-            }
-        }
-
-        if (!found)
-        {
-            var methodParams = methodSymbol.Parameters.Length > 0
-                ? methodSymbol.Parameters.Select(p => p.ToDisplayString())
-                : [];
-            var methodSignature = $"{targetType.Name}.{targetMethodName}({string.Join(", ", methodParams)})";
-            context.ReportDiagnostic(Diagnostic.Create(
-                TargetMethodNotFoundDescriptor,
-                targetArgumentLocation,
-                methodSignature
-            ));
-        }
-    }
-
-    private static bool DoSignaturesMatch(IMethodSymbol first, IMethodSymbol second)
-    {
-        // Make sure the number of type arguments is the same
-        if (first.TypeArguments.Length != second.TypeArguments.Length)
-        {
-            return false;
-        }
-
-        // Make sure any type constraints on the methods are the same
-        for (var i = 0; i < first.TypeParameters.Length; i++)
-        {
-            var firstConstraints = first.TypeParameters[i].ConstraintTypes;
-            var secondConstraints = second.TypeParameters[i].ConstraintTypes;
-            for (var j = 0; j < firstConstraints.Length; j++)
-            {
-                if (!SymbolEqualityComparer.Default.Equals(firstConstraints[j], secondConstraints[j]))
-                {
-                    return false;
-                }
-            }
-        }
-
-        // Convert any type arguments in second to use the types of first
-        if (second.IsGenericMethod)
-        {
-            second = second.Construct(first.TypeArguments, first.TypeArgumentNullableAnnotations);
-        }
-
-        // Filter out any optional parameters
-        var firstParams = first.Parameters.Where(p => !p.IsOptional).ToArray();
-        var secondParams = second.Parameters.Where(p => !p.IsOptional).ToArray();
-
-        // A different number of parameters means no match
-        if (firstParams.Length != secondParams.Length)
-        {
-            return false;
-        }
-
-        for (var i = 0; i < firstParams.Length; i++)
-        {
-            // Check if the parameter type is a generic type symbol (like T, TComp, etc.)
-            if (firstParams[i].Type is INamedTypeSymbol namedType && namedType.IsGenericType)
-            {
-                // If the compared parameter also is a generic type symbol, consider that a match
-                if (secondParams[i].Type is INamedTypeSymbol namedTypeSecond && namedTypeSecond.IsGenericType)
-                {
-                    continue;
-                }
-
-                // Otherwise, no match
-                return false;
-            }
-
-            // Make sure the Types match
-            if (!SymbolEqualityComparer.IncludeNullability.Equals(firstParams[i].Type, secondParams[i].Type))
-            {
-                return false;
-            }
-        }
-
-        return true;
     }
 }

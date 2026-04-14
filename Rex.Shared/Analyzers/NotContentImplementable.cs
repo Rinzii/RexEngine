@@ -1,5 +1,3 @@
-using System;
-
 namespace Rex.Shared.Analyzers;
 
 /// <summary>

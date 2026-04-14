@@ -1,10 +1,8 @@
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
-
 using Rex.Roslyn.Shared;
 using static Rex.Roslyn.Shared.Diagnostics;
 
@@ -43,7 +41,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         }
 
         // Check each parameter of the method invocation
-        foreach (var argumentOperation in invocationOperation.Arguments)
+        foreach (IArgumentOperation argumentOperation in invocationOperation.Arguments)
         {
             // Check for our attribute on the parameter
             if (!AttributeHelper.HasAttribute(argumentOperation.Parameter, ForbidLiteralType, out _))
@@ -55,7 +53,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
             if (argumentOperation.Syntax is InvocationExpressionSyntax subExpressionSyntax)
             {
                 // Check each param value
-                foreach (var subArgument in subExpressionSyntax.ArgumentList.Arguments)
+                foreach (ArgumentSyntax subArgument in subExpressionSyntax.ArgumentList.Arguments)
                 {
                     CheckArgumentSyntax(context, argumentOperation, subArgument);
                 }
@@ -80,7 +78,7 @@ public sealed class ForbidLiteralAnalyzer : DiagnosticAnalyzer
         if (argumentSyntax.Expression is CollectionExpressionSyntax collectionExpressionSyntax)
         {
             // Check each value of the collection
-            foreach (var elementSyntax in collectionExpressionSyntax.Elements)
+            foreach (CollectionElementSyntax elementSyntax in collectionExpressionSyntax.Elements)
             {
                 if (elementSyntax is not ExpressionElementSyntax expressionSyntax)
                 {

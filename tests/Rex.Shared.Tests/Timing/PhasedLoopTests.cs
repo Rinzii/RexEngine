@@ -1,4 +1,5 @@
 using Rex.Shared.Timing;
+using SystemMath = System.Math;
 
 namespace Rex.Shared.Tests.Timing;
 
@@ -10,9 +11,9 @@ public sealed class PhasedLoopTests
     public void RunFixedSteps_runs_while_accumulator_covers_intervals()
     {
         var clock = new TickClock(60);
-        var acc = 0.0;
-        var steps = 0;
-        var count = PhasedLoop.RunFixedSteps(clock, ref acc, 0.05, () => steps++);
+        double acc = 0.0;
+        int steps = 0;
+        int count = PhasedLoop.RunFixedSteps(clock, ref acc, 0.05, () => steps++);
 
         Assert.Equal(3, count);
         Assert.Equal(3, steps);
@@ -25,11 +26,11 @@ public sealed class PhasedLoopTests
     public void RunFixedSteps_clamps_huge_frame_time()
     {
         var clock = new TickClock(60);
-        var acc = 0.0;
-        var steps = 0;
+        double acc = 0.0;
+        int steps = 0;
         _ = PhasedLoop.RunFixedSteps(clock, ref acc, 10.0, () => steps++, maxFrameSeconds: 0.25f);
 
-        var expectedSteps = (int)Math.Floor(0.25 / clock.TickInterval + 1e-9);
+        int expectedSteps = (int)SystemMath.Floor((0.25 / clock.TickInterval) + 1e-9);
         Assert.Equal(expectedSteps, steps);
     }
 }

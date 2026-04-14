@@ -23,8 +23,8 @@ public static class PhasedLoop
 
         // Bank leftover accumulator time plus the wall seconds for this call.
         accumulator += frameSeconds;
-        var steps = 0;
-        var interval = clock.TickInterval;
+        int steps = 0;
+        double interval = clock.TickInterval;
 
         // Drain whole tick intervals first so fixedStep and CurrentTick stay aligned.
         while (accumulator >= interval)

@@ -1,11 +1,9 @@
 #nullable enable
 using System.Collections.Immutable;
-using System.Linq;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using static Microsoft.CodeAnalysis.SymbolEqualityComparer;
-
 using static Rex.Roslyn.Shared.Diagnostics;
 
 namespace Rex.Analyzers;
@@ -15,7 +13,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
 {
     private const string ByRefAttribute = "Rex.Shared.GameObjects.ByRefEventAttribute";
 
-    private static readonly DiagnosticDescriptor ByRefEventSubscribedByValueRule = new(
+    private static readonly DiagnosticDescriptor s_byRefEventSubscribedByValueRule = new(
         IdByRefEventSubscribedByValue,
         "By-ref event subscribed to by value",
         "Tried to subscribe to a by-ref event '{0}' by value",
@@ -45,11 +43,10 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         "Make sure to not use the ref keyword when raising value events."
     );
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(
-        ByRefEventSubscribedByValueRule,
-        ByRefEventRaisedByValueRule,
-        ByValueEventRaisedByRefRule
-    );
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+    [
+        s_byRefEventSubscribedByValueRule, ByRefEventRaisedByValueRule, ByValueEventRaisedByRefRule
+    ];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -58,13 +55,13 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(compilationContext =>
         {
-            var raiseMethods = compilationContext.Compilation
+            IEnumerable<IMethodSymbol>? raiseMethods = compilationContext.Compilation
                 .GetTypeByMetadataName("Rex.Shared.GameObjects.EntitySystem")?
                 .GetMembers()
                 .Where(m => m.Name.Contains("RaiseLocalEvent") && m.Kind == SymbolKind.Method)
                 .Cast<IMethodSymbol>();
 
-            var busRaiseMethods = compilationContext.Compilation
+            IEnumerable<IMethodSymbol>? busRaiseMethods = compilationContext.Compilation
                 .GetTypeByMetadataName("Rex.Shared.GameObjects.EntityEventBus")?
                 .GetMembers()
                 .Where(m => m.Name.Contains("RaiseLocalEvent") && m.Kind == SymbolKind.Method)
@@ -80,7 +77,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
                 raiseMethods = raiseMethods.Concat(busRaiseMethods);
             }
 
-            var raiseMethodsArray = raiseMethods.ToArray();
+            IMethodSymbol[] raiseMethodsArray = raiseMethods.ToArray();
 
             compilationContext.RegisterOperationAction(
                 ctx => CheckEventRaise(ctx, raiseMethodsArray),
@@ -107,14 +104,14 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
             // If you try to do this normally by concatenating like busRaiseMethods above
             // the analyzer does not run without any errors
             // I don't know man
-            const string directedBusMethod = "Rex.Shared.GameObjects.IDirectedEventBus.RaiseLocalEvent";
-            if (!operation.TargetMethod.ToString().StartsWith(directedBusMethod))
+            const string DirectedBusMethod = "Rex.Shared.GameObjects.IDirectedEventBus.RaiseLocalEvent";
+            if (!operation.TargetMethod.ToString().StartsWith(DirectedBusMethod))
             {
                 return;
             }
         }
 
-        var arguments = operation.Arguments;
+        ImmutableArray<IArgumentOperation> arguments = operation.Arguments;
         IArgumentOperation eventArgument;
         switch (arguments.Length)
         {
@@ -129,7 +126,7 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
                 return;
         }
 
-        var eventParameter = eventArgument.Parameter;
+        IParameterSymbol? eventParameter = eventArgument.Parameter;
         // TODO have a way to check generic type parameters
         if (eventParameter == null ||
             eventParameter.Type.SpecialType == SpecialType.System_Object ||
@@ -138,21 +135,22 @@ public sealed class ByRefEventAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        var byRefAttribute = context.Compilation.GetTypeByMetadataName(ByRefAttribute);
+        INamedTypeSymbol? byRefAttribute = context.Compilation.GetTypeByMetadataName(ByRefAttribute);
         if (byRefAttribute == null)
         {
             return;
         }
 
-        var isByRefEventType = eventParameter.Type
+        bool isByRefEventType = eventParameter.Type
             .GetAttributes()
             .Any(attribute => attribute.AttributeClass?.Equals(byRefAttribute, Default) ?? false);
 
-        var parameterIsRef = eventParameter.RefKind == RefKind.Ref;
+        bool parameterIsRef = eventParameter.RefKind == RefKind.Ref;
 
         if (isByRefEventType != parameterIsRef)
         {
-            var descriptor = isByRefEventType ? ByRefEventRaisedByValueRule : ByValueEventRaisedByRefRule;
+            DiagnosticDescriptor descriptor =
+                isByRefEventType ? ByRefEventRaisedByValueRule : ByValueEventRaisedByRefRule;
             var diagnostic = Diagnostic.Create(descriptor, eventArgument.Syntax.GetLocation(), eventParameter.Type);
             context.ReportDiagnostic(diagnostic);
         }

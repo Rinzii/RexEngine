@@ -31,7 +31,7 @@ public sealed class ConnectEndpointParserTests
         string? expectedHost,
         int expectedPort)
     {
-        var ok = ConnectEndpointParser.TryParse(input, defaultPort, out var host, out var port);
+        bool ok = ConnectEndpointParser.TryParse(input, defaultPort, out string? host, out int port);
 
         Assert.True(ok);
         Assert.Equal(expectedHost, host);
@@ -49,7 +49,7 @@ public sealed class ConnectEndpointParserTests
     // Malformed bracket forms and bad ports.
     public void TryParse_invalid_inputs_return_false(string input)
     {
-        var ok = ConnectEndpointParser.TryParse(input, 27015, out _, out _);
+        bool ok = ConnectEndpointParser.TryParse(input, 27015, out _, out _);
 
         Assert.False(ok);
     }

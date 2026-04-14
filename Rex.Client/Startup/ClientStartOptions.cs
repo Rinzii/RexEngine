@@ -21,13 +21,13 @@ public sealed record ClientStartOptions(bool Headless, NetMode Mode, string Conn
         out ClientStartOptions options,
         out string? error)
     {
-        var headless = false;
-        var listen = false;
-        var standalone = false;
+        bool headless = false;
+        bool listen = false;
+        bool standalone = false;
         string? connectAddress = null;
-        var port = definition.DefaultPort;
+        int port = definition.DefaultPort;
 
-        using var enumerator = args.GetEnumerator();
+        using IEnumerator<string> enumerator = args.GetEnumerator();
         while (enumerator.MoveNext())
         {
             switch (enumerator.Current)
@@ -56,10 +56,12 @@ public sealed record ClientStartOptions(bool Headless, NetMode Mode, string Conn
                     options = null!;
                     error = "Invalid value for --port.";
                     return false;
+                default:
+                    continue;
             }
         }
 
-        var mode = standalone
+        NetMode mode = standalone
             ? NetMode.Standalone
             : listen
                 ? NetMode.ListenServer

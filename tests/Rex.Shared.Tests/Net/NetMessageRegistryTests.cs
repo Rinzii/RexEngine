@@ -23,8 +23,8 @@ public sealed class NetMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = NetMessageRegistry.Deserialize(reader);
-        var typed = Assert.IsType<DisconnectMessage>(decoded);
+        INetMessage decoded = NetMessageRegistry.Deserialize(reader);
+        DisconnectMessage typed = Assert.IsType<DisconnectMessage>(decoded);
 
         Assert.Equal(original.Reason, typed.Reason);
     }
@@ -33,15 +33,16 @@ public sealed class NetMessageRegistryTests
     // Unknown id throws and mentions the id in the message.
     public void Deserialize_unknown_message_id_throws()
     {
-        const ushort unknownId = 60000;
+        const ushort UnknownId = 60000;
         var writer = new NetDataWriter();
-        writer.Put(unknownId);
+        writer.Put(UnknownId);
         writer.Put((byte)0);
 
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var ex = Assert.Throws<InvalidOperationException>(() => NetMessageRegistry.Deserialize(reader));
+        InvalidOperationException ex =
+            Assert.Throws<InvalidOperationException>(() => NetMessageRegistry.Deserialize(reader));
 
         Assert.Contains("60000", ex.Message, StringComparison.Ordinal);
     }
@@ -65,8 +66,8 @@ public sealed class NetMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = NetMessageRegistry.Deserialize(reader);
-        var typed = Assert.IsType<DisconnectMessage>(decoded);
+        INetMessage decoded = NetMessageRegistry.Deserialize(reader);
+        DisconnectMessage typed = Assert.IsType<DisconnectMessage>(decoded);
 
         Assert.Equal("replaced", typed.Reason);
     }
@@ -84,7 +85,7 @@ public sealed class NetMessageRegistryTests
         var reader = new NetDataReader();
         reader.SetSource(writer.Data, 0, writer.Length);
 
-        var decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
+        DisconnectMessage decoded = Assert.IsType<DisconnectMessage>(NetMessageRegistry.Deserialize(reader));
 
         Assert.Equal("dup", decoded.Reason);
     }

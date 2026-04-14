@@ -21,33 +21,33 @@ internal static class Program
 
     private static void Start(string[] args)
     {
-        using var loggerFactory = LoggerFactory.Create(builder =>
+        using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
         {
-            builder.AddConsole();
+            _ = builder.AddConsole();
 
-            var logLevelEnv = Environment.GetEnvironmentVariable("REX_SANDBOX_CLIENT_LOG_LEVEL")?.Trim();
+            string? logLevelEnv = Environment.GetEnvironmentVariable("REX_SANDBOX_CLIENT_LOG_LEVEL")?.Trim();
             if (!string.IsNullOrEmpty(logLevelEnv) &&
-                Enum.TryParse<LogLevel>(logLevelEnv, true, out var logLevel))
+                Enum.TryParse(logLevelEnv, true, out LogLevel logLevel))
             {
-                builder.SetMinimumLevel(logLevel);
+                _ = builder.SetMinimumLevel(logLevel);
             }
             else
             {
                 // Keep third party and engine noise down, but still show Sandbox client lifecycle (connect, accept, etc.).
-                builder.SetMinimumLevel(LogLevel.Warning);
-                builder.AddFilter("Rex.Sandbox.Client", LogLevel.Information);
+                _ = builder.SetMinimumLevel(LogLevel.Warning);
+                _ = builder.AddFilter("Rex.Sandbox.Client", LogLevel.Information);
             }
         });
 
-        var logger = loggerFactory.CreateLogger("Rex.Sandbox.Client");
+        ILogger logger = loggerFactory.CreateLogger("Rex.Sandbox.Client");
 
-        if (!CommandLineArgs.TryParse(args, out var parsed, out var parseError))
+        if (!CommandLineArgs.TryParse(args, out CommandLineArgs? parsed, out string? parseError))
         {
             logger.CliParseFailed(parseError);
             return;
         }
 
-        foreach (var arg in parsed.UnrecognizedArguments)
+        foreach (string arg in parsed.UnrecognizedArguments)
         {
             logger.UnrecognizedCliArgument(arg);
         }
@@ -73,11 +73,12 @@ internal static class Program
         using var shutdownHook = new ConsoleShutdownHook(cts, app.Stop);
 
         string? host = null;
-        var port = args.Port;
+        int port = args.Port;
 
         if (args.ConnectAddress != null)
         {
-            if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out var parsedHost, out var parsedPort))
+            if (!ConnectEndpointParser.TryParse(args.ConnectAddress, args.Port, out string? parsedHost,
+                    out int parsedPort))
             {
                 logger.InvalidConnectAddress(args.ConnectAddress);
                 return;
@@ -92,7 +93,7 @@ internal static class Program
 
     private static void RunWithListenServer(CommandLineArgs args, ILoggerFactory loggerFactory, ILogger logger)
     {
-        using var serverProcessBridge = StartListenServerProcess(args.Port, logger);
+        using ReadyChildProcess? serverProcessBridge = StartListenServerProcess(args.Port, logger);
         if (serverProcessBridge == null)
         {
             return;
@@ -117,7 +118,7 @@ internal static class Program
 
     private static ReadyChildProcess? StartListenServerProcess(int port, ILogger logger)
     {
-        var serverAssemblyPath = RuntimeAssemblyLocator.ResolveServerAssemblyPath(
+        string? serverAssemblyPath = RuntimeAssemblyLocator.ResolveServerAssemblyPath(
             ServerAssemblyEnvironmentVariable,
             "Rex.Sandbox.Server.dll",
             "Rex.Sandbox.Client",
@@ -137,7 +138,7 @@ internal static class Program
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)!
+                WorkingDirectory = Path.GetDirectoryName(serverAssemblyPath)
             },
             EnableRaisingEvents = true
         };
@@ -197,19 +198,12 @@ internal static class Program
 
         logger.StoppingListenServer();
         process.Kill(true);
-        process.WaitForExit(5000);
+        _ = process.WaitForExit(5000);
     }
-
 }
 
 internal sealed class CommandLineArgs
 {
-    public bool Headless { get; }
-    public NetMode Mode { get; }
-    public string? ConnectAddress { get; }
-    public int Port { get; }
-    public IReadOnlyList<string> UnrecognizedArguments { get; }
-
     internal CommandLineArgs(
         bool headless,
         NetMode mode,
@@ -224,6 +218,12 @@ internal sealed class CommandLineArgs
         UnrecognizedArguments = unrecognizedArguments;
     }
 
+    public bool Headless { get; }
+    public NetMode Mode { get; }
+    public string? ConnectAddress { get; }
+    public int Port { get; }
+    public IReadOnlyList<string> UnrecognizedArguments { get; }
+
     public static bool TryParse(
         IReadOnlyList<string> args,
         [NotNullWhen(true)] out CommandLineArgs? parsed,
@@ -231,18 +231,18 @@ internal sealed class CommandLineArgs
     {
         parsed = null;
         error = null;
-        var headless = false;
-        var listenServer = false;
-        var standalone = false;
+        bool headless = false;
+        bool listenServer = false;
+        bool standalone = false;
         string? connectAddress = null;
-        var port = ProtocolConstants.DefaultPort;
+        int port = ProtocolConstants.DefaultPort;
         var unrecognized = new List<string>();
 
-        using var enumerator = args.GetEnumerator();
+        using IEnumerator<string> enumerator = args.GetEnumerator();
 
         while (enumerator.MoveNext())
         {
-            var arg = enumerator.Current;
+            string arg = enumerator.Current;
             switch (arg)
             {
                 case "--headless":
@@ -277,23 +277,13 @@ internal sealed class CommandLineArgs
             }
         }
 
-        NetMode mode;
-        if (standalone)
-        {
-            mode = NetMode.Standalone;
-        }
-        else if (connectAddress != null)
-        {
-            mode = NetMode.Client;
-        }
-        else if (listenServer)
-        {
-            mode = NetMode.ListenServer;
-        }
-        else
-        {
-            mode = NetMode.Standalone;
-        }
+        NetMode mode = standalone
+            ? NetMode.Standalone
+            : connectAddress != null
+                ? NetMode.Client
+                : listenServer
+                    ? NetMode.ListenServer
+                    : NetMode.Standalone;
 
         parsed = new CommandLineArgs(headless, mode, connectAddress, port, unrecognized);
         return true;

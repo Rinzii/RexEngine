@@ -1,5 +1,5 @@
-using Rex.Shared.Simulation;
 using Rex.Sandbox.Shared.Net.Messages;
+using Rex.Shared.Simulation;
 
 namespace Rex.Sandbox.Shared.Simulation;
 
@@ -25,62 +25,67 @@ public static class EntityTypeIds
 /// </summary>
 public sealed class GameWorld
 {
-    private readonly Dictionary<int, EntityState> _entities = new();
     private readonly DirtyTracker? _dirtyTracker;
+    private readonly Dictionary<int, EntityState> _entities = [];
     private int _nextEntityId = 1;
-    private uint _currentTick;
-
-    public IReadOnlyDictionary<int, EntityState> Entities => _entities;
-    public uint CurrentTick => _currentTick;
 
     public GameWorld(DirtyTracker? dirtyTracker = null)
     {
         _dirtyTracker = dirtyTracker;
     }
 
+    public IReadOnlyDictionary<int, EntityState> Entities => _entities;
+    public uint CurrentTick { get; private set; }
+
     public int SpawnEntity(Guid ownerClientId, string entityType, float x, float y, float z)
     {
-        var entityId = _nextEntityId++;
+        _ = ownerClientId;
+        _ = entityType;
+        int entityId = _nextEntityId++;
         _entities[entityId] = new EntityState(entityId, x, y, z, 0f);
-        _dirtyTracker?.MarkDirty(entityId, _currentTick);
+        _dirtyTracker?.MarkDirty(entityId, CurrentTick);
         return entityId;
     }
 
     public void DestroyEntity(int entityId)
     {
-        _entities.Remove(entityId);
+        _ = _entities.Remove(entityId);
     }
+
     public void ProcessInput(int entityId, PlayerInputMessage input)
     {
-        if (!_entities.TryGetValue(entityId, out var current))
+        if (!_entities.TryGetValue(entityId, out EntityState? current))
         {
             return;
         }
-        var newX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, current.X);
-        var newZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, current.Z);
-        var newRotY = input.LookY;
+
+        float newX = MathF.FusedMultiplyAdd(input.MoveX, MovementConstants.PlanarUnitsPerInputTick, current.X);
+        float newZ = MathF.FusedMultiplyAdd(input.MoveY, MovementConstants.PlanarUnitsPerInputTick, current.Z);
+        float newRotY = input.LookY;
 
         _entities[entityId] = new EntityState(entityId, newX, current.Y, newZ, newRotY);
-        _dirtyTracker?.MarkDirty(entityId, _currentTick);
+        _dirtyTracker?.MarkDirty(entityId, CurrentTick);
     }
 
     public void Tick(float deltaTime)
     {
-        _currentTick++;
+        _ = deltaTime;
+        CurrentTick++;
     }
 
     public WorldSnapshotMessage BuildSnapshot(uint serverTick, uint lastProcessedInputTick)
     {
-        var entities = new List<EntityState>(_entities.Values);
+        List<EntityState> entities = [.. _entities.Values];
         return new WorldSnapshotMessage(serverTick, lastProcessedInputTick, entities);
     }
+
     public WorldSnapshotMessage BuildDeltaSnapshot(uint serverTick, uint lastProcessedInputTick,
         HashSet<int> dirtyEntityIds)
     {
-        var entities = new List<EntityState>();
-        foreach (var entityId in dirtyEntityIds)
+        List<EntityState> entities = [];
+        foreach (int entityId in dirtyEntityIds)
         {
-            if (_entities.TryGetValue(entityId, out var state))
+            if (_entities.TryGetValue(entityId, out EntityState? state))
             {
                 entities.Add(state);
             }
